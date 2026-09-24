@@ -1,0 +1,126 @@
+<!-- 🚀 編輯與改派訂單 Modal 模組 (自帶獨立暗色玻璃擬物樣式) -->
+<style>
+    #orderStatusModal .modal-content-glass {
+        background: rgba(20, 16, 35, 0.96) !important;
+        border: 1px solid rgba(168, 85, 247, 0.35) !important;
+        border-radius: 20px !important;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85) !important;
+        color: #ffffff !important;
+    }
+    #orderStatusModal .form-control-glass {
+        background-color: rgba(255, 255, 255, 0.06) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        color: #ffffff !important;
+        border-radius: 12px;
+        padding: 8px 12px;
+        font-size: 0.9rem;
+    }
+    #orderStatusModal .form-control-glass:focus {
+        border-color: #c084fc !important;
+        box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.25) !important;
+    }
+    #orderStatusModal select.form-control-glass option {
+        background-color: #131021 !important;
+        color: #ffffff !important;
+    }
+</style>
+
+<div class="modal fade" id="orderStatusModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 520px;">
+        <div class="modal-content modal-content-glass">
+            <form id="orderStatusForm" method="POST">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-sliders text-info"></i>
+                        <span>編輯訂單與改派陪陪</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <div class="text-secondary small mb-3">
+                        目標單號：<span class="text-warning font-monospace fw-bold" id="statusModalOrderNo"></span>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="small text-secondary fw-semibold mb-1">類別</label>
+                            <input type="text" id="editCategory" name="category" class="form-control form-control-glass" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="small text-secondary fw-semibold mb-1">項目名稱</label>
+                            <input type="text" id="editGame" name="game" class="form-control form-control-glass" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="small text-secondary fw-semibold mb-1">內容 / 規格細項</label>
+                        <input type="text" id="editContentTier" name="content_tier" class="form-control form-control-glass">
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-4">
+                            <label class="small text-secondary fw-semibold mb-1">數量 / 時長</label>
+                            <input type="number" step="0.5" id="editDuration" name="duration" class="form-control form-control-glass text-end" required>
+                        </div>
+                        <div class="col-4">
+                            <label class="small text-secondary fw-semibold mb-1">單位</label>
+                            <input type="text" id="editUnit" name="unit" class="form-control form-control-glass" placeholder="小時/局/首">
+                        </div>
+                        <div class="col-4">
+                            <label class="small text-secondary fw-semibold mb-1">金額 (NTD)</label>
+                            <input type="number" id="editTotalAmount" name="total_amount" class="form-control form-control-glass text-end font-monospace" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="small text-secondary fw-semibold mb-1">指派 / 改派陪陪</label>
+                        <select id="editOrderTalent" name="talent_id" class="form-select form-control-glass">
+                            <option value="">派單中 (未指定)</option>
+                            <% if (typeof talents !== 'undefined' && talents && talents.length > 0) { %>
+                                <% talents.forEach(t => { %>
+                                    <option value="<%= t.id %>"><%= t.custom_nickname || t.global_name || t.username %></option>
+                                <% }) %>
+                            <% } %>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="small text-secondary fw-semibold mb-1">訂單狀態</label>
+                        <select id="editOrderStatus" name="status" class="form-select form-control-glass text-warning fw-bold">
+                            <option value="pending">派單中 (Pending)</option>
+                            <option value="accepted">進行中 (Accepted)</option>
+                            <option value="in_progress">進行中 (In Progress)</option>
+                            <option value="completed">已完成 (Completed)</option>
+                            <option value="cancelled">售後中 (Cancelled)</option>
+                            <option value="rejected">已駁回 (Rejected)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="small text-secondary fw-semibold mb-1">🤍 陪陪留言區</label>
+                        <textarea id="editTalentMessage" name="talent_message" class="form-control form-control-glass" rows="2" placeholder="感謝闆闆點單！"></textarea>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="small text-secondary fw-semibold mb-1">客服處理備註</label>
+                        <input type="text" id="editNote" name="note" class="form-control form-control-glass" placeholder="補充內容或改派說明">
+                    </div>
+                </div>
+
+                <div class="modal-footer border-0 pt-0 d-flex justify-content-between align-items-center">
+                    <div>
+                        <% if ((typeof hasPerm === 'function' && hasPerm('manage_orders')) || (typeof currentUser !== 'undefined' && currentUser && (currentUser.id === "604610298581876746" || currentUser.role === 'admin'))) { %>
+                            <button type="button" onclick="handleManualDeleteOrder()" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                                <i class="fa-solid fa-trash-can me-1"></i>手動刪除訂單
+                            </button>
+                        <% } %>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">取消</button>
+                        <button type="submit" class="btn btn-sm btn-primary rounded-pill px-4 fw-semibold" style="background: linear-gradient(135deg, #9333ea, #7e22ce); border: none;">確認儲存變更</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
