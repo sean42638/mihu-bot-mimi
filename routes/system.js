@@ -5,21 +5,7 @@ const {
     saveVipJsonFromDb, getRolesData, saveRolesData, 
     getCommissionData, saveCommissionData, syncCommandsJsonFromDb 
 } = require('../utils/dataSync');
-
-function ensureAuth(req, res, next) {
-    if (req.isAuthenticated()) return next();
-    res.redirect('/login?error=請先登入後臺');
-}
-
-function checkPerm(permNode) {
-    return (req, res, next) => {
-        if (!req.user) return res.redirect('/login');
-        if (req.user.role === 'admin') return next();
-        const perms = res.locals.userPerms || [];
-        if (perms.includes(permNode)) return next();
-        res.redirect('/dashboard?error=' + encodeURIComponent('您的身分組無權限訪問該功能模組'));
-    };
-}
+const { requireAuth: ensureAuth, requirePerm: checkPerm } = require('../middleware/auth');
 
 // 機器人指令設定
 router.get('/system/bot-settings', ensureAuth, checkPerm('sys_settings'), (req, res) => {

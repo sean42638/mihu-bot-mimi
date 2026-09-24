@@ -1,20 +1,11 @@
-const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags, PermissionFlagsBits } = require('discord.js');
 const db = require('../database');
-const fs = require('fs');
-const path = require('path');
+const { createMihuEmbed, BRAND_COLORS } = require('../utils/embedBuilder');
+const { syncOrdersJsonFromDb } = require('../utils/dataSync');
 
 function checkDiscordAdminPermission(member, userId) {
     if (userId === "604610298581876746") return true;
     return member && member.permissions && member.permissions.has(PermissionFlagsBits.Administrator);
-}
-
-function syncOrdersJsonFromDb() {
-    const ordersFilePath = path.join(__dirname, '..', 'data', 'orders.json');
-    db.all('SELECT * FROM orders ORDER BY created_at DESC', (err, rows) => {
-        if (!err && rows) {
-            try { fs.writeFileSync(ordersFilePath, JSON.stringify(rows, null, 2), 'utf8'); } catch (e) {}
-        }
-    });
 }
 
 module.exports = {
@@ -51,17 +42,20 @@ module.exports = {
                     try {
                         const staffChannel = await client.channels.fetch(targetStaffChannelId);
                         if (staffChannel) {
-                            const detailEmbed = new EmbedBuilder()
-                                .setColor('#3b82f6')
-                                .setTitle('📋 恭喜您獲得派單派派！詳細訂單資料')
-                                .addFields(
-                                    { name: '訂單編號', value: `\`${order.order_no}\``, inline: true },
-                                    { name: '訂單類別', value: `\`${order.category || '陪玩單'}\``, inline: true },
-                                    { name: '服務項目', value: `**${order.game}**`, inline: true },
-                                    { name: '內容規格', value: `\`${order.content_tier || '標準'}\``, inline: true },
-                                    { name: '服務時長', value: `**${order.duration}${order.unit || '小時'}**`, inline: true },
-                                    { name: '總計金額', value: `**$${order.total_amount} NTD**`, inline: true }
-                                ).setFooter({ text: '米胡電競 MiHu Gaming · 服務計時卡片' }).setTimestamp();
+                            // 🚀 使用模板建立美觀藍色小卡
+                            const detailEmbed = createMihuEmbed({
+                                title: '📋 恭喜您獲得派單派派！詳細訂單資料',
+                                color: BRAND_COLORS.BLUE,
+                                footerText: '米胡電競 MiHu Gaming · 服務計時卡片'
+                            })
+                            .addFields(
+                                { name: '訂單編號', value: `\`${order.order_no}\``, inline: true },
+                                { name: '訂單類別', value: `\`${order.category || '陪玩單'}\``, inline: true },
+                                { name: '服務項目', value: `**${order.game}**`, inline: true },
+                                { name: '內容規格', value: `\`${order.content_tier || '標準'}\``, inline: true },
+                                { name: '服務時長', value: `**${order.duration}${order.unit || '小時'}**`, inline: true },
+                                { name: '總計金額', value: `**$${order.total_amount} NTD**`, inline: true }
+                            );
 
                             if (order.extra) detailEmbed.addFields({ name: '附加條件', value: order.extra, inline: false });
                             if (order.note) detailEmbed.addFields({ name: '顧客備註', value: order.note, inline: false });
