@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>薪轉管理 · 米胡電競 MiHu Gaming</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #0b0914;
+            --sidebar-bg: #131021;
+            --card-bg: rgba(23, 19, 38, 0.85);
+            --card-border: rgba(168, 85, 247, 0.2);
+            --mihu-purple: #9333ea;
+            --mihu-purple-light: #c084fc;
+            --text-light: #f3f4f6;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-light);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .main-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            max-height: 100vh;
+            width: calc(100vw - 280px);
+            min-width: 0;
+        }
+
+        .content-body { padding: 20px 36px 32px; flex-grow: 1; }
+
+        .page-header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+            gap: 14px;
+        }
+
+        .page-title-text {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .privacy-alert-banner {
+            background: linear-gradient(90deg, rgba(239, 68, 68, 0.15), rgba(168, 85, 247, 0.08));
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            border-radius: 14px;
+            padding: 12px 18px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .glass-table-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(15px);
+        }
+
+        .table-responsive { margin: 0; overflow-x: auto; }
+        .mihu-table {
+            width: 100%;
+            margin-bottom: 0;
+            color: #f3f4f6;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        .mihu-table th {
+            background: rgba(0, 0, 0, 0.55);
+            color: #94a3b8;
+            font-weight: 700;
+            font-size: 0.84rem;
+            text-transform: uppercase;
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            white-space: nowrap;
+        }
+        .mihu-table td {
+            padding: 15px 20px;
+            vertical-align: middle;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.92rem;
+            white-space: nowrap;
+        }
+        .mihu-table tbody tr:hover {
+            background: rgba(168, 85, 247, 0.09);
+        }
+
+        .search-box-wrap {
+            position: relative;
+            width: 280px;
+            flex-shrink: 0;
+        }
+        .search-input-glass {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            color: #ffffff !important;
+            border-radius: 30px;
+            padding: 8px 36px 8px 38px;
+            font-size: 0.88rem;
+            width: 100%;
+        }
+        .search-icon-left {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 0.88rem;
+        }
+
+        .account-num-mask {
+            font-family: monospace;
+            letter-spacing: 1px;
+            color: #fde047;
+            font-weight: bold;
+        }
+
+        .modal-content-glass {
+            background: rgba(20, 16, 35, 0.97);
+            border: 1px solid rgba(168, 85, 247, 0.35);
+            border-radius: 20px;
+            backdrop-filter: blur(25px);
+            color: #fff;
+        }
+        .form-control-glass {
+            background-color: rgba(255, 255, 255, 0.05) !important;
+            border: 1px solid rgba(255, 255, 255, 0.18) !important;
+            color: #ffffff !important;
+            border-radius: 12px;
+            padding: 10px 14px;
+        }
+    </style>
+</head>
+<body>
+
+<%- include('partials/sidebar', { activePage: 'sys_payroll' }) %>
+
+<div class="main-wrapper">
+    <%- include('partials/navbar', { activePage: 'sys_payroll' }) %>
+
+    <div class="content-body">
+        <div class="page-header-content">
+            <div>
+                <div class="page-title-text">
+                    <i class="fa-solid fa-file-invoice-dollar text-warning"></i>
+                    <span>員工薪轉帳戶管理</span>
+                </div>
+                <p class="text-secondary small mb-0">機密匯款資料庫，供出納月結核銷與匯款轉帳對帳使用</p>
+            </div>
+
+            <div class="d-flex align-items-center gap-3">
+                <div class="search-box-wrap">
+                    <i class="fa-solid fa-magnifying-glass search-icon-left"></i>
+                    <input type="text" id="payrollSearchInput" class="search-input-glass" placeholder="搜尋本名 / 暱稱 / 銀行 / 帳號...">
+                </div>
+
+                <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-3 py-2 fw-semibold text-nowrap" id="exportPayrollBtn">
+                    <i class="fa-solid fa-file-csv me-1"></i>匯出 CSV 清單
+                </button>
+            </div>
+        </div>
+
+        <div class="privacy-alert-banner">
+            <div class="d-flex align-items-center gap-2">
+                <i class="fa-solid fa-user-shield text-danger fs-5"></i>
+                <span class="small text-light">⚠️ <strong>資安機密宣告</strong>：本頁面包含員工金融個資，僅限財務長與最高管理層閱讀。所有檢視與編輯行為將寫入系統操作日誌。</span>
+            </div>
+            <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25 px-2.5 py-1">嚴禁外流</span>
+        </div>
+
+        <div class="glass-table-card">
+            <div class="table-responsive">
+                <table class="mihu-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 18%;">員工 / DISCORD 暱稱</th>
+                            <th style="width: 12%;">真實姓名</th>
+                            <th style="width: 15%;">銀行名稱</th>
+                            <th style="width: 10%;">代碼 (3碼)</th>
+                            <th style="width: 15%;">分行名稱</th>
+                            <th style="width: 20%;">匯款受款帳戶</th>
+                            <th style="width: 10%; text-align: right;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="payrollTableBody">
+                        <% if (staffs && staffList.length > 0) { %>
+                            <% staffList.forEach(s => { 
+                                const displayName = s.custom_nickname || s.global_name || s.username;
+                                const payrollJson = JSON.stringify({
+                                    id: s.id,
+                                    displayName: displayName,
+                                    username: s.username,
+                                    realName: s.real_name || '',
+                                    bankName: s.bank_name || '',
+                                    bankCode: s.bank_code || '',
+                                    bankBranch: s.bank_branch || '',
+                                    bankAccount: s.bank_account || ''
+                                });
+                            %>
+                                <tr class="payroll-row" data-staff='<%- payrollJson %>' data-search="<%= `${displayName} ${s.username} ${s.real_name || ''} ${s.bank_name || ''} ${s.bank_account || ''}`.toLowerCase() %>">
+                                    <td>
+                                        <div class="fw-bold text-white"><%= displayName %></div>
+                                        <span class="text-secondary font-monospace" style="font-size: 0.74rem;">@<%= s.username %></span>
+                                    </td>
+                                    <td>
+                                        <span class="fw-bold text-info"><%= s.real_name || '未填寫' %></span>
+                                    </td>
+                                    <td><%= s.bank_name || '未設定' %></td>
+                                    <td><span class="badge bg-secondary font-monospace"><%= s.bank_code || '---' %></span></td>
+                                    <td><span class="text-white-50"><%= s.bank_branch || '-' %></span></td>
+                                    <td>
+                                        <% if (s.bank_account) { %>
+                                            <span class="account-num-mask"><%= s.bank_account %></span>
+                                        <% } else { %>
+                                            <span class="text-danger small"><i class="fa-solid fa-circle-exclamation me-1"></i>未提供帳號</span>
+                                        <% } %>
+                                    </td>
+                                    <td class="text-end">
+                                        <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-3 py-1 btn-edit-payroll">
+                                            <i class="fa-solid fa-pen-to-square me-1"></i>編輯
+                                        </button>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        <% } else { %>
+                            <tr>
+                                <td colspan="7" class="text-center py-5 text-secondary">目前尚無員工薪轉資料紀錄</td>
+                            </tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 編輯薪轉帳戶資料 Modal -->
+<div class="modal fade" id="payrollEditModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 500px;">
+        <div class="modal-content modal-content-glass">
+            <form id="payrollEditForm" method="POST">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-file-invoice-dollar text-warning me-2"></i>修改員工薪轉帳戶</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <div class="text-secondary small mb-3">
+                        目標員工：<strong class="text-white" id="editStaffName">--</strong>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="small text-secondary fw-semibold mb-1">戶籍真實姓名</label>
+                        <input type="text" id="editRealName" name="real_name" class="form-control form-control-glass" placeholder="例如：張小明" required>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-8">
+                            <label class="small text-secondary fw-semibold mb-1">金融機構名稱</label>
+                            <input type="text" id="editBankName" name="bank_name" class="form-control form-control-glass" placeholder="例如：中國信託商業銀行" required>
+                        </div>
+                        <div class="col-4">
+                            <label class="small text-secondary fw-semibold mb-1">總行代碼</label>
+                            <input type="text" id="editBankCode" name="bank_code" class="form-control form-control-glass font-monospace text-center" maxlength="3" placeholder="822" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="small text-secondary fw-semibold mb-1">開戶分行名稱</label>
+                        <input type="text" id="editBankBranch" name="bank_branch" class="form-control form-control-glass" placeholder="例如：板橋分行">
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="small text-secondary fw-semibold mb-1">匯款受款帳號 (純數字)</label>
+                        <input type="text" id="editBankAccount" name="bank_account" class="form-control form-control-glass font-monospace" placeholder="例如：123456789012" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-sm btn-warning rounded-pill px-4 fw-bold text-dark">儲存薪轉資料</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const modal = new bootstrap.Modal(document.getElementById('payrollEditModal'));
+        const rows = document.querySelectorAll('.payroll-row');
+        const searchInput = document.getElementById('payrollSearchInput');
+
+        if (searchInput) {
+            searchInput.addEventListener('input', () => {
+                const q = searchInput.value.trim().toLowerCase();
+                rows.forEach(r => {
+                    const searchData = r.getAttribute('data-search') || '';
+                    r.style.display = searchData.includes(q) ? '' : 'none';
+                });
+            });
+        }
+
+        rows.forEach(r => {
+            const btn = r.querySelector('.btn-edit-payroll');
+            if (btn) {
+                btn.addEventListener('click', () => {
+                    const data = JSON.parse(r.getAttribute('data-staff'));
+                    document.getElementById('payrollEditForm').action = `/system/payroll/update/${data.id}`;
+                    document.getElementById('editStaffName').textContent = `${data.displayName} (@${data.username})`;
+                    document.getElementById('editRealName').value = data.realName;
+                    document.getElementById('editBankName').value = data.bankName;
+                    document.getElementById('editBankCode').value = data.bankCode;
+                    document.getElementById('editBankBranch').value = data.bankBranch;
+                    document.getElementById('editBankAccount').value = data.bankAccount;
+                    modal.show();
+                });
+            }
+        });
+
+        const exportBtn = document.getElementById('exportPayrollBtn');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', () => {
+                window.location.href = '/system/payroll/export-csv';
+            });
+        }
+    });
+</script>
+
+<%- include('partials/feature_modal') %>
+
+</body>
+</html>
