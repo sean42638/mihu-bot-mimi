@@ -6,23 +6,33 @@ const { requireAuth: ensureAuth, requirePerm: checkPerm } = require('../../middl
 const { calculateDiscount } = require('../../utils/discountHelper');
 const { dbRun } = require('../../utils/dbHelper');
 
-// 1. 訂單管理頁面
+// 1. 訂單管理頁面 (新增 負責客服 cs_id 的 JOIN 關聯)
 router.get('/', ensureAuth, checkPerm('manage_orders'), (req, res) => {
     db.get('SELECT * FROM users WHERE id = ?', [req.user.id], (err, currentUser) => {
         const orderSql = `
             SELECT 
                 o.*,
+                -- 闆闆資訊
                 b.username as boss_username,
                 b.global_name as boss_global_name,
                 b.custom_nickname as boss_nickname,
                 b.avatar as boss_avatar,
+                
+                -- 陪陪資訊
                 t.username as talent_username,
                 t.global_name as talent_global_name,
                 t.custom_nickname as talent_nickname,
-                t.avatar as talent_avatar
+                t.avatar as talent_avatar,
+
+                -- 🚀 負責客服資訊 (新增 cs 關聯)
+                cs.username as cs_username,
+                cs.global_name as cs_global_name,
+                cs.custom_nickname as cs_nickname,
+                cs.avatar as cs_avatar
             FROM orders o
             LEFT JOIN users b ON o.boss_id = b.id
             LEFT JOIN users t ON o.talent_id = t.id
+            LEFT JOIN users cs ON o.cs_id = cs.id
             ORDER BY o.created_at DESC
         `;
 

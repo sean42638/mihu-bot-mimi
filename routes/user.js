@@ -182,12 +182,49 @@ router.get('/income', ensureAuth, checkPerm('my_income'), (req, res) => {
 });
 
 // 我的訂單
-router.get('/my-orders', ensureAuth, checkPerm('my_orders'), (req, res) => {
-    const userId = req.user.id;
-    db.get('SELECT * FROM users WHERE id = ?', [userId], (err, currentUser) => {
-        const orderSql = `SELECT o.*, b.username as boss_username, b.global_name as boss_global_name, b.custom_nickname as boss_nickname, b.avatar as boss_avatar, t.username as talent_username, t.global_name as talent_global_name, t.custom_nickname as talent_nickname, t.avatar as talent_avatar FROM orders o LEFT JOIN users b ON o.boss_id = b.id LEFT JOIN users t ON o.talent_id = t.id WHERE o.boss_id = ? OR o.talent_id = ? ORDER BY o.created_at DESC`;
-        db.all(orderSql, [userId, userId], (oErr, orders) => {
-            res.render('my_orders', { user: currentUser || req.user, orders: orders || [] });
+// 📄 在負責處理 GET /my-orders 的路由中
+router.get('/my-orders', ensureAuth, (req, res) => {
+    const currentUserId = req.user.id; // 🚀 當前登入會員的 Discord ID
+
+    // 🚀 SQL 關鍵：只撈取 boss_id 等於當前登入者 ID 的訂單
+    const myOrdersSql = `
+        SELECT 
+            o.*,
+            -- 闆闆資訊 (就是當前登入使用者)
+            b.username as boss_username,
+            b.global_name as boss_global_name,
+            b.custom_nickname as boss_nickname,
+            b.avatar as boss_avatar,
+            
+            -- 陪陪資訊
+            t.username as talent_username,
+            t.global_name as talent_global_name,
+            t.custom_nickname as talent_nickname,
+            t.avatar as talent_avatar,
+
+            -- 客服資訊
+            cs.username as cs_username,
+            cs.global_name as cs_global_name,
+            cs.custom_nickname as cs_nickname,
+            cs.avatar as cs_avatar
+        FROM orders o
+        LEFT JOIN users b ON o.boss_id = b.id
+        LEFT JOIN users t ON o.talent_id = t.id
+        LEFT JOIN users cs ON o.cs_id = cs.id
+        WHERE o.boss_id = ? 
+        ORDER BY o.created_at DESC
+    `;
+
+    db.all(myOrdersSql, [currentUserId], (err, orders) => {
+        if (err) {
+            console.error('❌ 讀取個人訂單失敗:', err);
+            return res.status(500).send('讀取個人訂單失敗');
+        }
+
+        res.render('my_orders', {
+            user: req.user,
+            orders: orders || [],
+            activePage: 'my-orders'
         });
     });
 });

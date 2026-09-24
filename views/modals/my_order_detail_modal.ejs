@@ -1,0 +1,131 @@
+<!-- 🚀 我的訂單 · 精緻化獨立詳情 Modal 視窗 -->
+<div class="modal fade" id="myOrderDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="background: #131021; border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 24px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6); overflow: hidden; color: #f3f4f6;">
+            
+            <!-- Modal 頂部標題區 -->
+            <div class="modal-header px-4 py-3 border-bottom" style="border-color: rgba(255, 255, 255, 0.08) !important; background: rgba(255, 255, 255, 0.02);">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-receipt text-warning fs-5"></i>
+                    <h5 class="modal-title fw-bold text-white mb-0" style="font-size: 1.1rem;">訂單詳細內容</h5>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body p-4" style="max-height: 78vh; overflow-y: auto;">
+                
+                <!-- 1. 頂部核心資訊卡 -->
+                <div class="p-3 mb-4 rounded-4" style="background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.2);">
+                    <div class="row g-3 text-center text-md-start">
+                        <div class="col-md-4">
+                            <div class="text-secondary small">📌 訂單編號</div>
+                            <div class="fw-bold text-white font-monospace fs-6" id="myDetailOrderNo">--</div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-secondary small">📅 下單時間 / 建立時間</div>
+                            <div class="fw-bold text-light font-monospace small" id="myDetailCreatedAt">--</div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-secondary small">🎧 訂單狀態 / 客服</div>
+                            <div class="fw-bold text-info small" id="myDetailStatus">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. 人員關係網 -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="p-3 rounded-4" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06);">
+                            <div class="text-secondary small mb-1"><i class="fa-solid fa-crown text-warning me-1"></i>闆闆 (顧客)</div>
+                            <div class="fw-bold text-white small" id="myDetailBossInfo">--</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 rounded-4" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06);">
+                            <div class="text-secondary small mb-1"><i class="fa-solid fa-gamepad text-purple me-1"></i>服務陪陪</div>
+                            <div class="fw-bold text-light small" id="myDetailTalentInfo">--</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 rounded-4" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06);">
+                            <div class="text-secondary small mb-1"><i class="fa-solid fa-headset text-info me-1"></i>負責客服</div>
+                            <div class="fw-bold text-info small" id="myDetailCsName">米胡客服</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. 服務與項目詳細內容 -->
+                <div class="p-3 mb-4 rounded-4" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06);">
+                    <h6 class="fw-bold text-light mb-3" style="font-size: 0.92rem;"><i class="fa-solid fa-list-ul text-purple me-2"></i>服務項目與規格細節</h6>
+                    <div class="row g-3">
+                        <div class="col-md-3 col-6">
+                            <div class="text-secondary small">類別</div>
+                            <div class="fw-bold text-purple small" id="myDetailCategory">陪玩單</div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="text-secondary small">項目</div>
+                            <div class="fw-bold text-white small" id="myDetailItem">--</div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="text-secondary small">內容 / 規格 / 階級</div>
+                            <div class="fw-bold text-light small" id="myDetailContentTier">--</div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="text-secondary small">數量 / 約定時長</div>
+                            <div class="fw-bold text-light small" id="myDetailDuration">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. 時間紀錄 -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-4" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06);">
+                            <div class="text-secondary small mb-1"><i class="fa-regular fa-clock text-success me-1"></i>服務開始時間</div>
+                            <div class="fw-bold text-light font-monospace small" id="myDetailStartTime">尚未開始</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-4" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06);">
+                            <div class="text-secondary small mb-1"><i class="fa-regular fa-clock text-danger me-1"></i>服務結束時間</div>
+                            <div class="fw-bold text-light font-monospace small" id="myDetailEndTime">尚未結束</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. 💖 陪陪留給闆闆的話 (極致高亮專區) -->
+                <div class="p-3 mb-4 rounded-4" style="background: rgba(236, 72, 153, 0.1); border: 1px solid rgba(236, 72, 153, 0.3);">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <i class="fa-solid fa-heart text-pink"></i>
+                        <h6 class="fw-bold text-pink mb-0" style="font-size: 0.92rem;">陪陪留言區 (留給闆闆的話)</h6>
+                    </div>
+                    <div class="p-3 rounded-3" style="background: rgba(0, 0, 0, 0.2); border-left: 3px solid #f472b6;">
+                        <p class="mb-0 text-light small fst-italic" id="myDetailTalentMessage" style="white-space: pre-wrap; line-height: 1.6;">尚無留言</p>
+                    </div>
+                </div>
+
+                <!-- 6. 金額明細結算卡片 (已將實收總金額改為 總花費) -->
+                <div class="p-3 rounded-4" style="background: rgba(245, 158, 11, 0.06); border: 1px solid rgba(245, 158, 11, 0.2);">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div>
+                            <div class="text-secondary small">原價金額：<span class="text-light font-monospace" id="myDetailOriginalPrice">$0</span></div>
+                            <div class="text-secondary small">折扣優惠：<span class="text-danger font-monospace" id="myDetailDiscount">$0</span></div>
+                        </div>
+                        <div class="text-end">
+                            <!-- 🚀 精準修正：將文字改為 總花費 (NTD) -->
+                            <div class="text-secondary small">總花費 (NTD)</div>
+                            <div class="h4 fw-bold text-warning font-monospace mb-0" id="myDetailTotalAmount">$0 NTD</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Modal 底部按鈕 -->
+            <div class="modal-footer px-4 py-3 border-top" style="border-color: rgba(255, 255, 255, 0.08) !important;">
+                <button type="button" class="btn btn-secondary px-4 rounded-pill" data-bs-dismiss="modal">關閉</button>
+            </div>
+
+        </div>
+    </div>
+</div>

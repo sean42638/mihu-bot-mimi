@@ -39,7 +39,6 @@
             flex-direction: column;
         }
 
-        /* 🚀 獨立訂單表格卡片與 7 單區域滾動 */
         .glass-table-card {
             background: rgba(23, 19, 38, 0.85) !important;
             border: 1px solid rgba(168, 85, 247, 0.2) !important;
@@ -50,32 +49,38 @@
 
         .table-responsive-scroll { 
             margin: 0; 
-            max-height: 520px; 
+            max-height: 540px; 
             overflow-y: auto !important; 
             overflow-x: auto;
             scrollbar-width: thin;
+            scrollbar-color: rgba(168, 85, 247, 0.4) transparent;
         }
 
         .mihu-table { width: 100%; margin-bottom: 0; color: #f3f4f6 !important; border-collapse: separate; border-spacing: 0; }
         .mihu-table th {
             background: #131021 !important; color: #94a3b8 !important; font-weight: 700; font-size: 0.84rem;
-            text-transform: uppercase; padding: 16px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+            text-transform: uppercase; padding: 18px 24px; border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
             white-space: nowrap; position: sticky; top: 0; z-index: 10;
         }
-        .mihu-table td { padding: 15px 20px; vertical-align: middle; border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important; font-size: 0.92rem; white-space: nowrap; color: #f3f4f6 !important; }
-        .mihu-table tbody tr.order-row:hover { background: rgba(168, 85, 247, 0.12) !important; cursor: pointer; }
+        .mihu-table td { padding: 18px 24px; vertical-align: middle; border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important; font-size: 0.94rem; white-space: nowrap; color: #f3f4f6 !important; }
+        .mihu-table tbody tr.order-row { cursor: pointer; transition: all 0.2s ease; }
+        .mihu-table tbody tr.order-row:hover { background: rgba(168, 85, 247, 0.14) !important; }
 
         .filter-tabs { display: flex; gap: 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); padding: 4px; border-radius: 14px; }
-        .filter-tab-btn { background: transparent; border: none; color: #94a3b8; font-size: 0.84rem; font-weight: 600; padding: 6px 14px; border-radius: 10px; cursor: pointer; }
+        .filter-tab-btn { background: transparent; border: none; color: #94a3b8; font-size: 0.84rem; font-weight: 600; padding: 6px 16px; border-radius: 10px; cursor: pointer; }
         .filter-tab-btn.active { background: rgba(168, 85, 247, 0.25); color: #fff; border: 1px solid rgba(168, 85, 247, 0.4); }
 
         .search-box-wrap { position: relative; width: 280px; }
         .search-input-glass { background-color: rgba(255, 255, 255, 0.05) !important; border: 1px solid rgba(255, 255, 255, 0.14) !important; color: #ffffff !important; border-radius: 30px; padding: 8px 36px; font-size: 0.88rem; width: 100%; }
         .user-mini-col { display: flex; align-items: center; gap: 10px; }
-        .user-mini-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255, 255, 255, 0.15); }
-        .category-badge { font-size: 0.78rem; font-weight: 700; padding: 4px 12px; border-radius: 20px; display: inline-flex; }
+        .user-mini-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255, 255, 255, 0.15); }
+        
+        .category-badge { font-size: 0.8rem; font-weight: 700; padding: 5px 14px; border-radius: 20px; display: inline-flex; }
         .badge-陪玩單 { background: rgba(168, 85, 247, 0.18); border: 1px solid rgba(168, 85, 247, 0.4); color: #d8b4fe; }
-        .status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: 0.76rem; font-weight: 700; }
+        
+        .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 20px; font-size: 0.78rem; font-weight: 700; }
+        .status-badge-pending   { background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #fde047; }
+        .status-badge-active    { background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; }
         .status-badge-completed { background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; }
     </style>
 </head>
@@ -91,7 +96,7 @@
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div>
                     <div class="h4 fw-bold text-white mb-1"><i class="fa-solid fa-receipt text-warning me-2"></i>我的訂單</div>
-                    <p class="text-secondary small mb-0">檢視個人所有消費與派單紀錄與陪陪留言心聲</p>
+                    <p class="text-secondary small mb-0">檢視您作為闆闆所委託的所有點單與消費紀錄 (點擊任意訂單檢視詳細資訊與陪陪留言)</p>
                 </div>
 
                 <div class="search-box-wrap">
@@ -101,7 +106,8 @@
 
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div class="filter-tabs">
-                    <button type="button" class="filter-tab-btn active" data-filter="all">全部紀錄 (<%= orders.length %>)</button>
+                    <button type="button" class="filter-tab-btn active" data-filter="all">全部紀錄 (<%= orders ? orders.length : 0 %>)</button>
+                    <button type="button" class="filter-tab-btn" data-filter="pending">派單中</button>
                     <button type="button" class="filter-tab-btn" data-filter="active">進行中</button>
                     <button type="button" class="filter-tab-btn" data-filter="completed">已完成</button>
                 </div>
@@ -112,50 +118,92 @@
                     <table class="mihu-table">
                         <thead>
                             <tr>
-                                <th>訂單編號</th>
-                                <th>闆闆</th>
-                                <th>陪陪</th>
-                                <th>類別</th>
-                                <th>項目</th>
-                                <th>內容</th>
-                                <th>數量 / 時長</th>
-                                <th>金額</th>
-                                <th class="text-center">狀態</th>
-                                <th class="text-end">操作</th>
+                                <th style="width: 20%;">訂單編號</th>
+                                <th style="width: 18%;">闆闆</th>
+                                <th style="width: 18%;">服務陪陪</th>
+                                <th style="width: 14%;">類別</th>
+                                <th style="width: 15%;">金額</th>
+                                <th style="width: 15%; text-align: center;">狀態</th>
                             </tr>
                         </thead>
                         <tbody>
                             <% if (!orders || orders.length === 0) { %>
-                                <tr><td colspan="10" class="text-center py-5 text-secondary">目前尚無相關訂單紀錄</td></tr>
+                                <tr><td colspan="6" class="text-center py-5 text-secondary">目前尚無您委託的訂單紀錄</td></tr>
                             <% } else { %>
                                 <% orders.forEach(o => { 
                                     const bossAvatar = o.boss_avatar ? `https://cdn.discordapp.com/avatars/${o.boss_id}/${o.boss_avatar}.png` : `https://cdn.discordapp.com/embed/avatars/0.png`;
                                     const bossName = o.boss_nickname || o.boss_global_name || o.boss_username || '匿名闆闆';
                                     const talentAvatar = o.talent_avatar ? `https://cdn.discordapp.com/avatars/${o.talent_id}/${o.talent_avatar}.png` : `https://cdn.discordapp.com/embed/avatars/1.png`;
                                     const talentName = o.talent_id ? (o.talent_nickname || o.talent_global_name || o.talent_username || '陪玩師') : '派單中';
+                                    const csName = o.cs_nickname || o.cs_global_name || o.cs_username || o.cs_name || '米胡客服';
                                     const totalAmount = Number(o.total_amount || 0);
+                                    const discount = Number(o.discount || 0);
+                                    const originalPrice = totalAmount + discount;
 
-                                    const orderJson = JSON.stringify({
-                                        orderNo: o.order_no, bossName: bossName, talentName: talentName,
-                                        category: o.category || '陪玩單', itemName: o.game || '一般服務', contentTier: o.content_tier || '-',
-                                        duration: o.duration || 1, unit: o.unit || '小時', totalAmount: totalAmount,
-                                        statusName: o.status === 'completed' ? '已完成' : '進行中', extra: o.extra || '無', note: o.note || '無',
-                                        talentMessage: o.talent_message || '尚無留言', startTime: o.start_time || '尚未開始', endTime: o.end_time || '尚未結束'
-                                    });
+                                    const statusMap = {
+                                        'pending': { name: '派單中', class: 'status-badge-pending', group: 'pending' },
+                                        'in_progress': { name: '進行中', class: 'status-badge-active', group: 'active' },
+                                        'active': { name: '進行中', class: 'status-badge-active', group: 'active' },
+                                        'completed': { name: '已完成', class: 'status-badge-completed', group: 'completed' }
+                                    };
+                                    const statusObj = statusMap[o.status] || { name: '進行中', class: 'status-badge-active', group: 'active' };
+
+                                    const orderObj = {
+                                        id: o.id,
+                                        orderNo: o.order_no,
+                                        bossId: o.boss_id,
+                                        bossName: bossName,
+                                        bossAvatar: bossAvatar,
+                                        talentId: o.talent_id || '',
+                                        talentName: talentName,
+                                        talentAvatar: talentAvatar,
+                                        csId: o.cs_id || '',
+                                        csName: csName,
+                                        category: o.category || '陪玩單',
+                                        itemName: o.game || '一般服務',
+                                        contentTier: o.content_tier || '-',
+                                        duration: o.duration || 1,
+                                        unit: o.unit || '小時',
+                                        originalPrice: originalPrice,
+                                        discount: discount,
+                                        totalAmount: totalAmount,
+                                        extra: o.extra || '無特別條件',
+                                        note: o.note || '無特別備註',
+                                        talentMessage: o.talent_message || '陪陪尚無留言～',
+                                        status: o.status,
+                                        statusName: statusObj.name,
+                                        startTime: o.start_time || '尚未開始',
+                                        endTime: o.end_time || '尚未結束',
+                                        createdAt: o.created_at || '未記錄時間'
+                                    };
                                 %>
-                                    <tr class="order-row" data-order='<%- orderJson %>'>
-                                        <td><div class="fw-bold font-monospace text-light"><%= o.order_no %></div></td>
-                                        <td><div class="user-mini-col"><img src="<%= bossAvatar %>" class="user-mini-avatar"><%= bossName %></div></td>
-                                        <td><div class="user-mini-col"><img src="<%= talentAvatar %>" class="user-mini-avatar"><%= talentName %></div></td>
-                                        <td><span class="category-badge badge-陪玩單"><%= o.category || '陪玩單' %></span></td>
-                                        <td><%= o.game || '一般' %></td>
-                                        <td><%= o.content_tier || '-' %></td>
-                                        <td><%= o.duration %> <%= o.unit || '小時' %></td>
-                                        <td><span class="text-warning fw-bold">$<%= totalAmount.toLocaleString() %></span></td>
-                                        <td class="text-center"><span class="status-badge status-badge-completed"><%= o.status === 'completed' ? '已完成' : '進行中' %></span></td>
-                                        <td class="text-end">
-                                            <button class="btn btn-sm btn-outline-light rounded-pill btn-detail-trigger">詳情</button>
+                                    <tr class="order-row" 
+                                        data-status="<%= statusObj.group %>"
+                                        data-search="<%= `${o.order_no} ${bossName} ${talentName} ${o.category} ${o.game}`.toLowerCase() %>"
+                                        onclick="openMyOrderDetailModal(this)">
+                                        
+                                        <script type="application/json" class="order-data-json">
+                                            <%- JSON.stringify(orderObj) %>
+                                        </script>
+
+                                        <td>
+                                            <div class="fw-bold font-monospace text-light"><%= o.order_no %></div>
+                                            <div class="small text-secondary font-monospace" style="font-size: 0.72rem;"><%= (o.created_at || '').slice(0, 16) %></div>
                                         </td>
+                                        <td><div class="user-mini-col"><img src="<%= bossAvatar %>" class="user-mini-avatar"><%= bossName %></div></td>
+                                        <td>
+                                            <div class="user-mini-col">
+                                                <% if (o.talent_id) { %>
+                                                    <img src="<%= talentAvatar %>" class="user-mini-avatar" style="border-color: rgba(168, 85, 247, 0.4);">
+                                                    <span><%= talentName %></span>
+                                                <% } else { %>
+                                                    <span class="badge bg-warning text-dark px-2 py-1" style="font-size: 0.74rem;">派單中</span>
+                                                <% } %>
+                                            </div>
+                                        </td>
+                                        <td><span class="category-badge badge-陪玩單"><%= o.category || '陪玩單' %></span></td>
+                                        <td><span class="font-monospace text-warning fw-bold">$<%= totalAmount.toLocaleString() %></span> <span class="small text-secondary">NTD</span></td>
+                                        <td class="text-center"><span class="status-badge <%= statusObj.class %>"><%= statusObj.name %></span></td>
                                     </tr>
                                 <% }) %>
                             <% } %>
@@ -167,35 +215,97 @@
     </div>
 </div>
 
-<%- include('modals/order_detail_modal') %>
+<!-- 🚀 獨立對齊精緻化詳情彈窗 -->
+<%- include('modals/my_order_detail_modal') %>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    const orderDetailModal = new bootstrap.Modal(document.getElementById('orderDetailModal'));
-    function showOrderDetail(data) {
-        document.getElementById('detailOrderNo').textContent = data.orderNo || '--';
-        document.getElementById('detailStatusAndCs').textContent = data.statusName || '進行中';
-        document.getElementById('detailBossInfo').textContent = data.bossName || '--';
-        document.getElementById('detailTalentInfo').textContent = data.talentName || '派單中';
-        document.getElementById('detailCategory').textContent = data.category || '陪玩單';
-        document.getElementById('detailItemAndContent').textContent = data.itemName || '--';
-        document.getElementById('detailContentTierVal').textContent = data.contentTier || '-';
-        document.getElementById('detailDuration').textContent = `${data.duration} ${data.unit}`;
-        document.getElementById('detailStartTime').textContent = data.startTime || '尚未開始';
-        document.getElementById('detailEndTime').textContent = data.endTime || '尚未結束';
-        document.getElementById('detailOriginalPrice').textContent = `$${Number(data.totalAmount).toLocaleString()}`;
-        document.getElementById('detailDiscount').textContent = '$0';
-        document.getElementById('detailTotalAmount').textContent = `$${Number(data.totalAmount).toLocaleString()} NTD`;
-        document.getElementById('detailTalentMessage').textContent = data.talentMessage || '尚無留言';
-        document.getElementById('detailExtra').textContent = data.extra || '無特別條件';
-        document.getElementById('detailNote').textContent = data.note || '無特別備註';
-        orderDetailModal.show();
+    function setText(id, txt) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = (txt !== undefined && txt !== null && txt !== '') ? txt : '--';
+    }
+
+    function openMyOrderDetailModal(rowEl) {
+        if (!rowEl) return;
+        const scriptEl = rowEl.querySelector('.order-data-json');
+        if (!scriptEl) return;
+
+        try {
+            const data = JSON.parse(scriptEl.textContent.trim());
+
+            // 填寫詳情資訊
+            setText('myDetailOrderNo', data.orderNo);
+            setText('myDetailCreatedAt', data.createdAt);
+            setText('myDetailStatus', data.statusName);
+            setText('myDetailCsName', data.csName || '米胡客服');
+            setText('myDetailBossInfo', `${data.bossName} (@${data.bossId})`);
+            setText('myDetailTalentInfo', data.talentId ? `${data.talentName} (@${data.talentId})` : '派單中 (尚未指派)');
+            
+            // 項目與內容
+            setText('myDetailCategory', data.category);
+            setText('myDetailItem', data.itemName);
+            setText('myDetailContentTier', data.contentTier);
+            setText('myDetailDuration', `${data.duration} ${data.unit}`);
+            
+            // 時間
+            setText('myDetailStartTime', data.startTime);
+            setText('myDetailEndTime', data.endTime);
+
+            // 金額
+            setText('myDetailOriginalPrice', `$${Number(data.originalPrice || data.totalAmount).toLocaleString()}`);
+            setText('myDetailDiscount', data.discount ? `-$${Number(data.discount).toLocaleString()}` : '$0');
+            setText('myDetailTotalAmount', `$${Number(data.totalAmount).toLocaleString()} NTD`);
+
+            // 備註與陪陪留言區
+            setText('myDetailExtra', data.extra);
+            setText('myDetailNote', data.note);
+            setText('myDetailTalentMessage', data.talentMessage);
+
+            // 喚起 Modal 視窗
+            const modalEl = document.getElementById('myOrderDetailModal');
+            if (modalEl) {
+                const instance = bootstrap.Modal.getOrCreateInstance(modalEl);
+                instance.show();
+            }
+        } catch (e) {
+            console.error('❌ 解析訂單 JSON 失敗:', e);
+        }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        document.querySelectorAll('.order-row').forEach(row => {
-            const data = JSON.parse(row.getAttribute('data-order'));
-            row.addEventListener('click', () => showOrderDetail(data));
+        const rows = document.querySelectorAll('.order-row');
+        const searchInput = document.getElementById('orderSearchInput');
+        const filterTabs = document.querySelectorAll('.filter-tab-btn');
+
+        let currentFilter = 'all';
+
+        function applyFilters() {
+            const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+
+            rows.forEach(row => {
+                const searchData = row.getAttribute('data-search') || '';
+                const rowStatus = row.getAttribute('data-status') || '';
+
+                const matchesQuery = query === '' || searchData.includes(query);
+                const matchesFilter = currentFilter === 'all' || rowStatus === currentFilter;
+
+                if (matchesQuery && matchesFilter) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        if (searchInput) searchInput.addEventListener('input', applyFilters);
+
+        filterTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                filterTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentFilter = tab.getAttribute('data-filter');
+                applyFilters();
+            });
         });
     });
 </script>

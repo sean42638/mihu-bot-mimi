@@ -138,18 +138,20 @@ db.serialize(() => {
         }
     });
 
-    // 3. 訂單紀錄資料表 (自動與 data/orders.json 雙向同步)
+    // 3. 🚀 訂單紀錄資料表 (建表直接宣告 cs_id 與 cs_name)
     db.run(`
         CREATE TABLE IF NOT EXISTS orders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             order_no TEXT UNIQUE NOT NULL,
             boss_id TEXT NOT NULL,
+            cs_id TEXT,
+            cs_name TEXT,
             category TEXT DEFAULT '陪玩單',
             game TEXT NOT NULL,
             content_tier TEXT,
             duration REAL NOT NULL,
             unit TEXT DEFAULT '小時',
-            unit_price REAL NOT NULL,
+            unit_price REAL DEFAULT 0,
             headcount INTEGER DEFAULT 1,
             tag TEXT,
             extra TEXT,
@@ -167,6 +169,15 @@ db.serialize(() => {
             FOREIGN KEY (talent_id) REFERENCES users (id)
         )
     `, () => {
+        // 先確保舊表完成結構擴充後，再進入 JSON 資料寫入
+        db.run("ALTER TABLE orders ADD COLUMN cs_id TEXT", () => {
+            db.run("ALTER TABLE orders ADD COLUMN cs_name TEXT", () => {
+                syncOrdersJson();
+            });
+        });
+    });
+
+    function syncOrdersJson() {
         const ordersJsonPath = path.join(__dirname, 'data', 'orders.json');
         if (fs.existsSync(ordersJsonPath)) {
             try {
@@ -175,12 +186,14 @@ db.serialize(() => {
                 if (jsonOrders.length > 0) {
                     const stmt = db.prepare(`
                         INSERT INTO orders (
-                            id, order_no, boss_id, category, game, content_tier, 
+                            id, order_no, boss_id, cs_id, cs_name, category, game, content_tier, 
                             duration, unit, unit_price, headcount, tag, extra, 
                             discount, note, talent_message, talent_id, channel_id, 
                             message_id, total_amount, status, start_time, end_time, created_at
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         ON CONFLICT(order_no) DO UPDATE SET
+                            cs_id = excluded.cs_id,
+                            cs_name = excluded.cs_name,
                             category = excluded.category,
                             game = excluded.game,
                             content_tier = excluded.content_tier,
@@ -204,7 +217,7 @@ db.serialize(() => {
 
                     jsonOrders.forEach(o => {
                         stmt.run(
-                            o.id || null, o.order_no, o.boss_id, o.category || '陪玩單',
+                            o.id || null, o.order_no, o.boss_id, o.cs_id || null, o.cs_name || null, o.category || '陪玩單',
                             o.game, o.content_tier || null, o.duration || 1, o.unit || '小時',
                             o.unit_price || 0, o.headcount || 1, o.tag || null, o.extra || null,
                             o.discount || 0, o.note || null, o.talent_message || null,
@@ -221,7 +234,7 @@ db.serialize(() => {
                 console.error('❌ 同步 orders.json 至資料庫失敗:', e);
             }
         }
-    });
+    }
 
     // 4. 加值儲值紀錄表 (自動與 data/topups.json 雙向同步)
     db.run(`
@@ -440,7 +453,7 @@ db.serialize(() => {
         }
     });
 
-    // 🚀 10. 角色權限關聯表 (防止未建表導致 SQL 查詢拋出 no such table 崩潰)
+    // 10. 角色權限關聯表
     db.run(`
         CREATE TABLE IF NOT EXISTS role_permissions (
             role_key TEXT PRIMARY KEY,

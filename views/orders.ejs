@@ -210,26 +210,25 @@
                     <table class="mihu-table" id="ordersTable">
                         <thead>
                             <tr>
-                                <th style="width: 13%;">訂單編號</th>
-                                <th style="width: 12%;">負責客服</th>
-                                <th style="width: 13%;">闆闆</th>
-                                <th style="width: 13%;">陪陪</th>
-                                <th style="width: 10%;">類別</th>
-                                <th style="width: 12%;">項目</th>
-                                <th style="width: 12%;">內容</th>
-                                <th style="width: 8%;">數量 / 時長</th>
-                                <th style="width: 9%;">訂單金額</th>
-                                <th style="width: 8%; text-align: center;">狀態</th>
+                                <th style="width: 14%;">訂單編號</th>
+                                <th style="width: 14%;">闆闆</th>
+                                <th style="width: 14%;">陪陪</th>
+                                <th style="width: 11%;">類別</th>
+                                <th style="width: 13%;">項目</th>
+                                <th style="width: 13%;">內容</th>
+                                <th style="width: 9%;">數量 / 時長</th>
+                                <th style="width: 12%;">訂單金額</th>
+                                <th style="width: 9%; text-align: center;">狀態</th>
                             </tr>
                         </thead>
                         <tbody id="ordersTableBody">
                             <% if (!orders || orders.length === 0) { %>
                                 <tr>
-                                    <td colspan="10" class="text-center py-5 text-secondary">目前尚無相關訂單紀錄</td>
+                                    <td colspan="9" class="text-center py-5 text-secondary">目前尚無相關訂單紀錄</td>
                                 </tr>
                             <% } else { %>
                                 <% orders.forEach(o => { 
-                                    // 1. 客服資訊 (優先讀取執行 /派單 指令的使用者)
+                                    // 1. 客服資訊 (背景保留資料數據，供點擊 Modal 詳情內查看)
                                     const csName = o.cs_nickname || o.cs_global_name || o.cs_username || o.cs_name || '米胡客服';
                                     const csAvatar = o.cs_avatar 
                                         ? `https://cdn.discordapp.com/avatars/${o.cs_id}/${o.cs_avatar}.png`
@@ -313,17 +312,6 @@
                                         <td>
                                             <div class="fw-bold font-monospace text-light"><%= o.order_no %></div>
                                             <div class="small text-secondary font-monospace" style="font-size: 0.72rem;"><%= (o.created_at || '').slice(0, 16) %></div>
-                                        </td>
-
-                                        <!-- 🚀 欄位：負責客服 (自動抓取下單指令發起人) -->
-                                        <td>
-                                            <div class="user-mini-col">
-                                                <img src="<%= csAvatar %>" alt="客服頭像" class="user-mini-avatar" style="border-color: rgba(56, 189, 248, 0.4);">
-                                                <div>
-                                                    <div class="fw-bold text-info small"><%= csName %></div>
-                                                    <div class="text-secondary font-monospace" style="font-size: 0.68rem;"><%= o.cs_id ? `•••• ${o.cs_id.slice(-4)}` : '派單客服' %></div>
-                                                </div>
-                                            </div>
                                         </td>
 
                                         <td>

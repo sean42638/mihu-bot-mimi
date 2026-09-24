@@ -3,7 +3,7 @@ const db = require('../database'); // 🚀 引入資料庫模組以寫入訂單
 
 module.exports = {
     async handleDispatchModal(interaction) {
-        // 1. 第一時間 Defer
+        // 1. 第一時間 Defer，避免 Discord 3秒逾時
         try {
             if (!interaction.deferred && !interaction.replied) {
                 await interaction.deferReply({ flags: 64 });
@@ -32,13 +32,17 @@ module.exports = {
             const randNum = Math.floor(1000 + Math.random() * 9000);
             const orderNo = `MH-${dateStr}-${randNum}`;
 
-            // 計算實收金額
-            let finalPrice = session.pri;
+            // 計算實收總金額與單價
+            const totalPrice = session.pri || 0; // 原價總額
+            const duration = session.dur || 1;   // 時長/數量
+            const unitPrice = duration > 0 ? (totalPrice / duration) : totalPrice; // 計算單價
+
+            let finalPrice = totalPrice;
             if (session.disc > 0) {
                 if (session.disc < 1) {
-                    finalPrice = Math.round(session.pri * session.disc);
+                    finalPrice = Math.round(totalPrice * session.disc);
                 } else {
-                    finalPrice = Math.max(0, session.pri - session.disc);
+                    finalPrice = Math.max(0, totalPrice - session.disc);
                 }
             }
 
@@ -53,14 +57,14 @@ module.exports = {
             const csMention = `<@${csUser.id}>`;
             const csName = interaction.member?.nickname || csUser.globalName || csUser.username;
 
-            // 🚀 2. 將訂單寫入資料庫 (包含 cs_id 與 cs_name)
+            // 🚀 2. 將訂單寫入資料庫 (補齊 unit_price 與所有必要欄位)
             await new Promise((resolve, reject) => {
                 const querySql = `
                     INSERT INTO orders (
                         order_no, boss_id, cs_id, cs_name, category, 
-                        game, content_tier, duration, unit, total_amount, 
-                        discount, extra, note, status, created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', DATETIME('now', 'localtime'))
+                        game, content_tier, duration, unit, unit_price,
+                        total_amount, discount, extra, note, status, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', DATETIME('now', 'localtime'))
                 `;
                 db.run(querySql, [
                     orderNo,
@@ -70,10 +74,11 @@ module.exports = {
                     session.cat || '陪玩單',
                     game,
                     contentTier,
-                    session.dur,
-                    session.unit,
+                    duration,
+                    session.unit || '小時',
+                    unitPrice,  // 🚀 補上 unit_price 避免 NOT NULL 報錯
                     finalPrice,
-                    session.disc,
+                    session.disc || 0,
                     extra,
                     note
                 ], function(err) {
@@ -99,7 +104,7 @@ module.exports = {
                     { name: ' \u200B', value: ' \u200B', inline: true },
                     { name: '🎮 項目', value: `**${game}**`, inline: true },
                     { name: '📝 內容', value: `\`${contentTier}\``, inline: true },
-                    { name: '⏰ 時長', value: `**${session.dur} ${session.unit}**`, inline: true },
+                    { name: '⏰ 時長', value: `**${duration} ${session.unit}**`, inline: true },
                     { name: '✨ 附加', value: extra, inline: false },
                     { name: '💬 備註', value: note, inline: false }
                 )
