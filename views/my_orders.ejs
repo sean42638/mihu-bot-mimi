@@ -227,7 +227,10 @@
 
     function openMyOrderDetailModal(rowEl) {
         if (!rowEl) return;
-        const scriptEl = rowEl.querySelector('.order-data-json');
+        const targetRow = rowEl.closest('.order-row');
+        if (!targetRow) return;
+
+        const scriptEl = targetRow.querySelector('.order-data-json');
         if (!scriptEl) return;
 
         try {
@@ -309,5 +312,6 @@
         });
     });
 </script>
+<%- include('partials/feature_modal') %>
 </body>
 </html>
