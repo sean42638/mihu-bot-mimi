@@ -1,0 +1,34 @@
+[
+  {
+    "id": 1,
+    "name": "玩家自主註冊",
+    "command_key": "register",
+    "min_role": "member",
+    "description": "玩家於 Discord 自行綁定與註冊米胡電競會員帳號",
+    "status": "enabled"
+  },
+  {
+    "id": 2,
+    "name": "管理員代註冊",
+    "command_key": "register-for",
+    "min_role": "cs",
+    "description": "管理員或客服協助特定 Discord 用戶強制建立帳號與資料綁定",
+    "status": "enabled"
+  },
+  {
+    "id": 3,
+    "name": "熱重載指令與模組",
+    "command_key": "reload",
+    "min_role": "manager",
+    "description": "即時重新載入機器人斜線指令與內部設定，無需重啟伺服器",
+    "status": "enabled"
+  },
+  {
+    "id": 4,
+    "name": "發布派單卡片",
+    "command_key": "dispatch",
+    "min_role": "cs",
+    "description": "發布工作室派單訊息至指定頻道，卡片顯示標頭 ## ✧新單快報✧ 並於底部廣播 Tag",
+    "status": "enabled"
+  }
+]

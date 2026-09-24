@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>會員管理 · 米胡電競 MiHu Gaming</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #0b0914;
+            --sidebar-bg: #131021;
+            --card-bg: rgba(23, 19, 38, 0.85);
+            --card-border: rgba(168, 85, 247, 0.2);
+            --mihu-purple: #9333ea;
+            --mihu-purple-light: #c084fc;
+            --mihu-yellow: #fde047;
+            --text-light: #f3f4f6;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-light);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        img { max-width: 100%; height: auto; }
+
+        .main-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            max-height: 100vh;
+            width: calc(100vw - 280px);
+            min-width: 0;
+        }
+
+        .content-body { 
+            padding: 20px 36px 32px; 
+            flex-grow: 1; 
+        }
+
+        .page-header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+            gap: 14px;
+            width: 100%;
+        }
+
+        .page-title-text {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 4px;
+        }
+
+        .search-box-wrap {
+            position: relative;
+            width: 280px;
+            flex-shrink: 0;
+        }
+        .search-input-glass {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            color: #ffffff !important;
+            border-radius: 30px;
+            padding: 8px 36px 8px 38px;
+            font-size: 0.88rem;
+            width: 100%;
+            transition: all 0.2s ease;
+        }
+        .search-input-glass::placeholder { color: #94a3b8 !important; }
+        .search-input-glass:focus {
+            background-color: #171326 !important;
+            color: #ffffff !important;
+            border-color: var(--mihu-purple-light);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.25);
+        }
+        .search-icon-left {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 0.88rem;
+            pointer-events: none;
+        }
+        .search-clear-btn {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 0.82rem;
+            cursor: pointer;
+            display: none;
+            border: none;
+            background: transparent;
+            padding: 0;
+        }
+        .search-clear-btn:hover { color: #ffffff; }
+
+        .glass-table-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(15px);
+        }
+
+        .table-responsive { margin: 0; overflow-x: auto; }
+        .mihu-table {
+            width: 100%;
+            margin-bottom: 0;
+            color: #f3f4f6;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        .mihu-table th {
+            background: rgba(0, 0, 0, 0.42);
+            color: #94a3b8;
+            font-weight: 700;
+            font-size: 0.84rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            padding: 16px 22px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            white-space: nowrap;
+        }
+        .mihu-table td {
+            padding: 16px 22px;
+            vertical-align: middle;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.93rem;
+            white-space: nowrap;
+        }
+        .mihu-table tbody tr.member-row {
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+        .mihu-table tbody tr.member-row:hover {
+            background: rgba(168, 85, 247, 0.09);
+        }
+        .mihu-table tbody tr:last-child td { border-bottom: none; }
+
+        .member-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(168, 85, 247, 0.45);
+            box-shadow: 0 0 12px rgba(168, 85, 247, 0.25);
+        }
+        .member-info-col {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .dc-tag-badge {
+            background: rgba(88, 101, 242, 0.15);
+            border: 1px solid rgba(88, 101, 242, 0.35);
+            color: #a5b4fc;
+            font-size: 0.74rem;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-family: monospace;
+            display: inline-block;
+            margin-top: 3px;
+        }
+
+        .vip-pill-badge {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.25), rgba(236, 72, 153, 0.2));
+            border: 1px solid rgba(168, 85, 247, 0.45);
+            color: #fde047;
+            font-weight: 800;
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stat-val-text {
+            font-family: monospace;
+            font-size: 1rem;
+            font-weight: 700;
+        }
+        .stat-unit-text {
+            font-size: 0.74rem;
+            color: #8b83a8;
+            font-weight: 600;
+            margin-left: 2px;
+        }
+
+        .action-btns-group {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            white-space: nowrap;
+        }
+        .btn-circle-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            font-size: 0.88rem;
+            transition: all 0.2s ease;
+        }
+        .btn-circle-icon:hover { transform: scale(1.08); }
+
+        /* 🚀 徹底解決輸入框點擊 Focus 反白白底問題 */
+        .modal-content-glass {
+            background: rgba(20, 16, 35, 0.97) !important;
+            border: 1px solid rgba(168, 85, 247, 0.35) !important;
+            border-radius: 20px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(168, 85, 247, 0.25) !important;
+            backdrop-filter: blur(25px);
+            color: #fff !important;
+        }
+        .form-control-glass {
+            background-color: rgba(255, 255, 255, 0.05) !important;
+            border: 1px solid rgba(255, 255, 255, 0.18) !important;
+            color: #ffffff !important;
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+        .form-control-glass::placeholder { color: #94a3b8 !important; }
+        .form-control-glass:focus {
+            background-color: #171326 !important;
+            color: #ffffff !important;
+            border-color: #c084fc !important;
+            box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.3) !important;
+            outline: none !important;
+        }
+
+        .info-detail-box {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .info-detail-label {
+            font-size: 0.74rem;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+        .info-detail-val {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #ffffff;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+
+<%- include('partials/sidebar', { activePage: 'members' }) %>
+
+<div class="main-wrapper">
+    <%- include('partials/navbar', { activePage: 'members' }) %>
+
+    <div class="content-body">
+        <div class="page-header-content">
+            <div>
+                <div class="page-title-text">
+                    <i class="fa-solid fa-users text-info"></i>
+                    <span>會員管理</span>
+                </div>
+                <p class="text-secondary small mb-0">管理工作室註冊會員資產、進行手動帳務調帳與 VIP 等級變更</p>
+            </div>
+
+            <div class="d-flex align-items-center gap-3">
+                <div class="search-box-wrap">
+                    <i class="fa-solid fa-magnifying-glass search-icon-left"></i>
+                    <input type="text" id="memberSearchInput" class="search-input-glass" placeholder="搜尋暱稱 / Discord / ID...">
+                    <button type="button" id="clearSearchBtn" class="search-clear-btn" title="清除搜尋">
+                        <i class="fa-solid fa-circle-xmark"></i>
+                    </button>
+                </div>
+
+                <a href="/management/members/sync-all" class="btn btn-sm btn-outline-info rounded-pill px-3 py-2 fw-semibold text-nowrap flex-shrink-0">
+                    <i class="fa-brands fa-discord me-1"></i>全體同步 DC 資訊
+                </a>
+            </div>
+        </div>
+
+        <div id="flashStatus" 
+             data-success="<%= typeof success !== 'undefined' && success ? '1' : '0' %>"
+             data-error="<%= typeof errorMsg !== 'undefined' && errorMsg ? errorMsg : '' %>"
+             style="display:none;"></div>
+
+        <!-- 會員清單表格 -->
+        <div class="glass-table-card">
+            <div class="table-responsive">
+                <table class="mihu-table" id="membersTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 21%;">會員暱稱 / DISCORD</th>
+                            <th style="width: 10%; text-align: center;">VIP 等級</th>
+                            <th style="width: 9%; text-align: center;">身分</th>
+                            <th style="width: 12%;">當前餘額</th>
+                            <th style="width: 12%;">累積消費</th>
+                            <th style="width: 12%;">累積實充</th>
+                            <th style="width: 14%;">VIP 升級差距</th>
+                            <th style="width: 10%; text-align: right;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="membersTableBody">
+                        <% 
+                            const perms = (typeof userPerms !== 'undefined' && userPerms) ? userPerms : [];
+                            const canAdjustBalance = (typeof currentUser !== 'undefined' && currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager' || currentUser.role === 'cfo')) || perms.includes('member_adjust_balance');
+                            const canAdjustVip = (typeof currentUser !== 'undefined' && currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager' || currentUser.role === 'cfo')) || perms.includes('member_adjust_vip');
+
+                            members.forEach(m => { 
+                            const avUrl = m.avatar 
+                                ? `https://cdn.discordapp.com/avatars/${m.id}/${m.avatar}.png` 
+                                : `https://cdn.discordapp.com/embed/avatars/0.png`;
+                            const displayName = m.custom_nickname || m.global_name || m.username;
+
+                            const roleMap = {
+                                'admin': { name: '店長', class: 'bg-danger' },
+                                'cfo': { name: '財務長', class: 'bg-danger' },
+                                'aftersales': { name: '售後管理', class: 'bg-warning text-dark' },
+                                'manager': { name: '客服主管', class: 'bg-warning text-dark' },
+                                'cs': { name: '客服', class: 'bg-info text-dark' },
+                                'talent': { name: '陪陪', class: 'bg-primary' },
+                                'member': { name: '會員', class: 'bg-secondary' }
+                            };
+                            const roleObj = roleMap[m.role] || { name: '會員', class: 'bg-secondary' };
+
+                            const memberDataJson = JSON.stringify({
+                                id: m.id,
+                                displayName: displayName,
+                                username: m.username,
+                                avatar: avUrl,
+                                vip: m.vip_level || 0,
+                                totalBalance: m.total_balance || 0,
+                                balance: m.balance || 0,
+                                bonus: m.bonus_balance || 0,
+                                spent: m.total_spent || 0,
+                                deposited: m.total_deposited || 0,
+                                vipGap: m.vip_gap_text,
+                                gapSpent: m.gap_spent,
+                                gapDeposit: m.gap_deposit,
+                                roleName: roleObj.name,
+                                birthday: m.birthday || '未填寫',
+                                createdAt: m.created_at || '無紀錄'
+                            });
+                        %>
+                            <tr class="member-row" 
+                                data-member='<%- memberDataJson %>'
+                                data-search="<%= `${displayName} ${m.username} ${m.id}`.toLowerCase() %>">
+                                
+                                <td>
+                                    <div class="member-info-col">
+                                        <img src="<%= avUrl %>" alt="頭像" class="member-avatar">
+                                        <div>
+                                            <div class="fw-bold text-white fs-6"><%= displayName %></div>
+                                            <span class="dc-tag-badge">@<%= m.username %></span>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <td class="text-center">
+                                    <span class="vip-pill-badge">
+                                        <i class="fa-solid fa-crown text-warning"></i>
+                                        <span>VIP <%= m.vip_level || 0 %></span>
+                                    </span>
+                                </td>
+
+                                <td class="text-center">
+                                    <span class="badge <%= roleObj.class %>" style="font-size:0.76rem; font-weight:700; padding:4px 10px; border-radius:8px;"><%= roleObj.name %></span>
+                                </td>
+
+                                <td>
+                                    <span class="stat-val-text text-white">$<%= Number(m.total_balance || 0).toLocaleString() %></span>
+                                    <span class="stat-unit-text">NTD</span>
+                                </td>
+
+                                <td>
+                                    <span class="stat-val-text text-warning">$<%= Number(m.total_spent || 0).toLocaleString() %></span>
+                                    <span class="stat-unit-text">NTD</span>
+                                </td>
+
+                                <td>
+                                    <span class="stat-val-text text-info">$<%= Number(m.total_deposited || 0).toLocaleString() %></span>
+                                    <span class="stat-unit-text">NTD</span>
+                                </td>
+
+                                <td>
+                                    <% if (m.gap_spent > 0 || m.gap_deposit > 0) { %>
+                                        <div style="display:flex; flex-direction:column; gap:2px; font-size:0.78rem; font-family:monospace;">
+                                            <div><span style="color:#94a3b8;">消差</span> <span class="text-light fw-bold">$<%= Number(m.gap_spent).toLocaleString() %></span></div>
+                                            <div><span style="color:#94a3b8;">存差</span> <span class="text-secondary fw-semibold">$<%= Number(m.gap_deposit).toLocaleString() %></span></div>
+                                        </div>
+                                    <% } else { %>
+                                        <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 px-2 py-1 small">
+                                            <i class="fa-solid fa-check me-1"></i>已達頂級
+                                        </span>
+                                    <% } %>
+                                </td>
+
+                                <td class="text-end" onclick="event.stopPropagation();">
+                                    <div class="action-btns-group justify-content-end">
+                                        <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-3 py-1 btn-detail-trigger" style="font-size: 0.8rem;">
+                                            <i class="fa-solid fa-circle-info me-1"></i>詳細內容
+                                        </button>
+
+                                        <% if (canAdjustBalance) { %>
+                                            <button type="button" class="btn btn-sm btn-outline-warning btn-circle-icon btn-balance-trigger" title="帳務調整 (增減點數/金額)">
+                                                <i class="fa-solid fa-coins"></i>
+                                            </button>
+                                        <% } %>
+
+                                        <% if (canAdjustVip) { %>
+                                            <button type="button" class="btn btn-sm btn-outline-warning btn-circle-icon btn-vip-trigger" style="color: #fde047; border-color: rgba(253, 224, 71, 0.4);" title="手動調整VIP等級">
+                                                <i class="fa-solid fa-crown"></i>
+                                            </button>
+                                        <% } %>
+
+                                        <a href="/management/members/sync/<%= m.id %>" class="btn btn-sm btn-outline-info btn-circle-icon" title="從 Discord 刷新資料">
+                                            <i class="fa-solid fa-rotate"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+
+                <div id="noMatchRow" class="text-center py-5 text-secondary" style="display: none;">
+                    <i class="fa-solid fa-user-slash fs-3 mb-2 opacity-50"></i>
+                    <p class="small mb-0">找不到符合搜尋條件的會員</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 彈窗 1：會員詳細內容彈窗 -->
+<div class="modal fade" id="memberDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 500px;">
+        <div class="modal-content modal-content-glass">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-address-card text-info"></i>
+                    <span>會員詳細檔案內容</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-3">
+                <div class="d-flex align-items-center gap-3 p-3 rounded-3 mb-3" style="background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.08);">
+                    <img id="detailAvatar" src="" class="member-avatar" style="width: 52px; height: 52px;">
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-bold fs-5 text-white" id="detailDisplayName"></span>
+                            <span id="detailRoleBadge" class="badge bg-secondary" style="font-size: 0.72rem;">身分</span>
+                        </div>
+                        <div class="small text-secondary font-monospace" id="detailUsername"></div>
+                        <div class="small text-white-50 font-monospace" id="detailId"></div>
+                    </div>
+                </div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <div class="info-detail-box">
+                            <span class="info-detail-label">VIP 等級</span>
+                            <span class="info-detail-val text-warning" id="detailVip"></span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="info-detail-box">
+                            <span class="info-detail-label">當前總可用餘額</span>
+                            <span class="info-detail-val text-white" id="detailTotalBalance"></span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="info-detail-box">
+                            <span class="info-detail-label">累積消費</span>
+                            <span class="info-detail-val text-warning" id="detailSpent"></span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="info-detail-box">
+                            <span class="info-detail-label">累積實充</span>
+                            <span class="info-detail-val text-info" id="detailDeposited"></span>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="info-detail-box">
+                            <span class="info-detail-label">VIP 升級差距</span>
+                            <span class="text-light small font-monospace" id="detailVipGap"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-3 rounded-3" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06);">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-secondary small">會員生日</span>
+                        <span class="text-white small font-monospace fw-bold" id="detailBirthday">未填寫</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-secondary small">創建與註冊時間</span>
+                        <span class="text-white-50 small font-monospace" id="detailCreatedAt"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-sm btn-secondary rounded-pill px-4" data-bs-dismiss="modal">關閉</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 🚀 彈窗 2：全新欄位對齊【會員帳務調整 Modal】 -->
+<div class="modal fade" id="adjustBalanceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
+        <div class="modal-content modal-content-glass">
+            <form id="adjustBalanceForm" method="POST">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-wallet text-warning me-2"></i>會員帳務調整</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <p class="text-secondary small mb-3">目標會員：<strong class="text-white" id="balanceTargetName">--</strong></p>
+                    
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="small text-secondary fw-semibold mb-1">本次充值金額 ($)</label>
+                            <input type="text" name="add_amount" id="modalAddAmount" class="form-control form-control-glass" placeholder="例如：1000">
+                        </div>
+                        <div class="col-6">
+                            <label class="small text-secondary fw-semibold mb-1">贈送金 ($)</label>
+                            <input type="text" name="bonus_balance" id="modalBonusBalance" class="form-control form-control-glass" placeholder="例如：100">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="small text-secondary fw-semibold mb-1">調整目前餘額 ($)</label>
+                        <input type="text" name="balance" id="modalBalance" class="form-control form-control-glass" placeholder="覆蓋當前總實充餘額">
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="small text-secondary fw-semibold mb-1">調整累積消費 ($)</label>
+                            <input type="text" name="total_spent" id="modalSpent" class="form-control form-control-glass" placeholder="覆蓋累積消費金額">
+                        </div>
+                        <div class="col-6">
+                            <label class="small text-secondary fw-semibold mb-1">調整累積實充 ($)</label>
+                            <input type="text" name="total_deposited" id="modalDeposited" class="form-control form-control-glass" placeholder="覆蓋累積實充金額">
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning py-2 small mb-3 bg-warning bg-opacity-10 border-warning border-opacity-25 text-warning" style="font-size: 0.8rem;">
+                        ⚠️ 零負數防護：最終餘額經計算後若小於 0，系統將自動鎖定歸零。
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="small text-secondary fw-semibold mb-1">調帳備註原因</label>
+                        <input type="text" name="note" class="form-control form-control-glass" placeholder="例：活動儲值贈送或客服退款" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-sm btn-warning rounded-pill px-4 text-dark fw-bold">確認更新帳務</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 彈窗 3：獨立【VIP 調整】彈窗 -->
+<div class="modal fade" id="vipModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
+        <div class="modal-content modal-content-glass">
+            <form id="vipForm" method="POST">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-crown text-warning"></i>
+                        <span>手動 VIP 等級調整</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <div class="text-secondary small mb-3">
+                        目標會員：<span class="text-white fw-bold" id="vipTargetName">--</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="small text-secondary fw-semibold mb-1">VIP 等級 (可輸入數字或 +1 / -1，不得為負數)</label>
+                        <input type="text" id="inputVipOnly" name="vip_level" class="form-control form-control-glass text-end" placeholder="0 或 +1" required>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="small text-secondary fw-semibold mb-1">調整原因 / 操作備註 (選填)</label>
+                        <input type="text" name="note" class="form-control form-control-glass" placeholder="例如：特約貴賓贈送身分">
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-sm btn-warning rounded-pill px-4 fw-semibold text-dark">確認變更 VIP</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 彈出小框框通知 Modal -->
+<div class="modal fade" id="notifyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 380px;">
+        <div class="modal-content modal-content-glass text-center p-4">
+            <div class="mb-3">
+                <i class="fa-solid fa-circle-check text-success fs-1" id="notifyIcon"></i>
+            </div>
+            <h5 class="fw-bold text-white mb-2" id="notifyTitle">操作成功</h5>
+            <p class="small text-secondary mb-4" id="notifyMessage">會員帳務與 VIP 等級已成功更新！</p>
+            <button type="button" class="btn btn-sm btn-light rounded-pill px-4 fw-bold w-100" data-bs-dismiss="modal">確定</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const memberDetailModal = new bootstrap.Modal(document.getElementById('memberDetailModal'));
+        const adjustBalanceModal = new bootstrap.Modal(document.getElementById('adjustBalanceModal'));
+        const vipModal = new bootstrap.Modal(document.getElementById('vipModal'));
+        const notifyModal = new bootstrap.Modal(document.getElementById('notifyModal'));
+
+        function showMemberDetail(data) {
+            document.getElementById('detailAvatar').src = data.avatar;
+            document.getElementById('detailDisplayName').textContent = data.displayName;
+            document.getElementById('detailRoleBadge').textContent = data.roleName;
+            document.getElementById('detailUsername').textContent = `@${data.username}`;
+            document.getElementById('detailId').textContent = `ID: ${data.id}`;
+            document.getElementById('detailVip').textContent = `VIP ${data.vip}`;
+            document.getElementById('detailTotalBalance').textContent = `$${Number(data.totalBalance).toLocaleString()} NTD`;
+            document.getElementById('detailSpent').textContent = `$${Number(data.spent).toLocaleString()} NTD`;
+            document.getElementById('detailDeposited').textContent = `$${Number(data.deposited).toLocaleString()} NTD`;
+            document.getElementById('detailVipGap').textContent = data.vipGap;
+            document.getElementById('detailBirthday').textContent = data.birthday;
+            document.getElementById('detailCreatedAt').textContent = String(data.createdAt).slice(0, 16);
+            memberDetailModal.show();
+        }
+
+        function showBalanceEdit(data) {
+            document.getElementById('adjustBalanceForm').action = `/management/members/update-balance/${data.id}`;
+            document.getElementById('balanceTargetName').textContent = data.displayName;
+            document.getElementById('modalAddAmount').value = '';
+            document.getElementById('modalBonusBalance').value = data.bonus;
+            document.getElementById('modalBalance').value = data.balance;
+            document.getElementById('modalSpent').value = data.spent;
+            document.getElementById('modalDeposited').value = data.deposited;
+            adjustBalanceModal.show();
+        }
+
+        function showVipEdit(data) {
+            document.getElementById('vipForm').action = `/management/members/update-vip/${data.id}`;
+            document.getElementById('vipTargetName').textContent = data.displayName;
+            document.getElementById('inputVipOnly').value = data.vip;
+            vipModal.show();
+        }
+
+        const flash = document.getElementById('flashStatus');
+        if (flash) {
+            const isSuccess = flash.getAttribute('data-success') === '1';
+            const errorMsg = flash.getAttribute('data-error');
+
+            if (isSuccess) {
+                document.getElementById('notifyIcon').className = 'fa-solid fa-circle-check text-success fs-1';
+                document.getElementById('notifyTitle').textContent = '操作成功';
+                document.getElementById('notifyMessage').textContent = '資料已成功更新並同步！';
+                notifyModal.show();
+            } else if (errorMsg && errorMsg.trim() !== '') {
+                document.getElementById('notifyIcon').className = 'fa-solid fa-circle-xmark text-danger fs-1';
+                document.getElementById('notifyTitle').textContent = '操作失敗';
+                document.getElementById('notifyMessage').textContent = errorMsg;
+                notifyModal.show();
+            }
+        }
+
+        const rows = document.querySelectorAll('.member-row');
+        const searchInput = document.getElementById('memberSearchInput');
+        const clearBtn = document.getElementById('clearSearchBtn');
+        const noMatchRow = document.getElementById('noMatchRow');
+
+        if (searchInput) {
+            searchInput.addEventListener('input', () => {
+                const query = searchInput.value.trim().toLowerCase();
+                let visibleCount = 0;
+
+                if (query.length > 0) {
+                    clearBtn.style.display = 'block';
+                } else {
+                    clearBtn.style.display = 'none';
+                }
+
+                rows.forEach(row => {
+                    const searchData = row.getAttribute('data-search') || '';
+                    if (searchData.includes(query)) {
+                        row.style.display = '';
+                        visibleCount++;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+
+                noMatchRow.style.display = visibleCount === 0 ? 'block' : 'none';
+            });
+
+            clearBtn.addEventListener('click', () => {
+                searchInput.value = '';
+                clearBtn.style.display = 'none';
+                rows.forEach(row => row.style.display = '');
+                noMatchRow.style.display = 'none';
+                searchInput.focus();
+            });
+        }
+
+        rows.forEach(row => {
+            const data = JSON.parse(row.getAttribute('data-member'));
+
+            row.addEventListener('click', () => {
+                showMemberDetail(data);
+            });
+
+            const detailBtn = row.querySelector('.btn-detail-trigger');
+            if (detailBtn) {
+                detailBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    showMemberDetail(data);
+                });
+            }
+
+            const balanceBtn = row.querySelector('.btn-balance-trigger');
+            if (balanceBtn) {
+                balanceBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    showBalanceEdit(data);
+                });
+            }
+
+            const vipBtn = row.querySelector('.btn-vip-trigger');
+            if (vipBtn) {
+                vipBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    showVipEdit(data);
+                });
+            }
+        });
+    });
+</script>
+</body>
+</html>

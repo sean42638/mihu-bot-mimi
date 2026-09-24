@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>身分管理 · 米胡電競 MiHu Gaming</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #0b0914;
+            --sidebar-bg: #131021;
+            --card-bg: rgba(23, 19, 38, 0.85);
+            --card-border: rgba(168, 85, 247, 0.2);
+            --mihu-purple: #9333ea;
+            --mihu-purple-light: #c084fc;
+            --mihu-yellow: #fde047;
+            --text-light: #f3f4f6;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-light);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .main-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            max-height: 100vh;
+        }
+
+        .content-body { 
+            padding: 16px 36px 32px; 
+            flex-grow: 1; 
+        }
+
+        .glass-table-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 14px 36px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(15px);
+        }
+
+        .table-responsive { margin: 0; }
+        .mihu-table {
+            width: 100%;
+            margin-bottom: 0;
+            color: #f3f4f6;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        .mihu-table th {
+            background: rgba(0, 0, 0, 0.42);
+            color: #94a3b8;
+            font-weight: 700;
+            font-size: 0.84rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            white-space: nowrap;
+        }
+        .mihu-table td {
+            padding: 16px 20px;
+            vertical-align: middle;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.92rem;
+        }
+        .mihu-table tbody tr.role-row {
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+        .mihu-table tbody tr.role-row:hover {
+            background: rgba(168, 85, 247, 0.08);
+        }
+        .mihu-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .category-text-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #94a3b8;
+            white-space: nowrap;
+        }
+        .category-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .dot-最高權限 { background: #ef4444; box-shadow: 0 0 8px rgba(239, 68, 68, 0.8); }
+        .dot-主管職位 { background: #f59e0b; box-shadow: 0 0 8px rgba(245, 158, 11, 0.8); }
+        .dot-客服職位 { background: #38bdf8; box-shadow: 0 0 8px rgba(56, 189, 248, 0.8); }
+        .dot-一般職位 { background: #c084fc; box-shadow: 0 0 8px rgba(192, 132, 252, 0.8); }
+        .dot-會員     { background: #94a3b8; box-shadow: 0 0 6px rgba(148, 163, 184, 0.5); }
+
+        .role-pill-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        .badge-style-danger {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(185, 28, 28, 0.3));
+            border: 1px solid rgba(239, 68, 68, 0.5);
+            color: #fca5a5;
+        }
+        .badge-style-warning {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(180, 83, 9, 0.3));
+            border: 1px solid rgba(245, 158, 11, 0.5);
+            color: #fde047;
+        }
+        .badge-style-info {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(14, 116, 144, 0.3));
+            border: 1px solid rgba(56, 189, 248, 0.5);
+            color: #7dd3fc;
+        }
+        .badge-style-primary {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.25), rgba(109, 40, 217, 0.3));
+            border: 1px solid rgba(168, 85, 247, 0.5);
+            color: #e9d5ff;
+        }
+        .badge-style-secondary {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #cbd5e1;
+        }
+
+        .action-btns-group {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+        .action-btn-clean {
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.82rem;
+            padding: 5px 12px;
+            line-height: 1.2;
+            cursor: pointer;
+        }
+
+        .perm-tree-box {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 16px;
+            max-height: 260px;
+            overflow-y: auto;
+        }
+        .perm-tree-box::-webkit-scrollbar {
+            width: 6px;
+        }
+        .perm-tree-box::-webkit-scrollbar-thumb {
+            background: rgba(168, 85, 247, 0.4);
+            border-radius: 6px;
+        }
+
+        .tree-node-parent {
+            padding: 8px 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            font-weight: 700;
+            color: #ffffff;
+        }
+        .tree-children {
+            margin-left: 28px;
+            padding-left: 12px;
+            border-left: 2px dashed rgba(168, 85, 247, 0.25);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+        .tree-node-child {
+            display: flex;
+            align-items: center;
+            font-size: 0.88rem;
+            color: #cbd5e1;
+        }
+        .tree-sub-children {
+            margin-left: 24px;
+            padding-left: 10px;
+            border-left: 1px dashed rgba(255, 255, 255, 0.15);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-top: 4px;
+            margin-bottom: 6px;
+        }
+        .tree-node-subchild {
+            display: flex;
+            align-items: center;
+            font-size: 0.82rem;
+            color: #94a3b8;
+        }
+
+        .form-check-input {
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            cursor: pointer;
+            margin-right: 8px;
+        }
+        .form-check-input:checked {
+            background-color: #9333ea;
+            border-color: #c084fc;
+        }
+
+        .modal-content-glass {
+            background: rgba(20, 16, 35, 0.97);
+            border: 1px solid rgba(168, 85, 247, 0.35);
+            border-radius: 20px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(168, 85, 247, 0.25);
+            backdrop-filter: blur(25px);
+            color: #fff;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-body {
+            overflow-y: auto;
+        }
+
+        /* 🚀 修正輸入框 Focus 反白與字體顏色 */
+        .form-control-glass {
+            background-color: rgba(255, 255, 255, 0.05) !important;
+            border: 1px solid rgba(255, 255, 255, 0.14) !important;
+            color: #ffffff !important;
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 0.92rem;
+        }
+        .form-control-glass:focus {
+            background-color: #171326 !important;
+            color: #ffffff !important;
+            border-color: #c084fc !important;
+            box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.3) !important;
+            outline: none !important;
+        }
+        .form-control-glass::placeholder {
+            color: #64748b !important;
+        }
+
+        /* 修正瀏覽器自動填入 (Autofill) 反白白底問題 */
+        input.form-control-glass:-webkit-autofill,
+        input.form-control-glass:-webkit-autofill:hover, 
+        input.form-control-glass:-webkit-autofill:focus {
+            -webkit-text-fill-color: #ffffff !important;
+            -webkit-box-shadow: 0 0 0px 1000px #171326 inset !important;
+            transition: background-color 5000s ease-in-out 0s;
+        }
+        
+        select.form-control-glass option {
+            background-color: #171326 !important;
+            color: #ffffff !important;
+            padding: 8px 12px;
+        }
+    </style>
+</head>
+<body>
+
+<%- include('partials/sidebar', { activePage: 'roles' }) %>
+
+<div class="main-wrapper">
+    <%- include('partials/navbar', { activePage: 'roles' }) %>
+
+    <div class="content-body">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <div>
+                <div class="page-title-text" style="font-size: 1.5rem; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                    <i class="fa-solid fa-shield-halved text-success"></i>
+                    <span>身分管理</span>
+                </div>
+                <p class="text-secondary small mb-0">自訂系統身分組類別、權限層級與各功能模組之訪問與操作權限</p>
+            </div>
+
+            <div>
+                <button type="button" class="btn btn-sm px-3 py-2 rounded-pill text-white fw-semibold" data-bs-toggle="modal" data-bs-target="#addRoleModal" style="background: linear-gradient(135deg, #9333ea, #7e22ce); border: none;">
+                    <i class="fa-solid fa-plus me-1"></i>新增身分組
+                </button>
+            </div>
+        </div>
+
+        <% if (typeof success !== 'undefined' && success) { %>
+            <div class="alert alert-success py-2 px-3 small mb-4 border-0 bg-success bg-opacity-25 text-success">
+                ✅ 身分設定已成功更新！
+            </div>
+        <% } %>
+
+        <div class="glass-table-card">
+            <div class="table-responsive">
+                <table class="mihu-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 130px;">階級分類</th>
+                            <th style="width: 120px;">職位名稱</th>
+                            <th style="width: 100px;">權重等級</th>
+                            <th>職位職責說明（點擊整行看可見項目清單）</th>
+                            <th style="width: 240px; min-width: 220px;" class="text-end">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (roles && roles.length > 0) { %>
+                            <% roles.forEach(r => { 
+                                let permsArray = [];
+                                try {
+                                    permsArray = typeof r.permissions === 'string' ? JSON.parse(r.permissions) : (r.permissions || []);
+                                } catch (e) {
+                                    permsArray = [];
+                                }
+                            %>
+                                <tr class="role-row" 
+                                    data-id="<%= r.id %>"
+                                    data-name="<%= r.name %>"
+                                    data-category="<%= r.category %>"
+                                    data-color="<%= r.color_badge || 'primary' %>"
+                                    data-tier="<%= r.tier_level %>"
+                                    data-desc="<%= r.description || '' %>"
+                                    data-perms='<%- JSON.stringify(permsArray) %>'>
+                                    <td>
+                                        <div class="category-text-wrap">
+                                            <span class="category-dot dot-<%= r.category %>"></span>
+                                            <span><%= r.category %></span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="role-pill-badge badge-style-<%= r.color_badge || 'primary' %>"><%= r.name %></span>
+                                    </td>
+                                    <td>
+                                        <span class="font-monospace text-warning fw-bold small">Lv.<%= r.tier_level %></span>
+                                    </td>
+                                    <td>
+                                        <span class="text-light"><%= r.description || '無特別說明' %></span>
+                                    </td>
+                                    <td class="text-end" onclick="event.stopPropagation();">
+                                        <div class="action-btns-group">
+                                            <button type="button" class="btn btn-sm btn-outline-light rounded-pill action-btn-clean btn-edit-info">
+                                                <i class="fa-solid fa-user-pen me-1"></i>編輯資料
+                                            </button>
+                                            <button type="button" class="btn btn-sm rounded-pill action-btn-clean text-white fw-semibold btn-edit-perms" style="background: linear-gradient(135deg, #9333ea, #7e22ce); border: none;">
+                                                <i class="fa-solid fa-lock-open me-1"></i>編輯權限
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        <% } else { %>
+                            <tr>
+                                <td colspan="5" class="text-center py-5 text-secondary">
+                                    <i class="fa-solid fa-folder-open fs-3 mb-2 opacity-50"></i>
+                                    <p class="small mb-0">目前尚無任何身分組資料</p>
+                                </td>
+                            </tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 彈窗 1：唯讀查看可見權限項目清單 -->
+<div class="modal fade" id="viewRoleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
+        <div class="modal-content modal-content-glass">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2">
+                    <span id="viewRoleNameBadge" class="role-pill-badge badge-style-danger">職位</span>
+                    <span id="viewRoleCategoryText" class="small text-secondary fw-normal">階級</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-3">
+                <div class="p-3 rounded-3 mb-3" style="background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.08);">
+                    <div class="text-secondary small mb-1">職責說明：</div>
+                    <div class="text-white small fw-medium" id="viewRoleDesc">說明內容</div>
+                </div>
+
+                <div class="small text-secondary fw-semibold mb-2">允許查看與使用的系統模組：</div>
+                <div class="perm-tree-box" id="viewRolePermTreeDisplay"></div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-sm btn-secondary rounded-pill px-4" data-bs-dismiss="modal">關閉</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 彈窗 2：編輯身分基本資料 -->
+<div class="modal fade" id="editRoleInfoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 500px;">
+        <div class="modal-content modal-content-glass">
+            <form id="editRoleInfoForm" method="POST">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-user-pen text-warning"></i>
+                        <span id="editRoleInfoTitle">編輯身分資料</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="small text-secondary fw-semibold mb-1">職位名稱</label>
+                            <input type="text" id="editInfoName" name="name" class="form-control form-control-glass" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="small text-secondary fw-semibold mb-1">所屬階級</label>
+                            <select id="editInfoCategory" name="category" class="form-select form-control-glass" style="background-color: #171326; color: #fff;">
+                                <option value="最高權限">最高權限</option>
+                                <option value="主管職位">主管職位</option>
+                                <option value="客服職位">客服職位</option>
+                                <option value="一般職位">一般職位</option>
+                                <option value="會員">會員</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="small text-secondary fw-semibold mb-1">權限權重等級 (1~100)</label>
+                        <input type="number" id="editInfoTier" name="tier_level" class="form-control form-control-glass" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="small text-secondary fw-semibold mb-1">職責說明</label>
+                        <input type="text" id="editInfoDesc" name="description" class="form-control form-control-glass" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-sm btn-primary rounded-pill px-4" style="background-color: #9333ea; border: none;">儲存資料</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 彈窗 3：編輯權限 -->
+<div class="modal fade" id="editRolePermsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 520px;">
+        <div class="modal-content modal-content-glass">
+            <form id="editRolePermsForm" method="POST">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-lock-open text-warning"></i>
+                        <span id="editRolePermsTitle">設定可見功能項目</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <p class="small text-secondary mb-2">勾選此職位可見並能使用的模組項目（支援樹狀聯動勾選）：</p>
+                    <div class="perm-tree-box" id="permTreeFormContainer"></div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-sm btn-success rounded-pill px-4" style="background-color: #10b981; border: none;">儲存權限</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 新增身分職位 Modal -->
+<div class="modal fade" id="addRoleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content modal-content-glass">
+            <form action="/system/roles/add" method="POST">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-shield-halved text-success"></i>
+                        <span>新增身分職位</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-2">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="small text-secondary fw-semibold mb-1">職位名稱 (中文)</label>
+                            <input type="text" name="name" class="form-control form-control-glass" placeholder="例如：售後管理" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="small text-secondary fw-semibold mb-1">所屬階級</label>
+                            <select name="category" class="form-select form-control-glass" style="background-color: #171326; color: #fff;">
+                                <option value="主管職位">主管職位</option>
+                                <option value="最高權限">最高權限</option>
+                                <option value="客服職位">客服職位</option>
+                                <option value="一般職位">一般職位</option>
+                                <option value="會員">會員</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="small text-secondary fw-semibold mb-1">權限權重等級 (1~100)</label>
+                            <input type="number" name="tier_level" class="form-control form-control-glass" placeholder="80" value="80" min="1" max="100" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="small text-secondary fw-semibold mb-1">職責說明</label>
+                        <input type="text" name="description" class="form-control form-control-glass" placeholder="例如：負責客訴爭議與售後仲裁">
+                    </div>
+
+                    <!-- 權限樹狀圖部分保持原樣... -->
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-sm btn-success rounded-pill px-4 fw-semibold">確認建立</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const PERM_TREE = [
+        {
+            id: 'home',
+            label: '首頁',
+            children: [
+                { id: 'home_banner', label: '即時通知公告欄' },
+                { id: 'home_wallet_card', label: '我的錢包 (VIP 卡片)' },
+                { id: 'home_info', label: '我的信息 (個人連動)' }
+            ]
+        },
+        {
+            id: 'personal',
+            label: '個人',
+            children: [
+                { 
+                    id: 'profile', 
+                    label: '個人檔案',
+                    children: [
+                        { id: 'profile_discord', label: 'Discord 資料 (唯讀)' },
+                        { id: 'profile_nickname', label: '自定義暱稱修改' }
+                    ]
+                },
+                { id: 'my_wallet', label: '我的錢包' },
+                { id: 'my_income', label: '我的收入' },
+                { id: 'my_orders', label: '我的訂單' }
+            ]
+        },
+        {
+            id: 'manage',
+            label: '管理',
+            children: [
+                { 
+                    id: 'manage_members', 
+                    label: '會員管理',
+                    children: [
+                        { id: 'member_adjust_balance', label: '💰 帳務調整權限 (增減餘額/金額)' },
+                        { id: 'member_adjust_vip', label: '👑 VIP調整權限 (手動調整等級)' }
+                    ]
+                },
+                { id: 'manage_staff', label: '員工管理' },
+                { id: 'manage_orders', label: '訂單管理' }
+            ]
+        },
+        {
+            id: 'system',
+            label: '系統',
+            children: [
+                { id: 'sys_commission', label: '抽佣設定' },
+                { id: 'sys_vip', label: 'VIP設定' },
+                { id: 'sys_roles', label: '身分管理' },
+                { id: 'sys_settings', label: '系統設定' },
+                { id: 'sys_logs', label: '操作紀錄' }
+            ]
+        }
+    ];
+
+    let viewRoleModal, editRoleInfoModal, editRolePermsModal;
+
+    function renderPermCheckboxTree(containerId, activePerms = []) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        container.innerHTML = '';
+
+        PERM_TREE.forEach((parent) => {
+            const isParentChecked = activePerms.includes(parent.id);
+            const parentEl = document.createElement('div');
+            parentEl.className = 'mb-2';
+
+            let childrenHtml = '';
+            if (parent.children) {
+                parent.children.forEach(child => {
+                    const isChildChecked = activePerms.includes(child.id);
+                    let subChildrenHtml = '';
+
+                    if (child.children) {
+                        child.children.forEach(sub => {
+                            const isSubChecked = activePerms.includes(sub.id);
+                            subChildrenHtml += `
+                                <label class="tree-node-subchild">
+                                    <input type="checkbox" name="perms[]" value="${sub.id}" class="form-check-input perm-cb sub-cb-${parent.id}-${child.id}" data-parent="${parent.id}" data-mid="${child.id}" ${isSubChecked ? 'checked' : ''}>
+                                    <span>${sub.label}</span>
+                                </label>
+                            `;
+                        });
+                    }
+
+                    childrenHtml += `
+                        <div>
+                            <label class="tree-node-child">
+                                <input type="checkbox" name="perms[]" value="${child.id}" class="form-check-input perm-cb mid-cb-${parent.id}" data-parent="${parent.id}" data-child="${child.id}" ${isChildChecked ? 'checked' : ''}>
+                                <span>${child.label}</span>
+                            </label>
+                            ${subChildrenHtml ? `<div class="tree-sub-children">${subChildrenHtml}</div>` : ''}
+                        </div>
+                    `;
+                });
+            }
+
+            parentEl.innerHTML = `
+                <div class="tree-node-parent">
+                    <input type="checkbox" name="perms[]" value="${parent.id}" class="form-check-input perm-cb parent-cb" data-target="${parent.id}" ${isParentChecked ? 'checked' : ''}>
+                    <span>${parent.label}</span>
+                </div>
+                ${childrenHtml ? `<div class="tree-children">${childrenHtml}</div>` : ''}
+            `;
+            container.appendChild(parentEl);
+        });
+
+        container.querySelectorAll('.parent-cb').forEach(pcb => {
+            pcb.addEventListener('change', () => {
+                const target = pcb.getAttribute('data-target');
+                const checked = pcb.checked;
+                container.querySelectorAll(`.mid-cb-${target}`).forEach(c => {
+                    c.checked = checked;
+                    c.dispatchEvent(new Event('change'));
+                });
+            });
+        });
+
+        container.querySelectorAll('.tree-node-child input[type="checkbox"]').forEach(mcb => {
+            mcb.addEventListener('change', () => {
+                const pId = mcb.getAttribute('data-parent');
+                const cId = mcb.getAttribute('data-child');
+                const checked = mcb.checked;
+                container.querySelectorAll(`.sub-cb-${pId}-${cId}`).forEach(s => s.checked = checked);
+                if (checked) {
+                    const parentCb = container.querySelector(`.parent-cb[data-target="${pId}"]`);
+                    if (parentCb) parentCb.checked = true;
+                }
+            });
+        });
+
+        container.querySelectorAll('.tree-node-subchild input[type="checkbox"]').forEach(scb => {
+            scb.addEventListener('change', () => {
+                if (scb.checked) {
+                    const pId = scb.getAttribute('data-parent');
+                    const mId = scb.getAttribute('data-mid');
+                    const parentCb = container.querySelector(`.parent-cb[data-target="${pId}"]`);
+                    const midCb = container.querySelector(`.mid-cb-${pId}[data-child="${mId}"]`);
+                    if (parentCb) parentCb.checked = true;
+                    if (midCb) midCb.checked = true;
+                }
+            });
+        });
+    }
+
+    function renderPermViewTree(containerId, activePerms = []) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        container.innerHTML = '';
+
+        let foundAny = false;
+        PERM_TREE.forEach(parent => {
+            const hasParent = activePerms.includes(parent.id);
+            const activeChildren = (parent.children || []).filter(c => activePerms.includes(c.id) || (c.children && c.children.some(s => activePerms.includes(s.id))));
+
+            if (hasParent || activeChildren.length > 0) {
+                foundAny = true;
+                const pEl = document.createElement('div');
+                pEl.className = 'mb-2';
+
+                let cHtml = '';
+                activeChildren.forEach(child => {
+                    const activeSubs = (child.children || []).filter(s => activePerms.includes(s.id));
+                    let sHtml = '';
+                    activeSubs.forEach(s => {
+                        sHtml += `<div class="tree-node-subchild"><i class="fa-solid fa-check text-success me-1"></i>${s.label}</div>`;
+                    });
+
+                    cHtml += `
+                        <div class="mb-1">
+                            <div class="tree-node-child"><i class="fa-solid fa-check text-info me-1"></i>${child.label}</div>
+                            ${sHtml ? `<div class="tree-sub-children">${sHtml}</div>` : ''}
+                        </div>
+                    `;
+                });
+
+                pEl.innerHTML = `
+                    <div class="tree-node-parent"><i class="fa-solid fa-folder-open text-warning me-2"></i>${parent.label}</div>
+                    ${cHtml ? `<div class="tree-children">${cHtml}</div>` : ''}
+                `;
+                container.appendChild(pEl);
+            }
+        });
+
+        if (!foundAny) {
+            container.innerHTML = '<div class="text-secondary small text-center py-3">尚未開啟任何項目權限</div>';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        viewRoleModal = new bootstrap.Modal(document.getElementById('viewRoleModal'));
+        editRoleInfoModal = new bootstrap.Modal(document.getElementById('editRoleInfoModal'));
+        editRolePermsModal = new bootstrap.Modal(document.getElementById('editRolePermsModal'));
+
+        document.querySelectorAll('.role-row').forEach(row => {
+            const id = row.getAttribute('data-id');
+            const name = row.getAttribute('data-name');
+            const category = row.getAttribute('data-category');
+            const color = row.getAttribute('data-color');
+            const tier = row.getAttribute('data-tier');
+            const desc = row.getAttribute('data-desc');
+            
+            let perms = [];
+            try {
+                const rawPerms = row.getAttribute('data-perms');
+                perms = rawPerms ? JSON.parse(rawPerms) : [];
+            } catch (e) {
+                console.error('權限 JSON 解析失敗:', e);
+                perms = [];
+            }
+
+            row.addEventListener('click', () => {
+                const nameBadge = document.getElementById('viewRoleNameBadge');
+                nameBadge.textContent = name;
+                nameBadge.className = `role-pill-badge badge-style-${color}`;
+                document.getElementById('viewRoleCategoryText').textContent = `[ ${category} · Lv.${tier} ]`;
+                document.getElementById('viewRoleDesc').textContent = desc || '無特別說明';
+                renderPermViewTree('viewRolePermTreeDisplay', perms);
+                viewRoleModal.show();
+            });
+
+            const editInfoBtn = row.querySelector('.btn-edit-info');
+            if (editInfoBtn) {
+                editInfoBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    document.getElementById('editRoleInfoForm').action = `/system/roles/update-info/${id}`;
+                    document.getElementById('editRoleInfoTitle').textContent = `編輯「${name}」基本資料`;
+                    document.getElementById('editInfoName').value = name;
+                    document.getElementById('editInfoCategory').value = category;
+                    document.getElementById('editInfoTier').value = tier;
+                    document.getElementById('editInfoDesc').value = desc;
+                    editRoleInfoModal.show();
+                });
+            }
+
+            const editPermsBtn = row.querySelector('.btn-edit-perms');
+            if (editPermsBtn) {
+                editPermsBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    document.getElementById('editRolePermsForm').action = `/system/roles/update-perms/${id}`;
+                    document.getElementById('editRolePermsTitle').textContent = `設定「${name}」可見權限項目`;
+                    renderPermCheckboxTree('permTreeFormContainer', perms);
+                    editRolePermsModal.show();
+                });
+            }
+        });
+
+        renderPermCheckboxTree('newRolePermTreeContainer', ['home', 'home_banner', 'home_wallet_card', 'home_info', 'personal', 'profile', 'profile_discord', 'profile_nickname']);
+    });
+</script>
+</body>
+</html>

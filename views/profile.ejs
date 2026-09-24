@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>個人檔案 · 米胡電競 MiHu Gaming</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #0b0914;
+            --sidebar-bg: #131021;
+            --card-bg: rgba(23, 19, 38, 0.85);
+            --card-border: rgba(168, 85, 247, 0.2);
+            --mihu-purple: #9333ea;
+            --mihu-purple-light: #c084fc;
+            --mihu-yellow: #fde047;
+            --text-light: #f3f4f6;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-light);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        img { max-width: 100%; height: auto; }
+
+        .mihu-sidebar {
+            width: 280px !important;
+            min-width: 280px !important;
+            max-width: 280px !important;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--card-border);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            padding: 24px 16px;
+            flex-shrink: 0;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+        .sidebar-brand-clean {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 10px 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            margin-bottom: 12px;
+            width: 100%;
+        }
+        .brand-logo-clean {
+            width: 170px !important;
+            max-width: 170px !important;
+            height: auto !important;
+            object-fit: contain !important;
+            filter: drop-shadow(0 0 16px rgba(168, 85, 247, 0.5));
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .brand-logo-clean:hover { transform: scale(1.05); }
+
+        .main-wrapper { 
+            flex-grow: 1; 
+            display: flex; 
+            flex-direction: column; 
+            overflow-y: auto; 
+            max-height: 100vh; 
+            width: calc(100vw - 280px);
+            min-width: 0;
+        }
+
+        .content-body { padding: 20px 36px 32px; flex-grow: 1; }
+
+        /* 🚀 圖 2 樣式大標題與說明 */
+        .page-header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+            gap: 14px;
+            width: 100%;
+        }
+
+        .page-title-text {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 4px;
+        }
+        
+        .glass-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            margin-bottom: 24px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .section-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0;
+        }
+
+        .privacy-badge {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            color: #fca5a5;
+            font-size: 0.76rem;
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        .field-label {
+            font-size: 0.84rem;
+            color: #e2e8f0;
+            font-weight: 600;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .form-control-glass {
+            background-color: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #ffffff !important;
+            border-radius: 12px;
+            padding: 11px 16px;
+            font-size: 0.92rem;
+            transition: all 0.2s ease;
+        }
+        .form-control-glass::placeholder {
+            color: #94a3b8 !important;
+            opacity: 1;
+        }
+        .form-control-glass:focus {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: var(--mihu-purple-light);
+            color: #ffffff !important;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.25);
+        }
+
+        .form-control-glass:disabled,
+        .form-control-glass[readonly] {
+            background-color: rgba(0, 0, 0, 0.4) !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
+            color: #cbd5e1 !important;
+            cursor: not-allowed;
+        }
+
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.85);
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<%- include('partials/sidebar', { activePage: 'profile' }) %>
+
+<div class="main-wrapper">
+    <%- include('partials/navbar', { activePage: 'profile' }) %>
+
+    <div class="content-body">
+        <!-- 🚀 圖 2 樣式大標題與說明 -->
+        <div class="page-header-content">
+            <div>
+                <div class="page-title-text">
+                    <i class="fa-solid fa-user-gear text-purple-light"></i>
+                    <span>個人檔案設定</span>
+                </div>
+                <p class="text-secondary small mb-0">管理您的個人資訊、暱稱呈現與機密薪轉帳戶資料</p>
+            </div>
+        </div>
+
+        <div class="row justify-content-center">
+            <div class="col-12">
+                
+                <% if (typeof success !== 'undefined' && success) { %>
+                    <div class="alert alert-success py-2 px-3 small mb-4 border-0 bg-success bg-opacity-25 text-success d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span>個人檔案與薪轉資料已成功儲存更新！</span>
+                    </div>
+                <% } %>
+
+                <form action="/profile" method="POST">
+                    
+                    <!-- 區塊 1：個人基本資料 -->
+                    <div class="glass-card">
+                        <div class="section-header">
+                            <h5 class="section-title">
+                                <i class="fa-solid fa-id-card" style="color: var(--mihu-purple-light);"></i>
+                                <span>個人基本資料</span>
+                            </h5>
+                            <span class="small text-secondary">社群與個人特徵呈現</span>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6 col-12">
+                                <label class="field-label">
+                                    <i class="fa-brands fa-discord text-primary"></i>Discord ID (唯讀)
+                                </label>
+                                <input type="text" class="form-control form-control-glass font-monospace" value="<%= user.id %>" disabled>
+                            </div>
+                            <div class="col-md-6 col-12">
+                                <label class="field-label">
+                                    <i class="fa-solid fa-at text-info"></i>Discord 使用者名稱 (唯讀)
+                                </label>
+                                <input type="text" class="form-control form-control-glass" value="<%= user.username %>" disabled>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="field-label text-warning">
+                                <i class="fa-solid fa-signature"></i>自定義暱稱 (前台與團隊顯示用)
+                            </label>
+                            <input type="text" name="custom_nickname" class="form-control form-control-glass" value="<%= user.custom_nickname || user.global_name || '' %>" placeholder="例如：小米">
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-3 col-6">
+                                <label class="field-label">
+                                    <i class="fa-solid fa-cake-candles text-warning"></i>生日
+                                </label>
+                                <input type="date" id="inputBirthday" name="birthday" class="form-control form-control-glass" value="<%= user.birthday || '' %>" onchange="calcAgeFromBirthday(this.value)">
+                            </div>
+
+                            <div class="col-md-3 col-6">
+                                <label class="field-label">
+                                    <i class="fa-solid fa-venus-mars text-primary"></i>性別
+                                </label>
+                                <select name="gender" class="form-select form-control-glass" style="background-color: #171326; color: #fff;">
+                                    <option value="" <%= !user.gender ? 'selected' : '' %>>未設定</option>
+                                    <option value="男性" <%= user.gender === '男性' ? 'selected' : '' %>>男性</option>
+                                    <option value="女性" <%= user.gender === '女性' ? 'selected' : '' %>>女性</option>
+                                    <option value="非二元" <%= user.gender === '非二元' ? 'selected' : '' %>>非二元</option>
+                                    <option value="保密" <%= user.gender === '保密' ? 'selected' : '' %>>保密</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-3 col-6">
+                                <label class="field-label">
+                                    <i class="fa-solid fa-hourglass-half text-info"></i>年齡
+                                </label>
+                                <input type="number" id="inputAge" name="age" class="form-control form-control-glass" value="<%= user.age !== null ? user.age : '' %>" placeholder="自動計算或輸入" min="1" max="120">
+                            </div>
+
+                            <div class="col-md-3 col-6">
+                                <label class="field-label">
+                                    <i class="fa-solid fa-brain" style="color: #ec4899;"></i>MBTI
+                                </label>
+                                <select name="mbti" class="form-select form-control-glass font-monospace" style="background-color: #171326; color: #fff;">
+                                    <option value="" <%= !user.mbti ? 'selected' : '' %>>未設定</option>
+                                    <option value="保密" <%= user.mbti === '保密' ? 'selected' : '' %>>保密</option>
+                                    <% 
+                                        const mbtiList = [
+                                            'INTJ', 'INTP', 'ENTJ', 'ENTP',
+                                            'INFJ', 'INFP', 'ENFJ', 'ENFP',
+                                            'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ',
+                                            'ISTP', 'ISFP', 'ESTP', 'ESFP'
+                                        ];
+                                        mbtiList.forEach(m => {
+                                    %>
+                                        <option value="<%= m %>" <%= user.mbti === m ? 'selected' : '' %>><%= m %></option>
+                                    <% }) %>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 區塊 2：個人資料 (含薪轉 - 敏感個資) -->
+                    <div class="glass-card">
+                        <div class="section-header">
+                            <div>
+                                <h5 class="section-title text-danger">
+                                    <i class="fa-solid fa-shield-halved"></i>
+                                    <span>個人資料 (含薪轉)</span>
+                                </h5>
+                                <div class="small text-secondary mt-1">
+                                    此區塊為敏感隱私檔案，用於款項清算與出納確認
+                                </div>
+                            </div>
+                            <span class="privacy-badge">
+                                <i class="fa-solid fa-lock"></i>
+                                <span>僅限最高營運者可見</span>
+                            </span>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-4 col-12">
+                                <label class="field-label">
+                                    <i class="fa-solid fa-user-check text-success"></i>本名
+                                </label>
+                                <input type="text" name="real_name" class="form-control form-control-glass" value="<%= user.real_name || '' %>" placeholder="請填寫戶籍真實姓名">
+                            </div>
+
+                            <div class="col-md-4 col-6">
+                                <label class="field-label">
+                                    <i class="fa-solid fa-building-columns text-warning"></i>銀行名稱
+                                </label>
+                                <input type="text" name="bank_name" class="form-control form-control-glass" value="<%= user.bank_name || '' %>" placeholder="例如：中國信託 / 國泰世華">
+                            </div>
+
+                            <div class="col-md-4 col-6">
+                                <label class="field-label">
+                                    <i class="fa-solid fa-hashtag text-info"></i>機構代碼 (3碼)
+                                </label>
+                                <input type="text" name="bank_code" class="form-control form-control-glass font-monospace" maxlength="3" value="<%= user.bank_code || '' %>" placeholder="例如：822">
+                            </div>
+
+                            <div class="col-md-5 col-12">
+                                <label class="field-label">
+                                    <i class="fa-solid fa-map-location-dot text-primary"></i>分行名稱
+                                </label>
+                                <input type="text" name="bank_branch" class="form-control form-control-glass" value="<%= user.bank_branch || '' %>" placeholder="例如：板橋分行 / 敦南分行">
+                            </div>
+
+                            <div class="col-md-7 col-12">
+                                <label class="field-label">
+                                    <i class="fa-solid fa-money-check-dollar text-warning"></i>銀行帳戶
+                                </label>
+                                <input type="text" name="bank_account" class="form-control form-control-glass font-monospace" value="<%= user.bank_account || '' %>" placeholder="請輸入匯款受款帳號 (純數字)">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end mb-4">
+                        <button type="submit" class="btn btn-primary px-4 py-2 rounded-pill fw-semibold shadow" style="background: linear-gradient(135deg, #9333ea, #7e22ce); border: none;">
+                            <i class="fa-solid fa-floppy-disk me-1"></i>儲存檔案變更
+                        </button>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function calcAgeFromBirthday(dateString) {
+        if (!dateString) return;
+        const birthDate = new Date(dateString);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        if (age >= 0 && age <= 120) {
+            document.getElementById('inputAge').value = age;
+        }
+    }
+</script>
+</body>
+</html>

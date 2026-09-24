@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>訂單管理 · 米胡電競 MiHu Gaming</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #0b0914;
+            --sidebar-bg: #131021;
+            --card-bg: rgba(23, 19, 38, 0.85);
+            --card-border: rgba(168, 85, 247, 0.2);
+            --mihu-purple: #9333ea;
+            --mihu-purple-light: #c084fc;
+            --mihu-yellow: #fde047;
+            --text-light: #f3f4f6;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-light);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        img { max-width: 100%; height: auto; }
+
+        .main-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            max-height: 100vh;
+            width: calc(100vw - 280px);
+            min-width: 0;
+        }
+
+        .content-body { 
+            padding: 20px 36px 32px; 
+            flex-grow: 1; 
+        }
+
+        .page-header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+            gap: 14px;
+            width: 100%;
+        }
+
+        .page-title-text {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 4px;
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 4px;
+            border-radius: 14px;
+            flex-wrap: wrap;
+        }
+        .filter-tab-btn {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-size: 0.84rem;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 10px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .filter-tab-btn:hover { color: #fff; }
+        .filter-tab-btn.active {
+            background: rgba(168, 85, 247, 0.2);
+            color: #fff;
+            border: 1px solid rgba(168, 85, 247, 0.4);
+            box-shadow: 0 0 10px rgba(168, 85, 247, 0.25);
+        }
+
+        .search-box-wrap {
+            position: relative;
+            width: 280px;
+            flex-shrink: 0;
+        }
+        .search-input-glass {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            color: #ffffff !important;
+            border-radius: 30px;
+            padding: 8px 36px 8px 38px;
+            font-size: 0.88rem;
+            width: 100%;
+            transition: all 0.2s ease;
+        }
+        .search-input-glass::placeholder { color: #94a3b8 !important; }
+        .search-input-glass:focus {
+            background-color: rgba(255, 255, 255, 0.08);
+            border-color: var(--mihu-purple-light);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.25);
+        }
+        .search-icon-left {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 0.88rem;
+            pointer-events: none;
+        }
+        .search-clear-btn {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 0.82rem;
+            cursor: pointer;
+            display: none;
+            border: none;
+            background: transparent;
+            padding: 0;
+        }
+
+        .glass-table-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(15px);
+        }
+
+        .table-responsive { margin: 0; overflow-x: auto; }
+        .mihu-table {
+            width: 100%;
+            margin-bottom: 0;
+            color: #f3f4f6;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        .mihu-table th {
+            background: rgba(0, 0, 0, 0.42);
+            color: #94a3b8;
+            font-weight: 700;
+            font-size: 0.84rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            white-space: nowrap;
+        }
+        .mihu-table td {
+            padding: 15px 20px;
+            vertical-align: middle;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.92rem;
+            white-space: nowrap;
+        }
+        .mihu-table tbody tr.order-row {
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+        .mihu-table tbody tr.order-row:hover {
+            background: rgba(168, 85, 247, 0.09);
+        }
+
+        .user-mini-col {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .user-mini-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .category-badge {
+            font-size: 0.78rem;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .badge-陪玩單   { background: rgba(168, 85, 247, 0.18); border: 1px solid rgba(168, 85, 247, 0.4); color: #d8b4fe; }
+        .badge-禮物單   { background: rgba(236, 72, 153, 0.18); border: 1px solid rgba(236, 72, 153, 0.4); color: #f472b6; }
+        .badge-有獎     { background: rgba(56, 189, 248, 0.18); border: 1px solid rgba(56, 189, 248, 0.4); color: #7dd3fc; }
+        .badge-冠名     { background: rgba(245, 158, 11, 0.18); border: 1px solid rgba(245, 158, 11, 0.4); color: #fde047; }
+        .badge-獎金     { background: rgba(16, 185, 129, 0.18); border: 1px solid rgba(16, 185, 129, 0.4); color: #6ee7b7; }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+        }
+        .status-badge-pending   { background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #fde047; }
+        .status-badge-active    { background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; }
+        .status-badge-completed { background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; }
+        .status-badge-cancelled { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; }
+        .status-badge-rejected  { background: rgba(148, 163, 184, 0.15); border: 1px solid rgba(148, 163, 184, 0.3); color: #94a3b8; }
+
+        .action-btns-group {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+        .btn-circle-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            font-size: 0.86rem;
+            transition: all 0.2s ease;
+        }
+        .btn-circle-icon:hover { transform: scale(1.08); }
+
+        .modal-content-glass {
+            background: rgba(20, 16, 35, 0.97);
+            border: 1px solid rgba(168, 85, 247, 0.35);
+            border-radius: 20px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(168, 85, 247, 0.25);
+            backdrop-filter: blur(20px);
+            color: #fff;
+        }
+        
+        /* 🚀 修正 P1 下拉選單反白/白底問題與滾動條限制 */
+        .form-control-glass {
+            background-color: rgba(255, 255, 255, 0.06) !important;
+            border: 1px solid rgba(255, 255, 255, 0.14) !important;
+            color: #ffffff !important;
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 0.92rem;
+        }
+        .form-control-glass:focus {
+            background-color: rgba(255, 255, 255, 0.08);
+            border-color: var(--mihu-purple-light);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.25);
+        }
+
+        /* 下拉選單深色強制覆蓋，最多顯示約 7 個項目並可滾動 */
+        select.form-control-glass option {
+            background-color: #171326 !important;
+            color: #ffffff !important;
+            padding: 8px 12px;
+        }
+        select.form-control-glass option:hover,
+        select.form-control-glass option:focus,
+        select.form-control-glass option:checked {
+            background-color: #9333ea !important;
+            color: #ffffff !important;
+        }
+
+        .info-detail-box {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .info-detail-label {
+            font-size: 0.74rem;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+        .info-detail-val {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #ffffff;
+            font-family: monospace;
+        }
+
+        .talent-message-box {
+            background: linear-gradient(135deg, rgba(147, 51, 234, 0.12), rgba(236, 72, 153, 0.08));
+            border: 1px solid rgba(192, 132, 252, 0.3);
+            border-radius: 14px;
+            padding: 14px 18px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+<%- include('partials/sidebar', { activePage: 'orders' }) %>
+
+<div class="main-wrapper">
+    <%- include('partials/navbar', { activePage: 'orders' }) %>
+
+    <div class="content-body">
+        <div class="page-header-content">
+            <div>
+                <div class="page-title-text">
+                    <i class="fa-solid fa-list-check text-pink"></i>
+                    <span>工作室訂單管理</span>
+                </div>
+                <p class="text-secondary small mb-0">即時監控、改派陪玩師與核算工作室訂單收益</p>
+            </div>
+
+            <div class="d-flex align-items-center gap-3">
+                <div class="search-box-wrap">
+                    <i class="fa-solid fa-magnifying-glass search-icon-left"></i>
+                    <input type="text" id="orderSearchInput" class="search-input-glass" placeholder="搜尋單號 / 闆闆 / 陪陪 / 類別 / 項目...">
+                    <button type="button" id="clearSearchBtn" class="search-clear-btn" title="清除搜尋">
+                        <i class="fa-solid fa-circle-xmark"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <div class="filter-tabs">
+                <button type="button" class="filter-tab-btn active" data-filter="all">全部訂單 (<%= orders.length %>)</button>
+                <button type="button" class="filter-tab-btn" data-filter="pending">派單中</button>
+                <button type="button" class="filter-tab-btn" data-filter="active">進行中</button>
+                <button type="button" class="filter-tab-btn" data-filter="completed">已完成</button>
+                <button type="button" class="filter-tab-btn" data-filter="cancelled">售後中</button>
+                <button type="button" class="filter-tab-btn" data-filter="rejected">已駁回</button>
+            </div>
+        </div>
+
+        <% if (typeof success !== 'undefined' && success) { %>
+            <div class="alert alert-success py-2 px-3 small mb-4 border-0 bg-success bg-opacity-25 text-success">
+                ✅ 訂單狀態與資料已成功更新！
+            </div>
+        <% } %>
+
+        <div class="glass-table-card">
+            <div class="table-responsive">
+                <table class="mihu-table" id="ordersTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 13%;">訂單編號</th>
+                            <th style="width: 13%;">闆闆</th>
+                            <th style="width: 13%;">陪陪</th>
+                            <th style="width: 10%;">類別</th>
+                            <th style="width: 12%;">項目</th>
+                            <th style="width: 15%;">內容</th>
+                            <th style="width: 9%;">數量 / 時長</th>
+                            <th style="width: 10%;">訂單金額</th>
+                            <th style="width: 7%; text-align: center;">狀態</th>
+                            <th style="width: 8%; text-align: right;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ordersTableBody">
+                        <% orders.forEach(o => { 
+                            const bossAvatar = o.boss_avatar 
+                                ? `https://cdn.discordapp.com/avatars/${o.boss_id}/${o.boss_avatar}.png` 
+                                : `https://cdn.discordapp.com/embed/avatars/0.png`;
+                            const bossName = o.boss_nickname || o.boss_global_name || o.boss_username || '匿名闆闆';
+
+                            const talentAvatar = o.talent_avatar 
+                                ? `https://cdn.discordapp.com/avatars/${o.talent_id}/${o.talent_avatar}.png` 
+                                : `https://cdn.discordapp.com/embed/avatars/1.png`;
+                            const talentName = o.talent_id ? (o.talent_nickname || o.talent_global_name || o.talent_username || '陪玩師') : '派單中';
+
+                            const category = o.category || o.extra || '陪玩單';
+                            const itemName = o.game || o.item_name || '一般';
+                            const contentTier = o.content_tier || o.note || '-';
+                            const unit = o.unit || '小時';
+
+                            const statusMap = {
+                                'pending': { name: '派單中', class: 'status-badge-pending', icon: 'fa-clock' },
+                                'active': { name: '進行中', class: 'status-badge-active', icon: 'fa-gamepad' },
+                                'completed': { name: '已完成', class: 'status-badge-completed', icon: 'fa-circle-check' },
+                                'cancelled': { name: '售後中', class: 'status-badge-cancelled', icon: 'fa-triangle-exclamation' },
+                                'rejected': { name: '已駁回', class: 'status-badge-rejected', icon: 'fa-ban' }
+                            };
+                            const statusObj = statusMap[o.status] || { name: o.status, class: 'status-badge-pending', icon: 'fa-clock' };
+
+                            const totalAmount = Number(o.total_amount || 0);
+                            const discount = Number(o.discount || 0);
+                            const originalPrice = totalAmount + discount;
+                            const rate = Number(o.talent_commission_rate || 0.7);
+                            const talentEarn = Math.round(totalAmount * rate);
+                            const companyProfit = totalAmount - talentEarn;
+
+                            const orderJson = JSON.stringify({
+                                id: o.id,
+                                orderNo: o.order_no,
+                                bossId: o.boss_id,
+                                bossName: bossName,
+                                bossAvatar: bossAvatar,
+                                talentId: o.talent_id || '',
+                                talentName: talentName,
+                                talentAvatar: talentAvatar,
+                                category: category,
+                                itemName: itemName,
+                                contentTier: contentTier,
+                                duration: o.duration,
+                                unit: unit,
+                                originalPrice: originalPrice,
+                                discount: discount,
+                                totalAmount: totalAmount,
+                                talentEarn: talentEarn,
+                                companyProfit: companyProfit,
+                                extra: o.extra || '無特別條件',
+                                note: o.note || '無特別備註',
+                                talentMessage: o.talent_message || o.review_comment || '尚無留言',
+                                channelId: o.channel_id || '無',
+                                status: o.status,
+                                statusName: statusObj.name,
+                                startTime: o.start_time || '尚未開始',
+                                endTime: o.end_time || '尚未結束',
+                                createdAt: o.created_at || '',
+                                csName: '米胡客服中心'
+                            });
+                        %>
+                            <tr class="order-row" 
+                                data-order='<%- orderJson %>'
+                                data-status="<%= o.status %>"
+                                data-search="<%= `${o.order_no} ${bossName} ${talentName} ${category} ${itemName} ${contentTier}`.toLowerCase() %>">
+                                
+                                <td>
+                                    <div class="fw-bold font-monospace text-light"><%= o.order_no %></div>
+                                    <div class="small text-secondary font-monospace" style="font-size: 0.72rem;"><%= (o.created_at || '').slice(0, 16) %></div>
+                                </td>
+
+                                <td>
+                                    <div class="user-mini-col">
+                                        <img src="<%= bossAvatar %>" alt="闆闆頭像" class="user-mini-avatar">
+                                        <div>
+                                            <div class="fw-bold text-white small"><%= bossName %></div>
+                                            <div class="text-secondary font-monospace" style="font-size: 0.68rem;">•••• <%= o.boss_id.slice(-4) %></div>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <div class="user-mini-col">
+                                        <% if (o.talent_id) { %>
+                                            <img src="<%= talentAvatar %>" alt="陪陪頭像" class="user-mini-avatar" style="border-color: rgba(168, 85, 247, 0.4);">
+                                            <div>
+                                                <div class="fw-bold text-light small"><%= talentName %></div>
+                                                <div class="text-secondary font-monospace" style="font-size: 0.68rem;">•••• <%= o.talent_id.slice(-4) %></div>
+                                            </div>
+                                        <% } else { %>
+                                            <div class="badge bg-warning text-dark px-2 py-1" style="font-size: 0.74rem;">
+                                                <i class="fa-solid fa-hourglass-start me-1"></i>派單中
+                                            </div>
+                                        <% } %>
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <span class="category-badge badge-<%= category %>"><%= category %></span>
+                                </td>
+
+                                <td>
+                                    <span class="fw-bold text-white small"><%= itemName %></span>
+                                </td>
+
+                                <td>
+                                    <span class="text-white-50 small text-truncate d-inline-block" style="max-width: 130px;" title="<%= contentTier %>"><%= contentTier %></span>
+                                </td>
+
+                                <td>
+                                    <span class="font-monospace text-light small"><%= o.duration %> <%= unit %></span>
+                                </td>
+
+                                <td>
+                                    <span class="font-monospace text-warning fw-bold">$<%= Number(o.total_amount).toLocaleString() %></span>
+                                    <span class="small text-secondary">NTD</span>
+                                </td>
+
+                                <td class="text-center">
+                                    <span class="status-badge <%= statusObj.class %>">
+                                        <i class="fa-solid <%= statusObj.icon %>"></i>
+                                        <span><%= statusObj.name %></span>
+                                    </span>
+                                </td>
+
+                                <td class="text-end" onclick="event.stopPropagation();">
+                                    <div class="action-btns-group justify-content-end">
+                                        <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-2 py-1 btn-detail-trigger" style="font-size: 0.78rem;" title="詳情">
+                                            <i class="fa-solid fa-file-invoice me-1"></i>詳情
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-info btn-circle-icon btn-status-trigger" title="狀態管理與改派">
+                                            <i class="fa-solid fa-sliders"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+
+                <div id="noMatchRow" class="text-center py-5 text-secondary" style="display: none;">
+                    <i class="fa-solid fa-receipt fs-3 mb-2 opacity-50"></i>
+                    <p class="small mb-0">找不到符合條件的訂單記錄</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 訂單詳細內容 Modal -->
+<div class="modal fade" id="orderDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" style="max-width: 720px;">
+        <div class="modal-content modal-content-glass">
+            <div class="modal-header border-0 pb-2 pt-4 px-4">
+                <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2 font-monospace">
+                    <i class="fa-solid fa-file-invoice-dollar text-warning fs-5"></i>
+                    <span>訂單詳細內容</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body px-4 py-3" style="max-height: 80vh; overflow-y: auto;">
+                <div class="p-3 mb-3 rounded-4" style="background: rgba(255, 255, 255, 0.025); border: 1px solid rgba(255, 255, 255, 0.08);">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <span class="info-detail-label">訂單編號</span>
+                            <div class="info-detail-val text-warning font-monospace fs-6" id="detailOrderNo">--</div>
+                        </div>
+                        <div class="col-6">
+                            <span class="info-detail-label">訂單狀態 / 派單客服</span>
+                            <div class="info-detail-val text-info fs-6" id="detailStatusAndCs">--</div>
+                        </div>
+                        <div class="col-6 pt-2 border-top border-white-50 border-opacity-10">
+                            <span class="info-detail-label">闆闆 (ID)</span>
+                            <div class="info-detail-val text-white" id="detailBossInfo">--</div>
+                        </div>
+                        <div class="col-6 pt-2 border-top border-white-50 border-opacity-10">
+                            <span class="info-detail-label">陪陪 (ID)</span>
+                            <div class="info-detail-val text-white" id="detailTalentInfo">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-3 mb-3 rounded-4" style="background: rgba(255, 255, 255, 0.025); border: 1px solid rgba(255, 255, 255, 0.08);">
+                    <div class="row g-3">
+                        <div class="col-3">
+                            <span class="info-detail-label">類別</span>
+                            <div class="info-detail-val text-purple-light" id="detailCategory">--</div>
+                        </div>
+                        <div class="col-3">
+                            <span class="info-detail-label">項目</span>
+                            <div class="info-detail-val text-white" id="detailItemAndContent">--</div>
+                        </div>
+                        <div class="col-3">
+                            <span class="info-detail-label">內容</span>
+                            <div class="info-detail-val text-white-50" id="detailContentTierVal">--</div>
+                        </div>
+                        <div class="col-3">
+                            <span class="info-detail-label">數量 / 時長</span>
+                            <div class="info-detail-val text-info" id="detailDuration">--</div>
+                        </div>
+                        
+                        <div class="col-6 pt-2 border-top border-white-50 border-opacity-10">
+                            <span class="info-detail-label">開始時間</span>
+                            <div class="info-detail-val text-white-50 font-monospace small" id="detailStartTime">--</div>
+                        </div>
+                        <div class="col-6 pt-2 border-top border-white-50 border-opacity-10">
+                            <span class="info-detail-label">結束時間</span>
+                            <div class="info-detail-val text-white-50 font-monospace small" id="detailEndTime">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-3 mb-3 rounded-4" style="background: rgba(16, 185, 129, 0.04); border: 1px solid rgba(16, 185, 129, 0.15);">
+                    <div class="row g-3 align-items-center">
+                        <div class="col-4">
+                            <span class="info-detail-label">訂單原價</span>
+                            <div class="info-detail-val text-secondary" id="detailOriginalPrice">$0</div>
+                        </div>
+                        <div class="col-4">
+                            <span class="info-detail-label">抵扣 / 折扣</span>
+                            <div class="info-detail-val text-warning" id="detailDiscount">$0</div>
+                        </div>
+                        <div class="col-4">
+                            <span class="info-detail-label">訂單金額 (實收)</span>
+                            <div class="info-detail-val text-success fs-5 fw-bold" id="detailTotalAmount">$0 NTD</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="talent-message-box mb-3">
+                    <div class="d-flex align-items-center gap-2 mb-1.5">
+                        <i class="fa-solid fa-heart text-pink fs-6"></i>
+                        <span class="fw-bold text-white small">🤍 陪陪留言區</span>
+                    </div>
+                    <div class="text-light small fw-medium px-1" id="detailTalentMessage" style="line-height: 1.6; white-space: pre-wrap;">尚無留言</div>
+                </div>
+
+                <div class="p-3 rounded-4 mb-3" style="background: rgba(255, 255, 255, 0.025); border: 1px solid rgba(255, 255, 255, 0.08);">
+                    <div class="text-secondary small fw-semibold mb-1 flex items-center gap-1">
+                        <span>✨</span> 附加條件：
+                    </div>
+                    <div class="text-white small fw-medium px-1" id="detailExtra">無特別條件</div>
+                </div>
+
+                <div class="p-3 rounded-4" style="background: rgba(255, 255, 255, 0.025); border: 1px solid rgba(255, 255, 255, 0.08);">
+                    <div class="text-secondary small fw-semibold mb-1">訂單說明與客服備註：</div>
+                    <div class="text-white-50 small fw-medium px-1" id="detailNote">無特別備註</div>
+                </div>
+            </div>
+
+            <div class="modal-footer border-0 pt-1 pb-4 px-4">
+                <button type="button" class="btn btn-sm btn-secondary rounded-pill px-4" data-bs-dismiss="modal">關閉</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 彈窗 2：「狀態管理與改派」彈窗 (修復 P1 反白與新增手動刪除) -->
+<div class="modal fade" id="orderStatusModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 520px;">
+        <div class="modal-content modal-content-glass">
+            <form id="orderStatusForm" method="POST">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-sliders text-info"></i>
+                        <span>編輯訂單與改派陪陪</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <div class="text-secondary small mb-3">
+                        目標單號：<span class="text-warning font-monospace fw-bold" id="statusModalOrderNo"></span>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="small text-secondary fw-semibold mb-1">類別</label>
+                            <input type="text" id="editCategory" name="category" class="form-control form-control-glass" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="small text-secondary fw-semibold mb-1">項目名稱</label>
+                            <input type="text" id="editGame" name="game" class="form-control form-control-glass" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="small text-secondary fw-semibold mb-1">內容 / 規格細項</label>
+                        <input type="text" id="editContentTier" name="content_tier" class="form-control form-control-glass">
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-4">
+                            <label class="small text-secondary fw-semibold mb-1">數量 / 時長</label>
+                            <input type="number" step="0.5" id="editDuration" name="duration" class="form-control form-control-glass text-end" required>
+                        </div>
+                        <div class="col-4">
+                            <label class="small text-secondary fw-semibold mb-1">單位</label>
+                            <input type="text" id="editUnit" name="unit" class="form-control form-control-glass" placeholder="小時/局/首">
+                        </div>
+                        <div class="col-4">
+                            <label class="small text-secondary fw-semibold mb-1">金額 (NTD)</label>
+                            <input type="number" id="editTotalAmount" name="total_amount" class="form-control form-control-glass text-end font-monospace" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="small text-secondary fw-semibold mb-1">指派 / 改派陪陪</label>
+                        <select id="editOrderTalent" name="talent_id" class="form-select form-control-glass">
+                            <option value="">派單中 (未指定)</option>
+                            <% if (talents && talents.length > 0) { %>
+                                <% talents.forEach(t => { %>
+                                    <option value="<%= t.id %>"><%= t.custom_nickname || t.global_name || t.username %></option>
+                                <% }) %>
+                            <% } %>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="small text-secondary fw-semibold mb-1">訂單狀態</label>
+                        <select id="editOrderStatus" name="status" class="form-select form-control-glass text-warning fw-bold">
+                            <option value="pending">派單中 (Pending)</option>
+                            <option value="active">進行中 (Active)</option>
+                            <option value="completed">已完成 (Completed)</option>
+                            <option value="cancelled">售後中 (Cancelled)</option>
+                            <option value="rejected">已駁回 (Rejected)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="small text-secondary fw-semibold mb-1">🤍 陪陪留言區</label>
+                        <textarea id="editTalentMessage" name="talent_message" class="form-control form-control-glass" rows="2" placeholder="感謝闆闆點單！"></textarea>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="small text-secondary fw-semibold mb-1">客服處理備註</label>
+                        <input type="text" id="editNote" name="note" class="form-control form-control-glass" placeholder="補充內容或改派說明">
+                    </div>
+                </div>
+
+                <!-- 🚀 Footer 增加「手動刪除訂單」按鈕 (需店長/主管/管理員權限) -->
+                <div class="modal-footer border-0 pt-0 d-flex justify-content-between align-items-center">
+                    <div>
+                        <% if (typeof user !== 'undefined' && (user.role === 'admin' || user.role === 'manager' || user.role === 'cfo')) { %>
+                            <button type="button" onclick="handleManualDeleteOrder()" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                                <i class="fa-solid fa-trash-can me-1"></i>手動刪除訂單
+                            </button>
+                        <% } %>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">取消</button>
+                        <button type="submit" class="btn btn-sm btn-primary rounded-pill px-4 fw-semibold" style="background: linear-gradient(135deg, #9333ea, #7e22ce); border: none;">確認儲存變更</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const orderDetailModal = new bootstrap.Modal(document.getElementById('orderDetailModal'));
+    const orderStatusModal = new bootstrap.Modal(document.getElementById('orderStatusModal'));
+
+    function showOrderDetail(data) {
+        document.getElementById('detailOrderNo').textContent = data.orderNo || '--';
+        
+        const csText = data.csName || '米胡客服中心';
+        const statusText = data.statusName || '進行中';
+        document.getElementById('detailStatusAndCs').textContent = `${statusText} / ${csText}`;
+
+        document.getElementById('detailBossInfo').textContent = data.bossName ? `${data.bossName} (@${data.bossId})` : '--';
+        document.getElementById('detailTalentInfo').textContent = data.talentId ? `${data.talentName} (@${data.talentId})` : '派單中 (尚未指派)';
+
+        document.getElementById('detailCategory').textContent = data.category || '陪玩單';
+        document.getElementById('detailItemAndContent').textContent = data.itemName || '--';
+        document.getElementById('detailContentTierVal').textContent = data.contentTier || '-';
+        document.getElementById('detailDuration').textContent = `${data.duration} ${data.unit}`;
+
+        document.getElementById('detailStartTime').textContent = data.startTime || '尚未開始';
+        document.getElementById('detailEndTime').textContent = data.endTime || '尚未結束';
+
+        document.getElementById('detailOriginalPrice').textContent = `$${Number(data.originalPrice || data.totalAmount).toLocaleString()}`;
+        document.getElementById('detailDiscount').textContent = data.discount ? `-$${Number(data.discount).toLocaleString()}` : '$0';
+        document.getElementById('detailTotalAmount').textContent = `$${Number(data.totalAmount).toLocaleString()} NTD`;
+
+        document.getElementById('detailTalentMessage').textContent = (data.talentMessage && data.talentMessage.trim() !== '') ? data.talentMessage : '尚無留言';
+        document.getElementById('detailExtra').textContent = (data.extra && data.extra.trim() !== '' && data.extra !== '無') ? data.extra : '無特別條件';
+        document.getElementById('detailNote').textContent = (data.note && data.note.trim() !== '' && data.note !== '無') ? data.note : '無特別備註';
+
+        orderDetailModal.show();
+    }
+
+    function showStatusEdit(data) {
+        document.getElementById('orderStatusForm').action = `/management/orders/update/${data.id}`;
+        document.getElementById('statusModalOrderNo').textContent = data.orderNo;
+        document.getElementById('editCategory').value = data.category;
+        document.getElementById('editGame').value = data.itemName;
+        document.getElementById('editContentTier').value = data.contentTier;
+        document.getElementById('editDuration').value = data.duration;
+        document.getElementById('editUnit').value = data.unit;
+        document.getElementById('editTotalAmount').value = data.totalAmount;
+        document.getElementById('editOrderTalent').value = data.talentId || '';
+        document.getElementById('editOrderStatus').value = data.status;
+        document.getElementById('editTalentMessage').value = data.talentMessage;
+        document.getElementById('editNote').value = data.note;
+
+        orderStatusModal.show();
+    }
+
+    // 🚀 手動刪除訂單二次確認邏輯 (直接真實刪除)
+function handleManualDeleteOrder() {
+    if (confirm('⚠️【店長/管理員驗證】確定要徹底刪除此筆訂單嗎？此操作將永久移除，無法復原！')) {
+        const form = document.getElementById('orderStatusForm');
+        
+        // 動態注入隱藏的刪除標記
+        let deleteInput = document.getElementById('isDeleteInput');
+        if (!deleteInput) {
+            deleteInput = document.createElement('input');
+            deleteInput.type = 'hidden';
+            deleteInput.id = 'isDeleteInput';
+            deleteInput.name = 'is_delete';
+            form.appendChild(deleteInput);
+        }
+        deleteInput.value = '1';
+        
+        form.submit();
+    }
+}
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const rows = document.querySelectorAll('.order-row');
+        const searchInput = document.getElementById('orderSearchInput');
+        const clearBtn = document.getElementById('clearSearchBtn');
+        const noMatchRow = document.getElementById('noMatchRow');
+        const filterTabs = document.querySelectorAll('.filter-tab-btn');
+
+        let currentFilter = 'all';
+
+        function applyFilters() {
+            const query = searchInput.value.trim().toLowerCase();
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const searchData = row.getAttribute('data-search') || '';
+                const rowStatus = row.getAttribute('data-status') || '';
+
+                const matchesQuery = query === '' || searchData.includes(query);
+                const matchesFilter = currentFilter === 'all' || rowStatus === currentFilter;
+
+                if (matchesQuery && matchesFilter) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            noMatchRow.style.display = visibleCount === 0 ? 'block' : 'none';
+        }
+
+        searchInput.addEventListener('input', () => {
+            clearBtn.style.display = searchInput.value.trim().length > 0 ? 'block' : 'none';
+            applyFilters();
+        });
+
+        clearBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            clearBtn.style.display = 'none';
+            applyFilters();
+            searchInput.focus();
+        });
+
+        filterTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                filterTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentFilter = tab.getAttribute('data-filter');
+                applyFilters();
+            });
+        });
+
+        rows.forEach(row => {
+            const data = JSON.parse(row.getAttribute('data-order'));
+
+            row.addEventListener('click', () => {
+                showOrderDetail(data);
+            });
+
+            const detailBtn = row.querySelector('.btn-detail-trigger');
+            if (detailBtn) {
+                detailBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    showOrderDetail(data);
+                });
+            }
+
+            const statusBtn = row.querySelector('.btn-status-trigger');
+            if (statusBtn) {
+                statusBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    showStatusEdit(data);
+                });
+            }
+        });
+    });
+</script>
+</body>
+</html>

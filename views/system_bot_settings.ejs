@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>機器人指令設定 · 米胡電競 MiHu Gaming</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #0b0914;
+            --sidebar-bg: #131021;
+            --card-bg: rgba(23, 19, 38, 0.85);
+            --card-border: rgba(168, 85, 247, 0.2);
+            --mihu-purple: #9333ea;
+            --mihu-purple-light: #c084fc;
+            --mihu-yellow: #fde047;
+            --text-light: #f3f4f6;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-light);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .main-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            max-height: 100vh;
+        }
+
+        .content-body { 
+            padding: 16px 36px 32px; 
+            flex-grow: 1; 
+        }
+
+        .glass-table-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 14px 36px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(15px);
+        }
+
+        .table-responsive { margin: 0; }
+        .mihu-table {
+            width: 100%;
+            margin-bottom: 0;
+            color: #f3f4f6;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        .mihu-table th {
+            background: rgba(0, 0, 0, 0.42);
+            color: #94a3b8;
+            font-weight: 700;
+            font-size: 0.84rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            white-space: nowrap;
+        }
+        .mihu-table td {
+            padding: 16px 20px;
+            vertical-align: middle;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.92rem;
+            white-space: nowrap;
+        }
+        .mihu-table tbody tr {
+            transition: background 0.15s ease;
+        }
+        .mihu-table tbody tr:hover {
+            background: rgba(168, 85, 247, 0.08);
+        }
+
+        .role-badge-pill {
+            background: rgba(168, 85, 247, 0.15);
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            color: #c084fc;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+        }
+
+        /* 🚀 修正 Modal 玻璃極客深色視覺與文字白底 */
+        .modal-content-glass {
+            background: rgba(20, 16, 35, 0.97) !important;
+            border: 1px solid rgba(168, 85, 247, 0.35) !important;
+            border-radius: 20px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(168, 85, 247, 0.25) !important;
+            backdrop-filter: blur(25px);
+            color: #ffffff !important;
+        }
+
+        .form-control-glass {
+            background-color: rgba(255, 255, 255, 0.05) !important;
+            border: 1px solid rgba(255, 255, 255, 0.14) !important;
+            color: #ffffff !important;
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 0.92rem;
+        }
+        .form-control-glass:focus {
+            background-color: #171326 !important;
+            color: #ffffff !important;
+            border-color: #c084fc !important;
+            box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.3) !important;
+            outline: none !important;
+        }
+
+        .mascot-modal-img {
+            width: 150px;
+            height: auto;
+            margin-bottom: 16px;
+            filter: drop-shadow(0 0 20px rgba(168, 85, 247, 0.65));
+            animation: mascot-bob 3s ease-in-out infinite;
+        }
+        @keyframes mascot-bob {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+        }
+    </style>
+</head>
+<body>
+
+<%- include('partials/sidebar', { activePage: 'bot-settings' }) %>
+
+<div class="main-wrapper">
+    <%- include('partials/navbar', { activePage: 'bot-settings' }) %>
+
+    <div class="content-body">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <div>
+                <div class="page-title-text" style="font-size: 1.5rem; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                    <i class="fa-solid fa-robot text-info"></i>
+                    <span>Discord 機器人設定</span>
+                </div>
+                <p class="text-secondary small mb-0">管理 Discord 斜線指令權限門檻、開關狀態與核心播報參數</p>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm px-3 py-2 rounded-pill text-white fw-semibold" id="btnSyncCommands" style="background: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8;">
+                    <i class="fa-solid fa-arrows-rotate me-1"></i>即時同步斜線指令
+                </button>
+                <button type="button" class="btn btn-sm px-3 py-2 rounded-pill text-white fw-semibold" data-bs-toggle="modal" data-bs-target="#addCommandModal" style="background: linear-gradient(135deg, #9333ea, #7e22ce); border: none;">
+                    <i class="fa-solid fa-plus me-1"></i>新增指令
+                </button>
+            </div>
+        </div>
+
+        <% if (typeof success !== 'undefined' && success) { %>
+            <div class="alert alert-success py-2 px-3 small mb-4 border-0 bg-success bg-opacity-25 text-success">
+                ✅ 設定已成功寫入並同步！
+            </div>
+        <% } %>
+
+        <div class="glass-table-card">
+            <div class="table-responsive">
+                <table class="mihu-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 160px;">指令名稱</th>
+                            <th style="width: 150px;">斜線指令 (/key)</th>
+                            <th style="width: 140px;">最低執行身分</th>
+                            <th>指令功能描述</th>
+                            <th style="width: 100px;">狀態</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (commands && commands.length > 0) { %>
+                            <% commands.forEach(c => { %>
+                                <tr>
+                                    <td class="fw-bold text-white"><%= c.name %></td>
+                                    <td><span class="font-monospace text-warning">/<%= c.command_key %></span></td>
+                                    <td><span class="role-badge-pill"><%= c.min_role %></span></td>
+                                    <td class="text-secondary small"><%= c.description || '無描述' %></td>
+                                    <td>
+                                        <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 rounded-pill px-2.5 py-1">啟用中</span>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        <% } else { %>
+                            <tr>
+                                <td colspan="5" class="text-center py-5 text-secondary">目前尚無機器人指令設定</td>
+                            </tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 1：新增指令 -->
+<div class="modal fade" id="addCommandModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 460px;">
+        <div class="modal-content modal-content-glass">
+            <form action="/system/bot-settings/add" method="POST">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-terminal me-2 text-info"></i>新增斜線指令</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <div class="mb-3">
+                        <label class="small text-secondary fw-semibold mb-1">指令名稱 (中文)</label>
+                        <input type="text" name="name" class="form-control form-control-glass" placeholder="例如：查詢價目表" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="small text-secondary fw-semibold mb-1">指令代號 (例如 price)</label>
+                        <input type="text" name="command_key" class="form-control form-control-glass" placeholder="price" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="small text-secondary fw-semibold mb-1">最低可執行權限</label>
+                        <select name="min_role" class="form-select form-control-glass" style="background-color: #171326; color: #fff;">
+                            <option value="member">member (全體會員)</option>
+                            <option value="talent">talent (陪陪/陪玩師)</option>
+                            <option value="cs">cs (派單客服)</option>
+                            <option value="manager">manager (主管/店長)</option>
+                            <option value="admin">admin (最高權限)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="small text-secondary fw-semibold mb-1">指令說明描述</label>
+                        <input type="text" name="description" class="form-control form-control-glass" placeholder="顯示於 Discord 斜線選單上的說明">
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-sm btn-info rounded-pill px-4 text-white fw-semibold" style="background: linear-gradient(135deg, #0284c7, #0369a1); border: none;">確認建立</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 2：吉祥物彈窗 (深色暗黑質感修復) -->
+<div class="modal fade" id="featureModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+        <div class="modal-content modal-content-glass text-center p-4">
+            <div class="modal-body p-2">
+                <img src="/images/logo2.png" alt="米米" class="mascot-modal-img" onerror="this.src='/images/logo.png'">
+                <h5 class="fw-bold text-white mb-2" id="modalFeatureTitle">功能開發中</h5>
+                <p class="text-secondary small mb-4" id="modalFeatureDesc">米米正在進行最後調試與模組整合，敬請期待！</p>
+                <button type="button" class="btn btn-sm px-4 py-2 rounded-pill text-white fw-semibold" data-bs-dismiss="modal" style="background: linear-gradient(135deg, #9333ea, #7e22ce); border: none;">
+                    我知道了
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // 斜線指令即時熱重載按鈕
+        const btnSync = document.getElementById('btnSyncCommands');
+        if (btnSync) {
+            btnSync.addEventListener('click', async () => {
+                btnSync.disabled = true;
+                btnSync.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>同步中...';
+
+                try {
+                    const res = await fetch('/management/bot-settings/sync-commands', { method: 'POST' });
+                    const data = await res.json();
+                    alert(data.message || '斜線指令同步完成！');
+                } catch (e) {
+                    alert('同步發起失敗，請檢查後台連線。');
+                } finally {
+                    btnSync.disabled = false;
+                    btnSync.innerHTML = '<i class="fa-solid fa-arrows-rotate me-1"></i>即時同步斜線指令';
+                }
+            });
+        }
+
+        // 未開放功能吉祥物彈窗觸發
+        const featureModalEl = document.getElementById('featureModal');
+        if (featureModalEl) {
+            const featureModal = new bootstrap.Modal(featureModalEl);
+            const titleEl = document.getElementById('modalFeatureTitle');
+            const descEl = document.getElementById('modalFeatureDesc');
+
+            document.querySelectorAll('.under-construction').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const featureName = item.getAttribute('data-feature') || '該功能';
+                    if (titleEl) titleEl.textContent = `【${featureName}】即將開放`;
+                    if (descEl) descEl.textContent = `米米正在為「${featureName}」進行最後調試與模組整合，敬請期待！`;
+                    featureModal.show();
+                });
+            });
+        }
+    });
+</script>
+</body>
+</html>

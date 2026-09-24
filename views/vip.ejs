@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VIP設定 · 米胡電競 MiHu Gaming</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #0b0914;
+            --sidebar-bg: #131021;
+            --card-bg: rgba(23, 19, 38, 0.85);
+            --card-border: rgba(168, 85, 247, 0.2);
+            --mihu-purple: #9333ea;
+            --mihu-purple-light: #c084fc;
+            --mihu-yellow: #fde047;
+            --text-light: #f3f4f6;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-light);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .mihu-sidebar {
+            width: 280px;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--card-border);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            padding: 24px 16px;
+            flex-shrink: 0;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+        }
+        .sidebar-brand-clean {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 10px 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            margin-bottom: 12px;
+        }
+        .brand-logo-clean {
+            width: 170px;
+            height: auto;
+            filter: drop-shadow(0 0 16px rgba(168, 85, 247, 0.5));
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .brand-logo-clean:hover { transform: scale(1.05); }
+        
+        .sidebar-menu { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 4px; 
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        .sidebar-menu::-webkit-scrollbar { width: 4px; }
+        .sidebar-menu::-webkit-scrollbar-thumb {
+            background: rgba(168, 85, 247, 0.2);
+            border-radius: 4px;
+        }
+
+        .menu-label { 
+            font-size: 0.74rem; 
+            color: #8b83a8; 
+            padding: 14px 14px 4px; 
+            text-transform: uppercase; 
+            font-weight: 700; 
+            letter-spacing: 0.8px;
+        }
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            color: #9ca3af;
+            text-decoration: none;
+            font-size: 0.92rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        .menu-item i { width: 18px; text-align: center; }
+        .menu-item:hover, .menu-item.active {
+            color: #fff;
+            background: rgba(168, 85, 247, 0.15);
+            border: 1px solid rgba(168, 85, 247, 0.25);
+        }
+        .menu-item.active i { color: var(--mihu-purple-light); }
+
+        .sidebar-collapse-wrap { display: flex; flex-direction: column; }
+        .collapse-arrow { transition: transform 0.25s ease; }
+        .menu-item[aria-expanded="true"] .collapse-arrow { transform: rotate(180deg); color: #fff !important; }
+        .sidebar-submenu-items {
+            margin-left: 20px;
+            padding-left: 10px;
+            border-left: 2px dashed rgba(168, 85, 247, 0.25);
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-top: 4px;
+            margin-bottom: 6px;
+        }
+        .submenu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 10px;
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 0.86rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        .submenu-item i { width: 16px; text-align: center; font-size: 0.8rem; }
+        .submenu-item:hover { color: #fff; background: rgba(168, 85, 247, 0.12); }
+
+        .main-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            max-height: 100vh;
+        }
+
+        /* 🚀 緊湊合理的頂部間距 */
+        .content-body { 
+            padding: 16px 36px 32px; 
+            flex-grow: 1; 
+        }
+        
+        /* 🚀 新增按鈕堅決靠右 */
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 14px;
+            width: 100%;
+        }
+
+        .glass-table-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 14px 36px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(15px);
+        }
+
+        .table-responsive { margin: 0; }
+        .mihu-table {
+            width: 100%;
+            margin-bottom: 0;
+            color: #f3f4f6;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        .mihu-table th {
+            background: rgba(0, 0, 0, 0.42);
+            color: #94a3b8;
+            font-weight: 700;
+            font-size: 0.84rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            white-space: nowrap;
+        }
+        .mihu-table td {
+            padding: 16px 20px;
+            vertical-align: middle;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.92rem;
+            white-space: nowrap;
+        }
+        .mihu-table tbody tr {
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+        .mihu-table tbody tr:hover {
+            background: rgba(168, 85, 247, 0.08);
+        }
+        .mihu-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .vip-badge-pill {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.25), rgba(236, 72, 153, 0.2));
+            border: 1px solid rgba(168, 85, 247, 0.4);
+            color: #fde047;
+            font-weight: 800;
+            padding: 4px 12px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.88rem;
+        }
+
+        .rewards-preview-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            max-width: 480px;
+        }
+        .reward-tag {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            padding: 2px 8px;
+            font-size: 0.78rem;
+            color: #cbd5e1;
+            white-space: nowrap;
+        }
+
+        .modal-content-glass {
+            background: rgba(20, 16, 35, 0.97);
+            border: 1px solid rgba(168, 85, 247, 0.35);
+            border-radius: 20px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(168, 85, 247, 0.25);
+            backdrop-filter: blur(25px);
+            color: #fff;
+        }
+
+        .form-control-glass {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            color: #ffffff;
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 0.92rem;
+        }
+        .form-control-glass:focus {
+            background-color: rgba(255, 255, 255, 0.08);
+            border-color: var(--mihu-purple-light);
+            color: #ffffff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.25);
+        }
+
+        .reward-item-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .reward-input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #f3f4f6;
+            border-radius: 8px;
+            padding: 7px 12px;
+            font-size: 0.88rem;
+            flex-grow: 1;
+        }
+        .reward-input:focus {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--mihu-purple-light);
+            color: #fff;
+            outline: none;
+        }
+        .btn-add-reward {
+            background: rgba(168, 85, 247, 0.15);
+            border: 1px dashed rgba(168, 85, 247, 0.4);
+            color: #d8b4fe;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            padding: 7px 12px;
+            width: 100%;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-add-reward:hover {
+            background: rgba(168, 85, 247, 0.25);
+            color: #fff;
+        }
+        .btn-del-reward {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            color: #f87171;
+            border-radius: 8px;
+            padding: 6px 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-del-reward:hover { background: rgba(239, 68, 68, 0.35); color: #fff; }
+
+        .view-reward-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .view-reward-list li {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 0.92rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .view-reward-list li i {
+            color: #fde047;
+            font-size: 0.85rem;
+        }
+
+        .mascot-modal-img {
+            width: 160px;
+            height: auto;
+            margin-bottom: 18px;
+            filter: drop-shadow(0 0 20px rgba(168, 85, 247, 0.65));
+            animation: mascot-bob 3s ease-in-out infinite;
+        }
+        @keyframes mascot-bob {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+        }
+    </style>
+</head>
+<body>
+
+<%- include('partials/sidebar', { activePage: 'vip' }) %>
+
+<div class="main-wrapper">
+    <%- include('partials/navbar', { activePage: 'vip' }) %>
+
+    <div class="content-body">
+        <!-- 🚀 專屬大標題與說明（左側標題、右側按鈕置右） -->
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <div>
+                <div class="page-title-text" style="font-size: 1.5rem; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                    <i class="fa-solid fa-crown text-warning"></i>
+                    <span>VIP設定</span>
+                </div>
+                <p class="text-secondary small mb-0">設定各階級 VIP 門檻（累計消費與預存額度）及對應特權獎勵內容</p>
+            </div>
+
+            <div>
+                <button type="button" class="btn btn-sm px-3 py-2 rounded-pill text-white fw-semibold" data-bs-toggle="modal" data-bs-target="#addVipModal" style="background: linear-gradient(135deg, #9333ea, #7e22ce); border: none;">
+                    <i class="fa-solid fa-plus me-1"></i>新增 VIP 等級
+                </button>
+            </div>
+        </div>
+
+        <% if (typeof success !== 'undefined' && success) { %>
+            <div class="alert alert-success py-2 px-3 small mb-4 border-0 bg-success bg-opacity-25 text-success">
+                ✅ VIP 設定已成功更新！
+            </div>
+        <% } %>
+
+        <div class="glass-table-card">
+            <div class="table-responsive">
+                <table class="mihu-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 130px;">等級</th>
+                            <th style="width: 150px;">累計消費門檻</th>
+                            <th style="width: 150px;">預存門檻</th>
+                            <th>特權獎勵內容（點擊整行看詳細）</th>
+                            <th style="width: 120px;" class="text-end">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% vipTiers.forEach(vip => { 
+                            const rewards = JSON.parse(vip.rewards || '[]');
+                        %>
+                            <tr onclick="openViewModal('<%= vip.level %>', '<%= vip.name %>', '<%= vip.spent_threshold %>', '<%= vip.deposit_threshold %>', this)" data-rewards='<%- JSON.stringify(rewards) %>'>
+                                <td>
+                                    <div class="vip-badge-pill">
+                                        <i class="fa-solid fa-gem"></i>
+                                        <span><%= vip.name %></span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="font-monospace text-warning fw-bold"><%= Number(vip.spent_threshold).toLocaleString() %></span> <span class="text-secondary small">T</span>
+                                </td>
+                                <td>
+                                    <span class="font-monospace text-info fw-bold"><%= Number(vip.deposit_threshold).toLocaleString() %></span> <span class="text-secondary small">T</span>
+                                </td>
+                                <td>
+                                    <div class="rewards-preview-badges">
+                                        <% rewards.slice(0, 3).forEach(r => { %>
+                                            <span class="reward-tag"><%= r %></span>
+                                        <% }) %>
+                                        <% if (rewards.length > 3) { %>
+                                            <span class="reward-tag" style="color: #c084fc;">+ 更多 <%= rewards.length - 3 %> 項</span>
+                                        <% } %>
+                                    </div>
+                                </td>
+                                <td class="text-end" onclick="event.stopPropagation();">
+                                    <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-3" onclick="openEditModal('<%= vip.level %>', '<%= vip.name %>', '<%= vip.spent_threshold %>', '<%= vip.deposit_threshold %>', this)" data-rewards='<%- JSON.stringify(rewards) %>'>
+                                        <i class="fa-solid fa-pen-to-square me-1"></i>編輯
+                                    </button>
+                                </td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 1. 唯讀查看內容彈窗 -->
+<div class="modal fade" id="viewVipModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
+        <div class="modal-content modal-content-glass">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2">
+                    <span id="viewVipTitleBadge" class="vip-badge-pill">VIP 1</span>
+                    <span class="fs-6 text-secondary fw-normal">特權獎勵詳情</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-3">
+                <div class="p-3 rounded-3 mb-3" style="background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.08);">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-secondary small"><i class="fa-solid fa-coins me-1 text-warning"></i>累計消費門檻</span>
+                        <span class="fw-bold text-warning font-monospace" id="viewSpent">0 T</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-secondary small"><i class="fa-solid fa-piggy-bank me-1 text-info"></i>預存額度門檻</span>
+                        <span class="fw-bold text-info font-monospace" id="viewDeposit">0 T</span>
+                    </div>
+                </div>
+
+                <div class="small text-secondary fw-semibold mb-2">包含特權項目：</div>
+                <ul class="view-reward-list" id="viewRewardsList"></ul>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-sm btn-secondary rounded-pill px-4" data-bs-dismiss="modal">關閉</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 2. 編輯 VIP 等級彈窗 -->
+<div class="modal fade" id="editVipModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 520px;">
+        <div class="modal-content modal-content-glass">
+            <form id="editVipForm" method="POST">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-pen-to-square text-warning"></i>
+                        <span id="editVipModalTitle">編輯 VIP</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="small text-secondary fw-semibold mb-1">累計消費門檻 (T)</label>
+                            <input type="number" id="editSpent" name="spent_threshold" class="form-control form-control-glass text-end" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="small text-secondary fw-semibold mb-1">預存門檻 (T)</label>
+                            <input type="number" id="editDeposit" name="deposit_threshold" class="form-control form-control-glass text-end" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="small text-secondary fw-semibold mb-2 d-flex justify-content-between">
+                            <span>獎勵特權清單</span>
+                            <span class="small" style="font-size: 0.72rem; color: #8b83a8;">可增減項目</span>
+                        </label>
+                        <div id="editRewardsContainer"></div>
+                        <button type="button" class="btn-add-reward mt-2" onclick="addEditRewardRow()">
+                            <i class="fa-solid fa-plus me-1"></i>新增獎勵欄位
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-sm btn-primary rounded-pill px-4" style="background-color: #9333ea; border: none;">儲存變更</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 3. 新增全新 VIP 等級 Modal -->
+<div class="modal fade" id="addVipModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
+        <div class="modal-content modal-content-glass">
+            <form action="/system/vip/add" method="POST">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-crown me-2 text-warning"></i>新增 VIP 等級</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <div class="mb-3">
+                        <label class="small text-secondary fw-semibold mb-1">等級代號 (例如 8)</label>
+                        <input type="number" name="level" class="form-control form-control-glass" placeholder="8" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="small text-secondary fw-semibold mb-1">等級名稱</label>
+                        <input type="text" name="name" class="form-control form-control-glass" placeholder="VIP 8" required>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="small text-secondary fw-semibold mb-1">累計消費門檻 (T)</label>
+                            <input type="number" name="spent_threshold" class="form-control form-control-glass" placeholder="120000" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="small text-secondary fw-semibold mb-1">預存門檻 (T)</label>
+                            <input type="number" name="deposit_threshold" class="form-control form-control-glass" placeholder="100000" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="small text-secondary fw-semibold mb-1">初始首項獎勵</label>
+                        <input type="text" name="initial_reward" class="form-control form-control-glass" placeholder="例如：專屬高階客服" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-sm btn-primary rounded-pill px-4" style="background-color: #9333ea; border: none;">確認建立</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 4. 尚未實裝功能提示 Modal -->
+<div class="modal fade" id="featureModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+        <div class="modal-content modal-content-glass text-center p-4">
+            <div class="modal-body p-2">
+                <img src="/images/logo2.png" alt="米米" class="mascot-modal-img" onerror="this.src='/images/logo.png'">
+                <h5 class="fw-bold text-white mb-2" id="modalFeatureTitle">功能開發中</h5>
+                <p class="text-secondary small mb-4" id="modalFeatureDesc">米米正在為此功能進行最後調試與模組整合，敬請期待！</p>
+                <button type="button" class="btn btn-sm px-4 py-2 rounded-pill text-white fw-semibold" data-bs-dismiss="modal" style="background: linear-gradient(135deg, #9333ea, #7e22ce); border: none;">
+                    我知道了
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const viewModal = new bootstrap.Modal(document.getElementById('viewVipModal'));
+    const editModal = new bootstrap.Modal(document.getElementById('editVipModal'));
+
+    function openViewModal(level, name, spent, deposit, el) {
+        const rewards = JSON.parse(el.getAttribute('data-rewards') || '[]');
+        document.getElementById('viewVipTitleBadge').innerHTML = `<i class="fa-solid fa-gem"></i> ${name}`;
+        document.getElementById('viewSpent').textContent = `${Number(spent).toLocaleString()} T`;
+        document.getElementById('viewDeposit').textContent = `${Number(deposit).toLocaleString()} T`;
+        
+        const list = document.getElementById('viewRewardsList');
+        list.innerHTML = '';
+        rewards.forEach(r => {
+            const li = document.createElement('li');
+            li.innerHTML = `<i class="fa-solid fa-gift"></i><span>${r}</span>`;
+            list.appendChild(li);
+        });
+
+        viewModal.show();
+    }
+
+    function openEditModal(level, name, spent, deposit, el) {
+        const rewards = JSON.parse(el.getAttribute('data-rewards') || '[]');
+        document.getElementById('editVipForm').action = `/system/vip/update/${level}`;
+        document.getElementById('editVipModalTitle').textContent = `編輯 ${name} 設定`;
+        document.getElementById('editSpent').value = spent;
+        document.getElementById('editDeposit').value = deposit;
+
+        const container = document.getElementById('editRewardsContainer');
+        container.innerHTML = '';
+        rewards.forEach(r => {
+            container.appendChild(createRewardRow(r));
+        });
+
+        editModal.show();
+    }
+
+    function createRewardRow(val = '') {
+        const row = document.createElement('div');
+        row.className = 'reward-item-row';
+        row.innerHTML = `
+            <input type="text" name="rewards[]" class="reward-input" value="${val}" placeholder="輸入獎勵項目內容" required>
+            <button type="button" class="btn-del-reward" onclick="this.parentElement.remove()" title="刪除此獎勵">
+                <i class="fa-solid fa-trash-can"></i>
+            </button>
+        `;
+        return row;
+    }
+
+    function addEditRewardRow() {
+        const container = document.getElementById('editRewardsContainer');
+        const row = createRewardRow('');
+        container.appendChild(row);
+        row.querySelector('input').focus();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const featureModalEl = document.getElementById('featureModal');
+        const featureModal = new bootstrap.Modal(featureModalEl);
+        const titleEl = document.getElementById('modalFeatureTitle');
+        const descEl = document.getElementById('modalFeatureDesc');
+
+        document.querySelectorAll('.under-construction').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const featureName = item.getAttribute('data-feature') || '該功能';
+                titleEl.textContent = `【${featureName}】即將開放`;
+                descEl.textContent = `米米正在為「${featureName}」進行最後調試與模組整合，敬請期待！`;
+                featureModal.show();
+            });
+        });
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的收入 · 米胡電競 MiHu Gaming</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #0b0914;
+            --sidebar-bg: #131021;
+            --card-bg: rgba(23, 19, 38, 0.85);
+            --card-border: rgba(168, 85, 247, 0.2);
+            --mihu-purple: #9333ea;
+            --mihu-purple-light: #c084fc;
+            --mihu-yellow: #fde047;
+            --text-light: #f3f4f6;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-light);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        img { max-width: 100%; height: auto; }
+
+        .mihu-sidebar {
+            width: 280px !important;
+            min-width: 280px !important;
+            max-width: 280px !important;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--card-border);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            padding: 24px 16px;
+            flex-shrink: 0;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+        .sidebar-brand-clean {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 10px 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            margin-bottom: 12px;
+            width: 100%;
+        }
+        .brand-logo-clean {
+            width: 170px !important;
+            max-width: 170px !important;
+            height: auto !important;
+            object-fit: contain !important;
+            filter: drop-shadow(0 0 16px rgba(168, 85, 247, 0.5));
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .brand-logo-clean:hover { transform: scale(1.05); }
+
+        .main-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            max-height: 100vh;
+            width: calc(100vw - 280px);
+            min-width: 0;
+        }
+
+        .content-body { 
+            padding: 20px 36px 32px; 
+            flex-grow: 1; 
+        }
+
+        /* 圖 2 樣式大標題 */
+        .page-header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+            gap: 14px;
+            width: 100%;
+        }
+
+        .page-title-text {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 4px;
+        }
+
+        /* 四大金流卡片 */
+        .income-stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 26px 28px;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+            height: 100%;
+        }
+        .income-stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55);
+        }
+
+        .stat-card-glow {
+            position: absolute;
+            right: -20px;
+            bottom: -20px;
+            font-size: 5.5rem;
+            opacity: 0.04;
+            pointer-events: none;
+        }
+
+        .stat-label-text {
+            font-size: 0.84rem;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stat-val-huge {
+            font-size: 2.1rem;
+            font-weight: 800;
+            font-family: monospace;
+            line-height: 1.1;
+            margin: 12px 0 6px 0;
+        }
+
+        .stat-sub-note {
+            font-size: 0.76rem;
+            color: #8b83a8;
+        }
+
+        /* 彈窗表格容器與滾動條 */
+        .scrollable-modal-table-wrap {
+            max-height: 380px;
+            overflow-y: auto;
+            overflow-x: auto;
+        }
+        .scrollable-modal-table-wrap::-webkit-scrollbar { width: 5px; height: 5px; }
+        .scrollable-modal-table-wrap::-webkit-scrollbar-thumb {
+            background: rgba(168, 85, 247, 0.35);
+            border-radius: 4px;
+        }
+
+        .mihu-table {
+            width: 100%;
+            margin-bottom: 0;
+            color: #f3f4f6;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        .mihu-table th {
+            background: rgba(0, 0, 0, 0.55);
+            color: #94a3b8;
+            font-weight: 700;
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            padding: 14px 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+        .mihu-table td {
+            padding: 13px 18px;
+            vertical-align: middle;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+        .mihu-table tbody tr.order-income-row {
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+        .mihu-table tbody tr.order-income-row:hover {
+            background: rgba(168, 85, 247, 0.09);
+        }
+        .mihu-table tbody tr:last-child td { border-bottom: none; }
+
+        .modal-content-glass {
+            background: rgba(20, 16, 35, 0.97);
+            border: 1px solid rgba(168, 85, 247, 0.35);
+            border-radius: 20px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(168, 85, 247, 0.25);
+            backdrop-filter: blur(25px);
+            color: #fff;
+        }
+
+        .filter-input-glass {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            color: #ffffff !important;
+            border-radius: 12px;
+            padding: 7px 12px;
+            font-size: 0.86rem;
+        }
+        .filter-input-glass:focus {
+            background-color: rgba(255, 255, 255, 0.09);
+            border-color: var(--mihu-purple-light);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.25);
+        }
+
+        .search-box-wrap {
+            position: relative;
+            flex-grow: 1;
+        }
+        .search-icon-left {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 0.86rem;
+            pointer-events: none;
+        }
+        .search-clear-btn {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 0.82rem;
+            cursor: pointer;
+            display: none;
+            border: none;
+            background: transparent;
+            padding: 0;
+        }
+
+        .status-badge-completed { background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; }
+        .status-badge-active    { background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; }
+        .status-badge-pending   { background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #fde047; }
+        .status-badge-cancelled { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; }
+
+        .user-mini-col {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .user-mini-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .info-detail-box {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .info-detail-label {
+            font-size: 0.74rem;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+        .info-detail-val {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #ffffff;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+
+<%- include('partials/sidebar', { activePage: 'income' }) %>
+
+<div class="main-wrapper">
+    <%- include('partials/navbar', { activePage: 'income' }) %>
+
+    <div class="content-body">
+        <!-- 🚀 圖 2 樣式大標題 -->
+        <div class="page-header-content">
+            <div>
+                <div class="page-title-text">
+                    <i class="fa-solid fa-sack-dollar text-warning"></i>
+                    <span>我的收入與接單分潤</span>
+                </div>
+                <p class="text-secondary small mb-0">即時掌握個人接單歷史累積分潤、當月結算收入與可提領薪資</p>
+            </div>
+        </div>
+
+        <!-- 🚀 四大尊榮金流框 -->
+        <div class="row g-4 mb-4">
+            <!-- 1. 總收入框 -->
+            <div class="col-xl-3 col-md-6 col-12">
+                <div class="income-stat-card border-warning border-opacity-25">
+                    <i class="fa-solid fa-sack-dollar stat-card-glow text-warning"></i>
+                    <div>
+                        <div class="stat-label-text text-warning">
+                            <i class="fa-solid fa-coins"></i>總收入 (歷史分潤)
+                        </div>
+                        <div class="stat-val-huge text-warning">$<%= Number(stats.totalIncome).toLocaleString() %></div>
+                    </div>
+                    <div class="stat-sub-note">歷史已完成所有訂單分潤總計</div>
+                </div>
+            </div>
+
+            <!-- 2. 本月收入框 -->
+            <div class="col-xl-3 col-md-6 col-12">
+                <div class="income-stat-card border-info border-opacity-25">
+                    <i class="fa-solid fa-calendar-check stat-card-glow text-info"></i>
+                    <div>
+                        <div class="stat-label-text text-info">
+                            <i class="fa-solid fa-calendar-day"></i>本月收入
+                        </div>
+                        <div class="stat-val-huge text-info">$<%= Number(stats.monthlyIncome).toLocaleString() %></div>
+                    </div>
+                    <div class="stat-sub-note">當月份已完成訂單分潤結算</div>
+                </div>
+            </div>
+
+            <!-- 3. 累積提領薪資框 -->
+            <div class="col-xl-3 col-md-6 col-12">
+                <div class="income-stat-card border-secondary border-opacity-25">
+                    <i class="fa-solid fa-money-bill-transfer stat-card-glow text-secondary"></i>
+                    <div>
+                        <div class="stat-label-text text-light">
+                            <i class="fa-solid fa-hand-holding-dollar"></i>累積提領薪資
+                        </div>
+                        <div class="stat-val-huge text-light">$<%= Number(stats.totalWithdrawn).toLocaleString() %></div>
+                    </div>
+                    <div class="stat-sub-note">歷史已核銷匯款提領總額</div>
+                </div>
+            </div>
+
+            <!-- 4. 本月可提領薪資框 -->
+            <div class="col-xl-3 col-md-6 col-12">
+                <div class="income-stat-card border-success border-opacity-50" style="background: linear-gradient(135deg, rgba(23, 19, 38, 0.9), rgba(16, 185, 129, 0.08));">
+                    <i class="fa-solid fa-vault stat-card-glow text-success"></i>
+                    <div>
+                        <div class="stat-label-text text-success">
+                            <i class="fa-solid fa-wallet"></i>本月可提領薪資
+                        </div>
+                        <div class="stat-val-huge text-success">$<%= Number(stats.availableToWithdraw).toLocaleString() %></div>
+                    </div>
+                    <div class="stat-sub-note">目前尚未提領之可用薪資餘額</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🚀 觸發「我的接單」滾動式彈窗按鈕區 -->
+        <div class="p-4 rounded-4 d-flex justify-content-between align-items-center flex-wrap gap-3" style="background: var(--card-bg); border: 1px solid var(--card-border); box-shadow: 0 10px 30px rgba(0,0,0,0.4);">
+            <div>
+                <h5 class="fw-bold text-white mb-1 d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-list-check text-primary"></i>我的接單管理中心
+                </h5>
+                <p class="text-secondary small mb-0">依自訂日期區間與訂單狀態過濾工單，即時核算每筆單的分潤金額</p>
+            </div>
+
+            <div class="d-flex align-items-center gap-3">
+                <span class="badge bg-secondary bg-opacity-50 px-3 py-2 font-monospace" style="font-size: 0.82rem;">當前分潤成數：<%= (commissionRate * 100).toFixed(0) %>%</span>
+                <button type="button" class="btn btn-sm px-4 py-2 rounded-pill text-white fw-semibold" data-bs-toggle="modal" data-bs-target="#ordersHistoryModal" style="background: linear-gradient(135deg, #9333ea, #7e22ce); border: none;">
+                    <i class="fa-solid fa-layer-group me-2"></i>開啟我的接單清單 (<%= orders.length %>)
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================================
+     🚀 獨立【我的接單】滾動式彈窗
+========================================================================= -->
+<div class="modal fade" id="ordersHistoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl" style="max-width: 1060px;">
+        <div class="modal-content modal-content-glass p-2">
+            <div class="modal-header border-0 pb-1">
+                <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-list-check text-warning"></i>
+                    <span>我的接單紀錄</span>
+                    <span class="badge bg-secondary bg-opacity-50 small ms-1" style="font-size: 0.74rem;">共 <%= orders.length %> 筆</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body py-2">
+                <div class="p-3 rounded-3 mb-3 d-flex align-items-center flex-wrap gap-2" style="background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.08);">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small text-secondary fw-semibold text-nowrap"><i class="fa-regular fa-calendar me-1"></i>日期區間：</span>
+                        <input type="date" id="filterStartDate" class="filter-input-glass">
+                        <span class="text-secondary small">～</span>
+                        <input type="date" id="filterEndDate" class="filter-input-glass">
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small text-secondary fw-semibold text-nowrap"><i class="fa-solid fa-sliders me-1"></i>狀態：</span>
+                        <select id="filterStatusSelect" class="filter-input-glass" style="background-color: #171326; color: #fff;">
+                            <option value="all">全部狀態</option>
+                            <option value="completed">已結算 (Completed)</option>
+                            <option value="active">進行中 (Active)</option>
+                            <option value="pending">派單中 (Pending)</option>
+                            <option value="cancelled">已取消 (Cancelled)</option>
+                        </select>
+                    </div>
+
+                    <div class="search-box-wrap" style="min-width: 180px;">
+                        <i class="fa-solid fa-magnifying-glass search-icon-left"></i>
+                        <input type="text" id="orderSearchInput" class="filter-input-glass w-100" style="padding-left: 36px;" placeholder="搜尋單號 / 闆闆 / 遊戲...">
+                        <button type="button" id="clearSearchBtn" class="search-clear-btn" title="清除搜尋">
+                            <i class="fa-solid fa-circle-xmark"></i>
+                        </button>
+                    </div>
+
+                    <button type="button" id="resetFiltersBtn" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 text-nowrap">
+                        <i class="fa-solid fa-rotate-left me-1"></i>重設
+                    </button>
+                </div>
+
+                <div class="scrollable-modal-table-wrap">
+                    <table class="mihu-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 18%;">訂單編號</th>
+                                <th style="width: 15%;">客戶闆闆</th>
+                                <th style="width: 13%;">遊戲項目</th>
+                                <th style="width: 11%;">服務時長</th>
+                                <th style="width: 12%;">實收金額</th>
+                                <th style="width: 14%;">實得個人收入</th>
+                                <th style="width: 10%; text-align: center;">狀態</th>
+                                <th style="width: 7%; text-align: right;">詳情</th>
+                            </tr>
+                        </thead>
+                        <tbody id="incomeOrdersBody">
+                            <% if (!orders || orders.length === 0) { %>
+                                <tr>
+                                    <td colspan="8" class="text-center py-5 text-secondary">目前尚無被指派的工單紀錄</td>
+                                </tr>
+                            <% } else { %>
+                                <% orders.forEach(o => { 
+                                    const totalAmt = Number(o.total_amount || 0);
+                                    const myIncome = Math.round(totalAmt * commissionRate);
+
+                                    const bossAvatar = o.boss_avatar 
+                                        ? `https://cdn.discordapp.com/avatars/${o.boss_id}/${o.boss_avatar}.png` 
+                                        : `https://cdn.discordapp.com/embed/avatars/0.png`;
+                                    const bossName = o.boss_nickname || o.boss_global_name || o.boss_username || '匿名闆闆';
+
+                                    const statusMap = {
+                                        'pending': { name: '派單中', class: 'status-badge-pending' },
+                                        'active': { name: '進行中', class: 'status-badge-active' },
+                                        'completed': { name: '已結算', class: 'status-badge-completed' },
+                                        'cancelled': { name: '已取消', class: 'status-badge-cancelled' }
+                                    };
+                                    const st = statusMap[o.status] || { name: o.status, class: 'status-badge-pending' };
+
+                                    const orderDate = (o.end_time || o.created_at || '').slice(0, 10);
+
+                                    const orderJson = JSON.stringify({
+                                        orderNo: o.order_no,
+                                        bossName: bossName,
+                                        game: o.game,
+                                        duration: o.duration,
+                                        headcount: o.headcount || 1,
+                                        totalAmount: totalAmt,
+                                        myIncome: myIncome,
+                                        statusName: st.name,
+                                        note: o.note || '無特別備註',
+                                        startTime: o.start_time || '尚未開始',
+                                        endTime: o.end_time || '尚未結束',
+                                        createdAt: o.created_at || ''
+                                    });
+                                %>
+                                    <tr class="order-income-row" 
+                                        data-order='<%- orderJson %>' 
+                                        data-date="<%= orderDate %>"
+                                        data-status="<%= o.status %>"
+                                        data-search="<%= `${o.order_no} ${bossName} ${o.game} ${o.note || ''}`.toLowerCase() %>">
+                                        <td>
+                                            <div class="fw-bold font-monospace text-light"><%= o.order_no %></div>
+                                            <div class="text-secondary font-monospace" style="font-size: 0.72rem;"><%= (o.created_at || '').slice(0, 16) %></div>
+                                        </td>
+                                        <td>
+                                            <div class="user-mini-col">
+                                                <img src="<%= bossAvatar %>" alt="頭像" class="user-mini-avatar">
+                                                <div>
+                                                    <div class="fw-bold text-white small"><%= bossName %></div>
+                                                    <div class="text-secondary font-monospace" style="font-size: 0.68rem;">•••• <%= o.boss_id.slice(-4) %></div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-purple bg-opacity-25 text-purple-light border border-purple border-opacity-25 px-2 py-1" style="color: #c084fc; border-color: rgba(192, 132, 252, 0.4);">
+                                                <%= o.game %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="font-monospace text-light"><%= o.duration %>h</span>
+                                            <span class="text-secondary small">(<%= o.headcount || 1 %>人)</span>
+                                        </td>
+                                        <td>
+                                            <span class="font-monospace text-secondary">$<%= totalAmt.toLocaleString() %></span>
+                                        </td>
+                                        <td>
+                                            <span class="font-monospace text-warning fw-bold fs-6">+$<%= myIncome.toLocaleString() %></span>
+                                            <span class="small text-secondary">NTD</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge <%= st.class %> px-2 py-1" style="font-size: 0.75rem;"><%= st.name %></span>
+                                        </td>
+                                        <td class="text-end">
+                                            <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-2 py-1 btn-detail-trigger" style="font-size: 0.78rem;">
+                                                <i class="fa-solid fa-receipt me-1"></i>明細
+                                            </button>
+                                        </td>
+                                    </tr>
+                                <% }) %>
+                            <% } %>
+                        </tbody>
+                    </table>
+
+                    <div id="noMatchRow" class="text-center py-5 text-secondary" style="display: none;">
+                        <i class="fa-solid fa-receipt fs-3 mb-2 opacity-50"></i>
+                        <p class="small mb-0">找不到符合篩選條件的接單記錄</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer border-0 pt-2">
+                <button type="button" class="btn btn-sm btn-secondary rounded-pill px-4" data-bs-dismiss="modal">關閉視窗</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 彈窗：單筆工單詳情彈窗 -->
+<div class="modal fade" id="incomeDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 500px;">
+        <div class="modal-content modal-content-glass">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-file-invoice-dollar text-warning"></i>
+                    <span>接單收益明細</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-3">
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <div class="info-detail-box">
+                            <span class="info-detail-label">工單編號</span>
+                            <span class="info-detail-val text-warning font-monospace" id="detailOrderNo"></span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="info-detail-box">
+                            <span class="info-detail-label">訂單狀態</span>
+                            <span class="info-detail-val text-info" id="detailStatus"></span>
+                        </div>
+                    </div>
+
+                    <div class="col-6">
+                        <div class="info-detail-box">
+                            <span class="info-detail-label">客戶闆闆</span>
+                            <span class="info-detail-val text-white" id="detailBoss"></span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="info-detail-box">
+                            <span class="info-detail-label">遊戲與時長</span>
+                            <span class="info-detail-val text-white" id="detailGameAndDuration"></span>
+                        </div>
+                    </div>
+
+                    <div class="col-6">
+                        <div class="info-detail-box">
+                            <span class="info-detail-label">訂單實收金額</span>
+                            <span class="info-detail-val text-secondary" id="detailTotalAmount"></span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="info-detail-box">
+                            <span class="info-detail-label">個人分潤實得</span>
+                            <span class="info-detail-val text-success fs-6" id="detailMyIncome"></span>
+                        </div>
+                    </div>
+
+                    <div class="col-6">
+                        <div class="info-detail-box">
+                            <span class="info-detail-label">開始時間</span>
+                            <span class="info-detail-val text-white-50 font-monospace small" id="detailStartTime"></span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="info-detail-box">
+                            <span class="info-detail-label">結束時間</span>
+                            <span class="info-detail-val text-white-50 font-monospace small" id="detailEndTime"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-3 rounded-3" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06);">
+                    <span class="text-secondary small">工單內容與備註說明：</span>
+                    <div class="text-white small fw-medium mt-1" id="detailNote">無特別備註</div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-sm btn-secondary rounded-pill px-4" data-bs-dismiss="modal">關閉</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const incomeDetailModal = new bootstrap.Modal(document.getElementById('incomeDetailModal'));
+
+    function showOrderIncomeDetail(data) {
+        document.getElementById('detailOrderNo').textContent = data.orderNo;
+        document.getElementById('detailStatus').textContent = data.statusName;
+        document.getElementById('detailBoss').textContent = data.bossName;
+        document.getElementById('detailGameAndDuration').textContent = `${data.game} (${data.duration}h / ${data.headcount}人)`;
+        document.getElementById('detailTotalAmount').textContent = `$${Number(data.totalAmount).toLocaleString()} NTD`;
+        document.getElementById('detailMyIncome').textContent = `+$${Number(data.myIncome).toLocaleString()} NTD`;
+        document.getElementById('detailStartTime').textContent = data.startTime;
+        document.getElementById('detailEndTime').textContent = data.endTime;
+        document.getElementById('detailNote').textContent = data.note;
+
+        incomeDetailModal.show();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const rows = document.querySelectorAll('.order-income-row');
+        const searchInput = document.getElementById('orderSearchInput');
+        const clearBtn = document.getElementById('clearSearchBtn');
+        const startDateInput = document.getElementById('filterStartDate');
+        const endDateInput = document.getElementById('filterEndDate');
+        const statusSelect = document.getElementById('filterStatusSelect');
+        const resetBtn = document.getElementById('resetFiltersBtn');
+        const noMatchRow = document.getElementById('noMatchRow');
+
+        function applyOrderFilters() {
+            const query = (searchInput.value || '').trim().toLowerCase();
+            const start = startDateInput.value;
+            const end = endDateInput.value;
+            const status = statusSelect.value;
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const searchData = row.getAttribute('data-search') || '';
+                const rowDate = row.getAttribute('data-date') || '';
+                const rowStatus = row.getAttribute('data-status') || '';
+
+                const matchesQuery = !query || searchData.includes(query);
+                const matchesStatus = status === 'all' || rowStatus === status;
+                
+                let matchesDate = true;
+                if (start && rowDate && rowDate < start) matchesDate = false;
+                if (end && rowDate && rowDate > end) matchesDate = false;
+
+                if (matchesQuery && matchesStatus && matchesDate) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            noMatchRow.style.display = visibleCount === 0 ? 'block' : 'none';
+        }
+
+        if (searchInput) {
+            searchInput.addEventListener('input', () => {
+                if (clearBtn) clearBtn.style.display = searchInput.value.trim().length > 0 ? 'block' : 'none';
+                applyOrderFilters();
+            });
+        }
+
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                searchInput.value = '';
+                clearBtn.style.display = 'none';
+                applyOrderFilters();
+                searchInput.focus();
+            });
+        }
+
+        startDateInput.addEventListener('change', applyOrderFilters);
+        endDateInput.addEventListener('change', applyOrderFilters);
+        statusSelect.addEventListener('change', applyOrderFilters);
+
+        resetBtn.addEventListener('click', () => {
+            startDateInput.value = '';
+            endDateInput.value = '';
+            statusSelect.value = 'all';
+            searchInput.value = '';
+            clearBtn.style.display = 'none';
+            applyOrderFilters();
+        });
+
+        rows.forEach(row => {
+            const data = JSON.parse(row.getAttribute('data-order'));
+            row.addEventListener('click', () => showOrderIncomeDetail(data));
+
+            const btn = row.querySelector('.btn-detail-trigger');
+            if (btn) {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    showOrderIncomeDetail(data);
+                });
+            }
+        });
+    });
+</script>
+</body>
+</html>

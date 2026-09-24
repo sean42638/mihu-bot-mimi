@@ -1,0 +1,227 @@
+<%
+    const now = new Date();
+    const currentHour = now.getHours();
+
+    const displayName = (typeof user !== 'undefined' && user) 
+        ? (user.custom_nickname || user.global_name || user.username) 
+        : '管理者';
+
+    const roleNames = {
+        'admin': '負責人',
+        'manager': '店長',
+        'cfo': '財務長',
+        'after_sales_manager': '售後管理',
+        'cs_director': '客服主管',
+        'cs': '客服',
+        'staff': '陪玩師',
+        'talent': '陪玩師',
+        'member': '一般會員'
+    };
+    const roleChinese = (typeof user !== 'undefined' && user && roleNames[user.role]) ? roleNames[user.role] : '一般會員';
+
+    const mascotImages = [
+        '/images/Hello1.png',
+        '/images/Hello2.png',
+        '/images/Hello3.png'
+    ];
+    const randomMascot = mascotImages[Math.floor(Math.random() * mascotImages.length)];
+
+    const greetings = [
+        `${displayName} 歡迎回來！米米已經準備好迎接新挑戰囉～`,
+        currentHour < 11 ? `早安呀 ${displayName}！米米端著熱可可為你加油！` :
+        currentHour < 14 ? `午安 ${displayName}！吃飽飽才能跟米米一起電競！` :
+        currentHour < 18 ? `午後時光 ${displayName}！來跟米米摸一把手遊放鬆一下～` :
+                           `晚安 ${displayName}！今晚米米陪你通宵奮戰到底！`,
+        `嗨呀 ${displayName}！今天也是元氣滿滿的一天，Let's go～`,
+        `叮咚！米米吉祥物捕獲了一隻超棒的 ${displayName}！`,
+        `歡迎回到米胡電競司令部！${displayName} 今天打算跟米米開哪一單呢？`,
+        `呼叫 ${displayName}！米米雷達偵測到滿滿的勝利氣息！`
+    ];
+
+    const greetingText = greetings[Math.floor(Math.random() * greetings.length)];
+
+    const avatarUrl = (typeof user !== 'undefined' && user && user.avatar) 
+        ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` 
+        : `https://cdn.discordapp.com/embed/avatars/0.png`;
+
+    const currentPage = typeof activePage !== 'undefined' ? activePage : '';
+%>
+
+<style>
+    .mihu-navbar {
+        padding: 14px 36px;
+        border-bottom: 1px solid rgba(168, 85, 247, 0.2);
+        background: rgba(19, 16, 33, 0.75);
+        backdrop-filter: blur(15px);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        width: 100%;
+    }
+    .navbar-left {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+    .nav-page-title-badge {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #ffffff;
+        letter-spacing: 0.5px;
+    }
+    .nav-title-icon {
+        font-size: 1.15rem;
+        color: #c084fc;
+    }
+    
+    .greeting-wrap {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .greeting-mascot {
+        width: 44px;
+        height: 44px;
+        object-fit: contain;
+        filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.5));
+    }
+    .greeting-text {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #f3f4f6;
+        letter-spacing: 0.3px;
+    }
+    .navbar-right {
+        display: flex;
+        align-items: center;
+        margin-left: auto;
+    }
+    .profile-dropdown-btn {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 40px;
+        padding: 6px 16px 6px 8px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        cursor: pointer;
+        transition: all 0.25s ease;
+    }
+    .profile-dropdown-btn:hover {
+        border-color: rgba(168, 85, 247, 0.45);
+        background: rgba(168, 85, 247, 0.1);
+    }
+    .user-avatar-img { 
+        width: 38px !important; 
+        height: 38px !important; 
+        min-width: 38px !important;
+        max-width: 38px !important;
+        border-radius: 50% !important; 
+        object-fit: cover !important; 
+        border: 2px solid rgba(168, 85, 247, 0.4);
+        box-shadow: 0 0 10px rgba(168, 85, 247, 0.2);
+    }
+    .user-info-text { 
+        display: flex; 
+        flex-direction: column; 
+        text-align: left; 
+        gap: 2px;
+    }
+    .user-name { 
+        font-size: 0.88rem; 
+        font-weight: 700; 
+        color: #ffffff; 
+        line-height: 1.2;
+    }
+    .user-role-badge { 
+        font-size: 0.72rem; 
+        color: #c084fc; 
+        font-weight: 700; 
+        letter-spacing: 0.5px;
+    }
+    .mihu-dropdown-menu {
+        background: #171326;
+        border: 1px solid rgba(168, 85, 247, 0.3);
+        border-radius: 14px;
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7);
+        padding: 8px;
+    }
+    .mihu-dropdown-menu .dropdown-item {
+        color: #d1d5db;
+        font-size: 0.88rem;
+        padding: 9px 16px;
+        border-radius: 8px;
+    }
+    .mihu-dropdown-menu .dropdown-item:hover {
+        background: rgba(168, 85, 247, 0.18);
+        color: #fff;
+    }
+</style>
+
+<header class="mihu-navbar">
+    <div class="navbar-left">
+        <% if (currentPage === 'dashboard') { %>
+            <!-- 首頁隨機米米問候語 -->
+            <div class="greeting-wrap">
+                <img src="<%= randomMascot %>" alt="米米" class="greeting-mascot" onerror="this.src='/images/logo.png'">
+                <span class="greeting-text"><%= greetingText %></span>
+            </div>
+        <% } else { %>
+            <!-- 統一圖1樣式：米胡電競管理系統 -->
+            <div class="nav-page-title-badge">
+                <i class="fa-solid fa-gamepad nav-title-icon"></i>
+                <span>米胡電競管理系統</span>
+            </div>
+        <% } %>
+    </div>
+
+    <!-- 右側個人資料選單 -->
+    <div class="navbar-right">
+        <div class="dropdown">
+            <div class="profile-dropdown-btn" data-bs-toggle="dropdown" aria-expanded="false">
+                <img src="<%= avatarUrl %>" alt="頭像" class="user-avatar-img">
+                <div class="user-info-text">
+                    <span class="user-name"><%= displayName %></span>
+                    <span class="user-role-badge"><%= roleChinese %></span>
+                </div>
+                <i class="fa-solid fa-chevron-down text-secondary small ms-1" style="font-size: 0.72rem;"></i>
+            </div>
+            <ul class="dropdown-menu dropdown-menu-end mihu-dropdown-menu">
+                <li class="dropdown-header pb-2">
+                    <div class="fw-bold text-white fs-6"><%= typeof user !== 'undefined' && user ? user.username : '' %></div>
+                    <div style="color: #94a3b8; font-size: 0.78rem; font-family: monospace;">
+                        ID: <%= typeof user !== 'undefined' && user ? user.id : '' %>
+                    </div>
+                </li>
+                <li><hr class="dropdown-divider" style="border-color: rgba(255, 255, 255, 0.08);"></li>
+                <li>
+                    <a class="dropdown-item" href="/dashboard">
+                        <i class="fa-solid fa-gauge-high me-2 text-warning"></i>首頁
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="/profile">
+                        <i class="fa-solid fa-user-pen me-2 text-primary"></i>編輯個人檔案
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="/wallet">
+                        <i class="fa-solid fa-wallet me-2 text-info"></i>我的錢包
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider" style="border-color: rgba(255, 255, 255, 0.08);"></li>
+                <li>
+                    <a class="dropdown-item text-danger" href="/logout">
+                        <i class="fa-solid fa-arrow-right-from-bracket me-2"></i>安全登出
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</header>

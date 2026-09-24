@@ -1,0 +1,96 @@
+[
+  {
+    "level": 1,
+    "name": "VIP 1",
+    "spent_threshold": 3000,
+    "deposit_threshold": 2500,
+    "rewards": [
+      "禮物代金券 50T",
+      "解鎖 VIP TAG",
+      "獲得 VIP 1 特殊顏色"
+    ]
+  },
+  {
+    "level": 2,
+    "name": "VIP 2",
+    "spent_threshold": 7777,
+    "deposit_threshold": 6666,
+    "rewards": [
+      "代金券 50T x2",
+      "泡芙禮物券 x1",
+      "置頂留言牆 3天",
+      "自定義陪玩後綴 3天",
+      "獲得 VIP 2 特殊顏色"
+    ]
+  },
+  {
+    "level": 3,
+    "name": "VIP 3",
+    "spent_threshold": 13333,
+    "deposit_threshold": 10000,
+    "rewards": [
+      "代金券 50T",
+      "代金券 100T",
+      "開啟生日專屬播報 🎂",
+      "置頂留言牆 7天",
+      "單次儲值滿 5000 再送 500 儲值金券",
+      "獲得 VIP 3 特殊顏色"
+    ]
+  },
+  {
+    "level": 4,
+    "name": "VIP 4",
+    "spent_threshold": 25000,
+    "deposit_threshold": 20000,
+    "rewards": [
+      "代金券 100T x2",
+      "300T 禮物券",
+      "當天陪玩單 95折",
+      "專屬語音頻道 🎤",
+      "置頂留言牆 7天",
+      "獲得 VIP 4 特殊顏色"
+    ]
+  },
+  {
+    "level": 5,
+    "name": "VIP 5",
+    "spent_threshold": 38888,
+    "deposit_threshold": 30000,
+    "rewards": [
+      "代金券 200T x2",
+      "自定義永久 TAG",
+      "陪陪好友位 x1 👥",
+      "專屬老闆派單房 📥",
+      "單次儲值滿 8000T 再送 800T 儲值金券",
+      "獲得 VIP 5 特殊顏色"
+    ]
+  },
+  {
+    "level": 6,
+    "name": "VIP 6",
+    "spent_threshold": 52000,
+    "deposit_threshold": 50000,
+    "rewards": [
+      "代金券 200T x4",
+      "陪玩好友位 x3 👥",
+      "專屬老闆個人聊天頻道 💬",
+      "自定義陪玩後綴 14天",
+      "單次儲值滿 10000T 再送 1000T 儲值金券",
+      "獲得 VIP 6 特殊顏色"
+    ]
+  },
+  {
+    "level": 7,
+    "name": "VIP 7",
+    "spent_threshold": 88888,
+    "deposit_threshold": 80000,
+    "rewards": [
+      "代金券 200T x5",
+      "陪玩好友位 x5 👥",
+      "專屬客服服務",
+      "置頂留言牆 14天",
+      "單次儲值滿 10000T 再送 1000T 儲值金券",
+      "獲得 VIP 7 特殊顏色"
+    ]
+  }
+]
