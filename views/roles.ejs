@@ -167,54 +167,10 @@
             max-height: 260px;
             overflow-y: auto;
         }
-        .perm-tree-box::-webkit-scrollbar {
-            width: 6px;
-        }
+        .perm-tree-box::-webkit-scrollbar { width: 6px; }
         .perm-tree-box::-webkit-scrollbar-thumb {
             background: rgba(168, 85, 247, 0.4);
             border-radius: 6px;
-        }
-
-        .tree-node-parent {
-            padding: 8px 10px;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 8px;
-            margin-bottom: 6px;
-            display: flex;
-            align-items: center;
-            font-weight: 700;
-            color: #ffffff;
-        }
-        .tree-children {
-            margin-left: 28px;
-            padding-left: 12px;
-            border-left: 2px dashed rgba(168, 85, 247, 0.25);
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            margin-bottom: 12px;
-        }
-        .tree-node-child {
-            display: flex;
-            align-items: center;
-            font-size: 0.88rem;
-            color: #cbd5e1;
-        }
-        .tree-sub-children {
-            margin-left: 24px;
-            padding-left: 10px;
-            border-left: 1px dashed rgba(255, 255, 255, 0.15);
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            margin-top: 4px;
-            margin-bottom: 6px;
-        }
-        .tree-node-subchild {
-            display: flex;
-            align-items: center;
-            font-size: 0.82rem;
-            color: #94a3b8;
         }
 
         .form-check-input {
@@ -239,11 +195,8 @@
             display: flex;
             flex-direction: column;
         }
-        .modal-body {
-            overflow-y: auto;
-        }
+        .modal-body { overflow-y: auto; }
 
-        /* 🚀 修正輸入框 Focus 反白與字體顏色 */
         .form-control-glass {
             background-color: rgba(255, 255, 255, 0.05) !important;
             border: 1px solid rgba(255, 255, 255, 0.14) !important;
@@ -259,11 +212,8 @@
             box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.3) !important;
             outline: none !important;
         }
-        .form-control-glass::placeholder {
-            color: #64748b !important;
-        }
+        .form-control-glass::placeholder { color: #64748b !important; }
 
-        /* 修正瀏覽器自動填入 (Autofill) 反白白底問題 */
         input.form-control-glass:-webkit-autofill,
         input.form-control-glass:-webkit-autofill:hover, 
         input.form-control-glass:-webkit-autofill:focus {
@@ -322,23 +272,28 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <% if (roles && roles.length > 0) { %>
-                            <% roles.forEach(r => { 
+                        <% 
+                            const roleList = (typeof rolesData !== 'undefined' && rolesData) ? rolesData : ((typeof roles !== 'undefined' && roles) ? roles : []);
+                            if (roleList && roleList.length > 0) { 
+                        %>
+                            <% roleList.forEach(r => { 
                                 let permsArray = [];
                                 try {
                                     permsArray = typeof r.permissions === 'string' ? JSON.parse(r.permissions) : (r.permissions || []);
                                 } catch (e) {
                                     permsArray = [];
                                 }
+                                const permsJson = JSON.stringify(permsArray).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
                             %>
                                 <tr class="role-row" 
                                     data-id="<%= r.id %>"
+                                    data-rolekey="<%= r.role_key %>"
                                     data-name="<%= r.name %>"
                                     data-category="<%= r.category %>"
                                     data-color="<%= r.color_badge || 'primary' %>"
                                     data-tier="<%= r.tier_level %>"
                                     data-desc="<%= r.description || '' %>"
-                                    data-perms='<%- JSON.stringify(permsArray) %>'>
+                                    data-perms='<%- permsJson %>'>
                                     <td>
                                         <div class="category-text-wrap">
                                             <span class="category-dot dot-<%= r.category %>"></span>
@@ -381,34 +336,37 @@
     </div>
 </div>
 
-<!-- 彈窗 1：唯讀查看可見權限項目清單 -->
+<!-- 彈窗 1：檢視身分權限 Modal -->
 <div class="modal fade" id="viewRoleModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
+    <div class="modal-dialog modal-dialog-centered modal-xl" style="max-width: 850px;">
         <div class="modal-content modal-content-glass">
-            <div class="modal-header border-0 pb-0">
+            <div class="modal-header border-0 pb-0 pt-4 px-4">
                 <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2">
-                    <span id="viewRoleNameBadge" class="role-pill-badge badge-style-danger">職位</span>
+                    <span id="viewRoleNameBadge" class="role-pill-badge badge-style-danger fs-6 px-3 py-1">職位</span>
                     <span id="viewRoleCategoryText" class="small text-secondary fw-normal">階級</span>
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body py-3">
+            <div class="modal-body p-4" style="max-height: 75vh; overflow-y: auto;">
                 <div class="p-3 rounded-3 mb-3" style="background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.08);">
-                    <div class="text-secondary small mb-1">職責說明：</div>
+                    <div class="text-secondary small mb-1"><i class="fa-solid fa-circle-info me-1"></i>職責說明：</div>
                     <div class="text-white small fw-medium" id="viewRoleDesc">說明內容</div>
                 </div>
 
-                <div class="small text-secondary fw-semibold mb-2">允許查看與使用的系統模組：</div>
-                <div class="perm-tree-box" id="viewRolePermTreeDisplay"></div>
+                <div class="small text-secondary fw-semibold mb-2 d-flex align-items-center gap-1">
+                    <i class="fa-solid fa-shield-halved text-warning"></i> 允許查看與使用的系統模組：
+                </div>
+                
+                <div class="perm-tree-box p-3 rounded-3" id="viewRolePermTreeDisplay" style="background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(168, 85, 247, 0.25); min-height: 280px; max-height: 50vh; overflow-y: auto;"></div>
             </div>
-            <div class="modal-footer border-0 pt-0">
-                <button type="button" class="btn btn-sm btn-secondary rounded-pill px-4" data-bs-dismiss="modal">關閉</button>
+            <div class="modal-footer border-0 pt-0 pb-4 px-4">
+                <button type="button" class="btn btn-sm btn-secondary rounded-pill px-4 fw-bold" data-bs-dismiss="modal">關閉</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- 彈窗 2：編輯身分基本資料 -->
+<!-- 彈窗 2：編輯身分基本資料 Modal -->
 <div class="modal fade" id="editRoleInfoModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" style="max-width: 500px;">
         <div class="modal-content modal-content-glass">
@@ -457,32 +415,171 @@
     </div>
 </div>
 
-<!-- 彈窗 3：編輯權限 -->
+<!-- 彈窗 3：編輯身分組權限 Modal (刪除英文括號乾淨版) -->
 <div class="modal fade" id="editRolePermsModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 520px;">
-        <div class="modal-content modal-content-glass">
-            <form id="editRolePermsForm" method="POST">
-                <div class="modal-header border-0 pb-0">
+    <div class="modal-dialog modal-dialog-centered modal-xl" style="max-width: 880px;">
+        <div class="modal-content modal-content-glass" style="background: rgba(20, 16, 35, 0.97); border: 1px solid rgba(168, 85, 247, 0.35); border-radius: 20px; color: #fff; box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(168, 85, 247, 0.25);">
+            <form action="/system/roles/update-permissions" method="POST">
+                <div class="modal-header border-0 pb-0 pt-4 px-4">
                     <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2">
-                        <i class="fa-solid fa-lock-open text-warning"></i>
-                        <span id="editRolePermsTitle">設定可見功能項目</span>
+                        <i class="fa-solid fa-user-shield text-warning"></i>
+                        編輯身分權限：<span id="targetRoleName" class="text-info"></span>
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body py-3">
-                    <p class="small text-secondary mb-2">勾選此職位可見並能使用的模組項目（支援樹狀聯動勾選）：</p>
-                    <div class="perm-tree-box" id="permTreeFormContainer"></div>
+                
+                <div class="modal-body p-4" style="max-height: 75vh; overflow-y: auto;">
+                    <input type="hidden" id="targetRoleKey" name="role">
+
+                    <!-- 分區一：側邊欄選單與頁面能見度 -->
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center gap-2 mb-2 pb-1 border-bottom border-secondary border-opacity-25">
+                            <i class="fa-solid fa-bars-staggered text-purple" style="color: #c084fc;"></i>
+                            <h6 class="fw-bold text-white m-0">1. 側邊欄選單與模組能見度</h6>
+                        </div>
+                        
+                        <div class="row g-3">
+                            <!-- 個人專區選單 -->
+                            <div class="col-md-4">
+                                <div class="p-3 rounded-3" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); height: 100%;">
+                                    <div class="small fw-bold text-purple mb-2" style="color: #c084fc;">個人專區</div>
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="home" id="perm_home">
+                                        <label class="form-check-label text-white small" for="perm_home">控制台首頁</label>
+                                    </div>
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="personal" id="perm_personal">
+                                        <label class="form-check-label text-white small" for="perm_personal">個人專區選單</label>
+                                    </div>
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="profile" id="perm_profile">
+                                        <label class="form-check-label text-white small" for="perm_profile">個人檔案</label>
+                                    </div>
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="my_wallet" id="perm_my_wallet">
+                                        <label class="form-check-label text-white small" for="perm_my_wallet">我的錢包</label>
+                                    </div>
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="my_income" id="perm_my_income">
+                                        <label class="form-check-label text-white small" for="perm_my_income">我的收入</label>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="my_orders" id="perm_my_orders">
+                                        <label class="form-check-label text-white small" for="perm_my_orders">我的訂單</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 營運管理選單 -->
+                            <div class="col-md-4">
+                                <div class="p-3 rounded-3" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); height: 100%;">
+                                    <div class="small fw-bold text-info mb-2">工作室管理</div>
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="manage" id="perm_manage">
+                                        <label class="form-check-label text-white small" for="perm_manage">營運總覽選單</label>
+                                    </div>
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="manage_members" id="perm_manage_members">
+                                        <label class="form-check-label text-white small" for="perm_manage_members">會員管理</label>
+                                    </div>
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="manage_staff" id="perm_manage_staff">
+                                        <label class="form-check-label text-white small" for="perm_manage_staff">員工管理</label>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="manage_orders" id="perm_manage_orders">
+                                        <label class="form-check-label text-white small" for="perm_manage_orders">全站訂單總覽</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 系統控制選單 -->
+                            <div class="col-md-4">
+                                <div class="p-3 rounded-3" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); height: 100%;">
+                                    <div class="small fw-bold text-success mb-2">系統控制</div>
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="system" id="perm_system">
+                                        <label class="form-check-label text-white small" for="perm_system">系統控制選單</label>
+                                    </div>
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="sys_vip" id="perm_sys_vip">
+                                        <label class="form-check-label text-white small" for="perm_sys_vip">VIP 設定</label>
+                                    </div>
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="sys_roles" id="perm_sys_roles">
+                                        <label class="form-check-label text-white small" for="perm_sys_roles">身分管理</label>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="sys_settings" id="perm_sys_settings">
+                                        <label class="form-check-label text-white small" for="perm_sys_settings">機器人設定</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 分區二：敏感個資與核心操作權限 -->
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-2 pb-1 border-bottom border-secondary border-opacity-25">
+                            <i class="fa-solid fa-lock text-warning"></i>
+                            <h6 class="fw-bold text-white m-0">2. 敏感個資與進階操作權限</h6>
+                        </div>
+
+                        <div class="row g-3">
+                            <!-- 會員管理核心操作 -->
+                            <div class="col-md-6">
+                                <div class="p-3 rounded-3" style="background: rgba(234, 179, 8, 0.05); border: 1px solid rgba(234, 179, 8, 0.2);">
+                                    <div class="small fw-bold text-warning mb-2"><i class="fa-solid fa-users me-1"></i> 會員管理操作</div>
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="member_adjust_balance" id="perm_member_adjust_balance">
+                                        <label class="form-check-label text-white small" for="perm_member_adjust_balance">會員帳務調整</label>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="member_adjust_vip" id="perm_member_adjust_vip">
+                                        <label class="form-check-label text-white small" for="perm_member_adjust_vip">手動 VIP 等級調整</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 員工管理與敏感個資 -->
+                            <div class="col-md-6">
+                                <div class="p-3 rounded-3" style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2);">
+                                    <div class="small fw-bold text-success mb-2"><i class="fa-solid fa-id-badge me-1"></i> 員工管理與敏感個資</div>
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="staff_view_payroll" id="perm_staff_view_payroll">
+                                        <label class="form-check-label text-white small" for="perm_staff_view_payroll">查看員工敏感薪轉個資</label>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="staff_edit_role_commission" id="perm_staff_edit_role_commission">
+                                        <label class="form-check-label text-white small" for="perm_staff_edit_role_commission">設定員工職務與抽佣比例</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 全站訂單核心操作 -->
+                            <div class="col-md-12">
+                                <div class="p-3 rounded-3" style="background: rgba(236, 72, 153, 0.05); border: 1px solid rgba(236, 72, 153, 0.2);">
+                                    <div class="small fw-bold text-pink mb-2" style="color: #ec4899;"><i class="fa-solid fa-receipt me-1"></i> 訂單管理操作</div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="orders_edit_and_reassign" id="perm_orders_edit_and_reassign">
+                                        <label class="form-check-label text-white small" for="perm_orders_edit_and_reassign">編輯訂單資訊與改派陪陪人員</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">取消</button>
-                    <button type="submit" class="btn btn-sm btn-success rounded-pill px-4" style="background-color: #10b981; border: none;">儲存權限</button>
+
+                <div class="modal-footer border-0 pt-0 pb-4 px-4">
+                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-4" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-sm btn-warning rounded-pill px-4 fw-bold text-dark">儲存權限設定</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- 新增身分職位 Modal -->
+<!-- 彈窗 4：新增身分職位 Modal -->
 <div class="modal fade" id="addRoleModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content modal-content-glass">
@@ -520,8 +617,6 @@
                         <label class="small text-secondary fw-semibold mb-1">職責說明</label>
                         <input type="text" name="description" class="form-control form-control-glass" placeholder="例如：負責客訴爭議與售後仲裁">
                     </div>
-
-                    <!-- 權限樹狀圖部分保持原樣... -->
                 </div>
                 <div class="modal-footer border-0">
                     <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">取消</button>
@@ -534,203 +629,33 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    const PERM_TREE = [
-        {
-            id: 'home',
-            label: '首頁',
-            children: [
-                { id: 'home_banner', label: '即時通知公告欄' },
-                { id: 'home_wallet_card', label: '我的錢包 (VIP 卡片)' },
-                { id: 'home_info', label: '我的信息 (個人連動)' }
-            ]
-        },
-        {
-            id: 'personal',
-            label: '個人',
-            children: [
-                { 
-                    id: 'profile', 
-                    label: '個人檔案',
-                    children: [
-                        { id: 'profile_discord', label: 'Discord 資料 (唯讀)' },
-                        { id: 'profile_nickname', label: '自定義暱稱修改' }
-                    ]
-                },
-                { id: 'my_wallet', label: '我的錢包' },
-                { id: 'my_income', label: '我的收入' },
-                { id: 'my_orders', label: '我的訂單' }
-            ]
-        },
-        {
-            id: 'manage',
-            label: '管理',
-            children: [
-                { 
-                    id: 'manage_members', 
-                    label: '會員管理',
-                    children: [
-                        { id: 'member_adjust_balance', label: '💰 帳務調整權限 (增減餘額/金額)' },
-                        { id: 'member_adjust_vip', label: '👑 VIP調整權限 (手動調整等級)' }
-                    ]
-                },
-                { id: 'manage_staff', label: '員工管理' },
-                { id: 'manage_orders', label: '訂單管理' }
-            ]
-        },
-        {
-            id: 'system',
-            label: '系統',
-            children: [
-                { id: 'sys_commission', label: '抽佣設定' },
-                { id: 'sys_vip', label: 'VIP設定' },
-                { id: 'sys_roles', label: '身分管理' },
-                { id: 'sys_settings', label: '系統設定' },
-                { id: 'sys_logs', label: '操作紀錄' }
-            ]
+    let viewRoleModal, editRoleInfoModal;
+
+    function openEditRolePermsModal(roleKey, roleName, currentPermsArray) {
+        document.getElementById('targetRoleKey').value = roleKey;
+        document.getElementById('targetRoleName').textContent = `${roleName} (${roleKey})`;
+
+        document.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = false);
+
+        if (Array.isArray(currentPermsArray)) {
+            currentPermsArray.forEach(perm => {
+                const cb = document.querySelector(`.perm-checkbox[value="${perm}"]`);
+                if (cb) cb.checked = true;
+            });
         }
-    ];
 
-    let viewRoleModal, editRoleInfoModal, editRolePermsModal;
-
-    function renderPermCheckboxTree(containerId, activePerms = []) {
-        const container = document.getElementById(containerId);
-        if (!container) return;
-        container.innerHTML = '';
-
-        PERM_TREE.forEach((parent) => {
-            const isParentChecked = activePerms.includes(parent.id);
-            const parentEl = document.createElement('div');
-            parentEl.className = 'mb-2';
-
-            let childrenHtml = '';
-            if (parent.children) {
-                parent.children.forEach(child => {
-                    const isChildChecked = activePerms.includes(child.id);
-                    let subChildrenHtml = '';
-
-                    if (child.children) {
-                        child.children.forEach(sub => {
-                            const isSubChecked = activePerms.includes(sub.id);
-                            subChildrenHtml += `
-                                <label class="tree-node-subchild">
-                                    <input type="checkbox" name="perms[]" value="${sub.id}" class="form-check-input perm-cb sub-cb-${parent.id}-${child.id}" data-parent="${parent.id}" data-mid="${child.id}" ${isSubChecked ? 'checked' : ''}>
-                                    <span>${sub.label}</span>
-                                </label>
-                            `;
-                        });
-                    }
-
-                    childrenHtml += `
-                        <div>
-                            <label class="tree-node-child">
-                                <input type="checkbox" name="perms[]" value="${child.id}" class="form-check-input perm-cb mid-cb-${parent.id}" data-parent="${parent.id}" data-child="${child.id}" ${isChildChecked ? 'checked' : ''}>
-                                <span>${child.label}</span>
-                            </label>
-                            ${subChildrenHtml ? `<div class="tree-sub-children">${subChildrenHtml}</div>` : ''}
-                        </div>
-                    `;
-                });
-            }
-
-            parentEl.innerHTML = `
-                <div class="tree-node-parent">
-                    <input type="checkbox" name="perms[]" value="${parent.id}" class="form-check-input perm-cb parent-cb" data-target="${parent.id}" ${isParentChecked ? 'checked' : ''}>
-                    <span>${parent.label}</span>
-                </div>
-                ${childrenHtml ? `<div class="tree-children">${childrenHtml}</div>` : ''}
-            `;
-            container.appendChild(parentEl);
-        });
-
-        container.querySelectorAll('.parent-cb').forEach(pcb => {
-            pcb.addEventListener('change', () => {
-                const target = pcb.getAttribute('data-target');
-                const checked = pcb.checked;
-                container.querySelectorAll(`.mid-cb-${target}`).forEach(c => {
-                    c.checked = checked;
-                    c.dispatchEvent(new Event('change'));
-                });
-            });
-        });
-
-        container.querySelectorAll('.tree-node-child input[type="checkbox"]').forEach(mcb => {
-            mcb.addEventListener('change', () => {
-                const pId = mcb.getAttribute('data-parent');
-                const cId = mcb.getAttribute('data-child');
-                const checked = mcb.checked;
-                container.querySelectorAll(`.sub-cb-${pId}-${cId}`).forEach(s => s.checked = checked);
-                if (checked) {
-                    const parentCb = container.querySelector(`.parent-cb[data-target="${pId}"]`);
-                    if (parentCb) parentCb.checked = true;
-                }
-            });
-        });
-
-        container.querySelectorAll('.tree-node-subchild input[type="checkbox"]').forEach(scb => {
-            scb.addEventListener('change', () => {
-                if (scb.checked) {
-                    const pId = scb.getAttribute('data-parent');
-                    const mId = scb.getAttribute('data-mid');
-                    const parentCb = container.querySelector(`.parent-cb[data-target="${pId}"]`);
-                    const midCb = container.querySelector(`.mid-cb-${pId}[data-child="${mId}"]`);
-                    if (parentCb) parentCb.checked = true;
-                    if (midCb) midCb.checked = true;
-                }
-            });
-        });
-    }
-
-    function renderPermViewTree(containerId, activePerms = []) {
-        const container = document.getElementById(containerId);
-        if (!container) return;
-        container.innerHTML = '';
-
-        let foundAny = false;
-        PERM_TREE.forEach(parent => {
-            const hasParent = activePerms.includes(parent.id);
-            const activeChildren = (parent.children || []).filter(c => activePerms.includes(c.id) || (c.children && c.children.some(s => activePerms.includes(s.id))));
-
-            if (hasParent || activeChildren.length > 0) {
-                foundAny = true;
-                const pEl = document.createElement('div');
-                pEl.className = 'mb-2';
-
-                let cHtml = '';
-                activeChildren.forEach(child => {
-                    const activeSubs = (child.children || []).filter(s => activePerms.includes(s.id));
-                    let sHtml = '';
-                    activeSubs.forEach(s => {
-                        sHtml += `<div class="tree-node-subchild"><i class="fa-solid fa-check text-success me-1"></i>${s.label}</div>`;
-                    });
-
-                    cHtml += `
-                        <div class="mb-1">
-                            <div class="tree-node-child"><i class="fa-solid fa-check text-info me-1"></i>${child.label}</div>
-                            ${sHtml ? `<div class="tree-sub-children">${sHtml}</div>` : ''}
-                        </div>
-                    `;
-                });
-
-                pEl.innerHTML = `
-                    <div class="tree-node-parent"><i class="fa-solid fa-folder-open text-warning me-2"></i>${parent.label}</div>
-                    ${cHtml ? `<div class="tree-children">${cHtml}</div>` : ''}
-                `;
-                container.appendChild(pEl);
-            }
-        });
-
-        if (!foundAny) {
-            container.innerHTML = '<div class="text-secondary small text-center py-3">尚未開啟任何項目權限</div>';
-        }
+        const modalEl = document.getElementById('editRolePermsModal');
+        const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+        modalInstance.show();
     }
 
     document.addEventListener('DOMContentLoaded', () => {
         viewRoleModal = new bootstrap.Modal(document.getElementById('viewRoleModal'));
         editRoleInfoModal = new bootstrap.Modal(document.getElementById('editRoleInfoModal'));
-        editRolePermsModal = new bootstrap.Modal(document.getElementById('editRolePermsModal'));
 
         document.querySelectorAll('.role-row').forEach(row => {
             const id = row.getAttribute('data-id');
+            const roleKey = row.getAttribute('data-rolekey') || 'role_' + id;
             const name = row.getAttribute('data-name');
             const category = row.getAttribute('data-category');
             const color = row.getAttribute('data-color');
@@ -742,7 +667,6 @@
                 const rawPerms = row.getAttribute('data-perms');
                 perms = rawPerms ? JSON.parse(rawPerms) : [];
             } catch (e) {
-                console.error('權限 JSON 解析失敗:', e);
                 perms = [];
             }
 
@@ -752,7 +676,16 @@
                 nameBadge.className = `role-pill-badge badge-style-${color}`;
                 document.getElementById('viewRoleCategoryText').textContent = `[ ${category} · Lv.${tier} ]`;
                 document.getElementById('viewRoleDesc').textContent = desc || '無特別說明';
-                renderPermViewTree('viewRolePermTreeDisplay', perms);
+                
+                const displayBox = document.getElementById('viewRolePermTreeDisplay');
+                if (displayBox) {
+                    displayBox.innerHTML = '';
+                    if (perms.length > 0) {
+                        displayBox.innerHTML = perms.map(p => `<span class="badge bg-purple bg-opacity-25 text-purple border border-purple border-opacity-25 me-2 mb-2 p-2" style="color: #c084fc; border-color: rgba(192,132,252,0.3) !important;"><i class="fa-solid fa-check me-1 text-success"></i>${p}</span>`).join('');
+                    } else {
+                        displayBox.innerHTML = '<div class="text-secondary small text-center py-3">尚未開啟任何權限項目</div>';
+                    }
+                }
                 viewRoleModal.show();
             });
 
@@ -774,15 +707,10 @@
             if (editPermsBtn) {
                 editPermsBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    document.getElementById('editRolePermsForm').action = `/system/roles/update-perms/${id}`;
-                    document.getElementById('editRolePermsTitle').textContent = `設定「${name}」可見權限項目`;
-                    renderPermCheckboxTree('permTreeFormContainer', perms);
-                    editRolePermsModal.show();
+                    openEditRolePermsModal(roleKey, name, perms);
                 });
             }
         });
-
-        renderPermCheckboxTree('newRolePermTreeContainer', ['home', 'home_banner', 'home_wallet_card', 'home_info', 'personal', 'profile', 'profile_discord', 'profile_nickname']);
     });
 </script>
 <%- include('partials/feature_modal') %>

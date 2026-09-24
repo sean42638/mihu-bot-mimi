@@ -254,7 +254,6 @@
             color: #fff;
         }
         
-        /* 🚀 修正 P1 下拉選單反白/白底問題與滾動條限制 */
         .form-control-glass {
             background-color: rgba(255, 255, 255, 0.06) !important;
             border: 1px solid rgba(255, 255, 255, 0.14) !important;
@@ -270,7 +269,6 @@
             box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.25);
         }
 
-        /* 下拉選單深色強制覆蓋，最多顯示約 7 個項目並可滾動 */
         select.form-control-glass option {
             background-color: #171326 !important;
             color: #ffffff !important;
@@ -508,9 +506,13 @@
                                         <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-2 py-1 btn-detail-trigger" style="font-size: 0.78rem;" title="詳情">
                                             <i class="fa-solid fa-file-invoice me-1"></i>詳情
                                         </button>
-                                        <button type="button" class="btn btn-sm btn-outline-info btn-circle-icon btn-status-trigger" title="狀態管理與改派">
-                                            <i class="fa-solid fa-sliders"></i>
-                                        </button>
+                                        
+                                        <!-- 🚀 動態操作權限：僅當擁有 orders_edit_and_reassign 權限時顯示「狀態管理與改派」按鈕 -->
+                                        <% if (typeof userPerms !== 'undefined' && (userPerms.includes('orders_edit_and_reassign') || (typeof currentUser !== 'undefined' && currentUser && currentUser.role === 'admin'))) { %>
+                                            <button type="button" class="btn btn-sm btn-outline-info btn-circle-icon btn-status-trigger" title="狀態管理與改派">
+                                                <i class="fa-solid fa-sliders"></i>
+                                            </button>
+                                        <% } %>
                                     </div>
                                 </td>
                             </tr>
@@ -636,7 +638,7 @@
     </div>
 </div>
 
-<!-- 彈窗 2：「狀態管理與改派」彈窗 (修復 P1 反白與新增手動刪除) -->
+<!-- 彈窗 2：「狀態管理與改派」彈窗 -->
 <div class="modal fade" id="orderStatusModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" style="max-width: 520px;">
         <div class="modal-content modal-content-glass">
@@ -718,10 +720,10 @@
                     </div>
                 </div>
 
-                <!-- 🚀 Footer 增加「手動刪除訂單」按鈕 (需店長/主管/管理員權限) -->
+                <!-- 🚀 Footer 增加「手動刪除訂單」按鈕 (同步動態權限) -->
                 <div class="modal-footer border-0 pt-0 d-flex justify-content-between align-items-center">
                     <div>
-                        <% if (typeof user !== 'undefined' && (user.role === 'admin' || user.role === 'manager' || user.role === 'cfo')) { %>
+                        <% if (typeof userPerms !== 'undefined' && (userPerms.includes('orders_edit_and_reassign') || (typeof currentUser !== 'undefined' && currentUser && currentUser.role === 'admin'))) { %>
                             <button type="button" onclick="handleManualDeleteOrder()" class="btn btn-sm btn-outline-danger rounded-pill px-3">
                                 <i class="fa-solid fa-trash-can me-1"></i>手動刪除訂單
                             </button>
@@ -788,25 +790,23 @@
         orderStatusModal.show();
     }
 
-    // 🚀 手動刪除訂單二次確認邏輯 (直接真實刪除)
-function handleManualDeleteOrder() {
-    if (confirm('⚠️【店長/管理員驗證】確定要徹底刪除此筆訂單嗎？此操作將永久移除，無法復原！')) {
-        const form = document.getElementById('orderStatusForm');
-        
-        // 動態注入隱藏的刪除標記
-        let deleteInput = document.getElementById('isDeleteInput');
-        if (!deleteInput) {
-            deleteInput = document.createElement('input');
-            deleteInput.type = 'hidden';
-            deleteInput.id = 'isDeleteInput';
-            deleteInput.name = 'is_delete';
-            form.appendChild(deleteInput);
+    function handleManualDeleteOrder() {
+        if (confirm('⚠️【身分驗證】確定要徹底刪除此筆訂單嗎？此操作將永久移除，無法復原！')) {
+            const form = document.getElementById('orderStatusForm');
+            
+            let deleteInput = document.getElementById('isDeleteInput');
+            if (!deleteInput) {
+                deleteInput = document.createElement('input');
+                deleteInput.type = 'hidden';
+                deleteInput.id = 'isDeleteInput';
+                deleteInput.name = 'is_delete';
+                form.appendChild(deleteInput);
+            }
+            deleteInput.value = '1';
+            
+            form.submit();
         }
-        deleteInput.value = '1';
-        
-        form.submit();
     }
-}
 
     document.addEventListener('DOMContentLoaded', () => {
         const rows = document.querySelectorAll('.order-row');

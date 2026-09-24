@@ -27,104 +27,6 @@
             min-height: 100vh;
         }
 
-        .mihu-sidebar {
-            width: 280px;
-            background-color: var(--sidebar-bg);
-            border-right: 1px solid var(--card-border);
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-            padding: 24px 16px;
-            flex-shrink: 0;
-            height: 100vh;
-            position: sticky;
-            top: 0;
-        }
-        .sidebar-brand-clean {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 8px 10px 18px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            margin-bottom: 12px;
-        }
-        .brand-logo-clean {
-            width: 170px;
-            height: auto;
-            filter: drop-shadow(0 0 16px rgba(168, 85, 247, 0.5));
-            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        .brand-logo-clean:hover { transform: scale(1.05); }
-        
-        .sidebar-menu { 
-            display: flex; 
-            flex-direction: column; 
-            gap: 4px; 
-            overflow-y: auto;
-            padding-right: 4px;
-        }
-        .sidebar-menu::-webkit-scrollbar { width: 4px; }
-        .sidebar-menu::-webkit-scrollbar-thumb {
-            background: rgba(168, 85, 247, 0.2);
-            border-radius: 4px;
-        }
-
-        .menu-label { 
-            font-size: 0.74rem; 
-            color: #8b83a8; 
-            padding: 14px 14px 4px; 
-            text-transform: uppercase; 
-            font-weight: 700; 
-            letter-spacing: 0.8px;
-        }
-        .menu-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 14px;
-            border-radius: 12px;
-            color: #9ca3af;
-            text-decoration: none;
-            font-size: 0.92rem;
-            font-weight: 500;
-            transition: all 0.2s ease;
-        }
-        .menu-item i { width: 18px; text-align: center; }
-        .menu-item:hover, .menu-item.active {
-            color: #fff;
-            background: rgba(168, 85, 247, 0.15);
-            border: 1px solid rgba(168, 85, 247, 0.25);
-        }
-        .menu-item.active i { color: var(--mihu-purple-light); }
-
-        .sidebar-collapse-wrap { display: flex; flex-direction: column; }
-        .collapse-arrow { transition: transform 0.25s ease; }
-        .menu-item[aria-expanded="true"] .collapse-arrow { transform: rotate(180deg); color: #fff !important; }
-        .sidebar-submenu-items {
-            margin-left: 20px;
-            padding-left: 10px;
-            border-left: 2px dashed rgba(168, 85, 247, 0.25);
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-            margin-top: 4px;
-            margin-bottom: 6px;
-        }
-        .submenu-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 12px;
-            border-radius: 10px;
-            color: #94a3b8;
-            text-decoration: none;
-            font-size: 0.86rem;
-            font-weight: 500;
-            transition: all 0.2s ease;
-        }
-        .submenu-item i { width: 16px; text-align: center; font-size: 0.8rem; }
-        .submenu-item:hover { color: #fff; background: rgba(168, 85, 247, 0.12); }
-
         .main-wrapper {
             flex-grow: 1;
             display: flex;
@@ -133,21 +35,9 @@
             max-height: 100vh;
         }
 
-        /* 🚀 緊湊合理的頂部間距 */
         .content-body { 
             padding: 16px 36px 32px; 
             flex-grow: 1; 
-        }
-        
-        /* 🚀 搜尋與控制項完全靠右 */
-        .page-header {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            margin-bottom: 12px;
-            flex-wrap: wrap;
-            gap: 14px;
-            width: 100%;
         }
 
         .search-box-wrap {
@@ -311,6 +201,15 @@
             font-family: monospace;
             font-size: 0.85rem;
         }
+        .rate-pill-default {
+            background: rgba(148, 163, 184, 0.12);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            color: #cbd5e1;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 0.78rem;
+        }
 
         .channel-code-badge {
             background: rgba(255, 255, 255, 0.04);
@@ -357,6 +256,11 @@
             padding: 10px 14px;
             font-size: 0.92rem;
         }
+        /* 🚀 關鍵優化：將 Placeholder 與說明提示文字顏色調亮 */
+        .form-control-glass::placeholder {
+            color: #94a3b8 !important;
+            opacity: 0.85;
+        }
         .form-control-glass:focus {
             background-color: rgba(255, 255, 255, 0.08);
             border-color: var(--mihu-purple-light);
@@ -384,18 +288,6 @@
             color: #ffffff;
             font-family: monospace;
         }
-
-        .mascot-modal-img {
-            width: 160px;
-            height: auto;
-            margin-bottom: 18px;
-            filter: drop-shadow(0 0 20px rgba(168, 85, 247, 0.65));
-            animation: mascot-bob 3s ease-in-out infinite;
-        }
-        @keyframes mascot-bob {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-4px); }
-        }
     </style>
 </head>
 <body>
@@ -406,7 +298,6 @@
     <%- include('partials/navbar', { activePage: 'staff' }) %>
 
     <div class="content-body">
-        <!-- 🚀 修復橫向對齊：左邊顯示標題說明，右邊顯示搜尋與按鈕 -->
         <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
             <div>
                 <div class="page-title-text" style="font-size: 1.5rem; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
@@ -453,7 +344,22 @@
                         </tr>
                     </thead>
                     <tbody id="staffTableBody">
-                        <% staffList.forEach(s => { 
+                        <% 
+                            const perms = (typeof userPerms !== 'undefined' && userPerms) ? userPerms : [];
+                            
+                            // 超級管理員 ID 防鎖與 hasPerm 全域結合判定
+                            const isSuperId = (typeof currentUser !== 'undefined' && currentUser && (currentUser.id === '604610298581876746' || currentUser.role === 'admin'));
+                            
+                            const checkPermission = (node) => {
+                                if (isSuperId) return true;
+                                if (typeof hasPerm === 'function') return hasPerm(node);
+                                return perms.includes(node);
+                            };
+
+                            const canViewPayroll = checkPermission('staff_view_payroll');
+                            const canEditRoleComm = checkPermission('staff_edit_role_commission');
+
+                            staffList.forEach(s => { 
                             const avUrl = s.avatar 
                                 ? `https://cdn.discordapp.com/avatars/${s.id}/${s.avatar}.png` 
                                 : `https://cdn.discordapp.com/embed/avatars/0.png`;
@@ -463,6 +369,7 @@
                                 'admin': { name: '負責人', class: 'bg-danger' },
                                 'manager': { name: '店長', class: 'bg-warning text-dark' },
                                 'cfo': { name: '財務長', class: 'bg-danger' },
+                                'aftersales': { name: '售後管理', class: 'bg-warning text-dark' },
                                 'after_sales': { name: '售後管理', class: 'bg-warning text-dark' },
                                 'cs_director': { name: '客服主管', class: 'bg-warning text-dark' },
                                 'cs': { name: '客服', class: 'bg-info text-dark' },
@@ -478,6 +385,8 @@
                             };
                             const statusObj = statusMap[s.status] || { name: '空閒中', class: 'status-idle', icon: 'fa-circle-check' };
 
+                            const hasPersonalRate = (s.commission_rate !== null && s.commission_rate !== undefined && s.commission_rate !== '' && Number(s.commission_rate) > 0);
+
                             const staffDataJson = JSON.stringify({
                                 id: s.id,
                                 displayName: displayName,
@@ -487,7 +396,7 @@
                                 roleName: roleObj.name,
                                 status: s.status || 'idle',
                                 statusName: statusObj.name,
-                                commissionRate: s.commission_rate !== undefined ? s.commission_rate : 0.7,
+                                commissionRate: hasPersonalRate ? Number(s.commission_rate) : null,
                                 staffChannelId: s.staff_channel_id || '',
                                 totalOrders: s.total_orders || 0,
                                 totalRevenue: s.total_revenue || 0,
@@ -528,8 +437,12 @@
                                 </td>
 
                                 <td>
-                                    <span class="rate-pill"><%= ((s.commission_rate !== undefined ? s.commission_rate : 0.7) * 100).toFixed(0) %>%</span>
-                                    <span class="small text-secondary ms-1">分潤</span>
+                                    <% if (hasPersonalRate) { %>
+                                        <span class="rate-pill"><%= (Number(s.commission_rate) * 100).toFixed(0) %>%</span>
+                                        <span class="small text-secondary ms-1">個人特例</span>
+                                    <% } else { %>
+                                        <span class="rate-pill-default">工作室預設</span>
+                                    <% } %>
                                 </td>
 
                                 <td>
@@ -551,9 +464,11 @@
                                             <i class="fa-solid fa-address-card me-1"></i>檔案
                                         </button>
 
-                                        <button type="button" class="btn btn-sm btn-outline-success btn-circle-icon btn-edit-trigger" title="設定職位、抽佣與頻道">
-                                            <i class="fa-solid fa-user-gear"></i>
-                                        </button>
+                                        <% if (canEditRoleComm) { %>
+                                            <button type="button" class="btn btn-sm btn-outline-success btn-circle-icon btn-edit-trigger" title="設定職位、抽佣與頻道">
+                                                <i class="fa-solid fa-user-gear"></i>
+                                            </button>
+                                        <% } %>
 
                                         <a href="/management/staff/sync/<%= s.id %>" class="btn btn-sm btn-outline-info btn-circle-icon" title="從 Discord 刷新資料">
                                             <i class="fa-solid fa-rotate"></i>
@@ -602,8 +517,8 @@
                 <div class="row g-2 mb-3">
                     <div class="col-4">
                         <div class="info-detail-box">
-                            <span class="info-detail-label">分潤成數</span>
-                            <span class="info-detail-val text-warning" id="detailRate">70%</span>
+                            <span class="info-detail-label">分潤抽佣規則</span>
+                            <span class="info-detail-val text-warning" id="detailRate">工作室預設</span>
                         </div>
                     </div>
                     <div class="col-4">
@@ -641,34 +556,41 @@
                     </div>
                 </div>
 
-                <div class="p-3 rounded-3" style="background: rgba(239, 68, 68, 0.06); border: 1px solid rgba(239, 68, 68, 0.25);">
-                    <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom border-danger border-opacity-25">
-                        <span class="text-danger small fw-bold"><i class="fa-solid fa-lock me-1"></i>敏感薪轉個資 (限最高管理層)</span>
-                        <span class="badge bg-danger bg-opacity-25 text-danger" style="font-size: 0.68rem;">機密</span>
+                <% if (canViewPayroll) { %>
+                    <div class="p-3 rounded-3" style="background: rgba(239, 68, 68, 0.06); border: 1px solid rgba(239, 68, 68, 0.25);">
+                        <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom border-danger border-opacity-25">
+                            <span class="text-danger small fw-bold"><i class="fa-solid fa-lock me-1"></i>敏感薪轉個資</span>
+                            <span class="badge bg-danger bg-opacity-25 text-danger" style="font-size: 0.68rem;">機密</span>
+                        </div>
+                        <div class="row g-2 small">
+                            <div class="col-6">
+                                <span class="text-secondary">本名：</span>
+                                <span class="text-white fw-bold" id="detailRealName">未填寫</span>
+                            </div>
+                            <div class="col-6">
+                                <span class="text-secondary">銀行名稱：</span>
+                                <span class="text-white fw-bold" id="detailBankName">未填寫</span>
+                            </div>
+                            <div class="col-6">
+                                <span class="text-secondary">機構代碼：</span>
+                                <span class="text-white font-monospace" id="detailBankCode">未填寫</span>
+                            </div>
+                            <div class="col-6">
+                                <span class="text-secondary">分行名稱：</span>
+                                <span class="text-white" id="detailBankBranch">未填寫</span>
+                            </div>
+                            <div class="col-12 mt-2">
+                                <span class="text-secondary">薪轉帳戶：</span>
+                                <span class="text-warning font-monospace fw-bold fs-6" id="detailBankAccount">未填寫</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="row g-2 small">
-                        <div class="col-6">
-                            <span class="text-secondary">本名：</span>
-                            <span class="text-white fw-bold" id="detailRealName">未填寫</span>
-                        </div>
-                        <div class="col-6">
-                            <span class="text-secondary">銀行名稱：</span>
-                            <span class="text-white fw-bold" id="detailBankName">未填寫</span>
-                        </div>
-                        <div class="col-6">
-                            <span class="text-secondary">機構代碼：</span>
-                            <span class="text-white font-monospace" id="detailBankCode">未填寫</span>
-                        </div>
-                        <div class="col-6">
-                            <span class="text-secondary">分行名稱：</span>
-                            <span class="text-white" id="detailBankBranch">未填寫</span>
-                        </div>
-                        <div class="col-12 mt-2">
-                            <span class="text-secondary">薪轉帳戶：</span>
-                            <span class="text-warning font-monospace fw-bold fs-6" id="detailBankAccount">未填寫</span>
-                        </div>
+                <% } else { %>
+                    <div class="p-3 rounded-3 text-center" style="background: rgba(255, 255, 255, 0.02); border: 1px dashed rgba(255, 255, 255, 0.15);">
+                        <i class="fa-solid fa-user-shield text-secondary fs-4 mb-2"></i>
+                        <div class="text-secondary small fw-medium">您的身分組無權限查看員工敏感薪轉個資</div>
                     </div>
-                </div>
+                <% } %>
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="btn btn-sm btn-secondary rounded-pill px-4" data-bs-dismiss="modal">關閉</button>
@@ -700,7 +622,7 @@
                             <select id="editRole" name="role" class="form-select form-control-glass" style="background-color: #171326; color: #fff;">
                                 <option value="manager">店長</option>
                                 <option value="cfo">財務長</option>
-                                <option value="after_sales">售後管理</option>
+                                <option value="aftersales">售後管理</option>
                                 <option value="cs_director">客服主管</option>
                                 <option value="cs">客服</option>
                                 <option value="staff">陪陪 (陪玩師)</option>
@@ -718,8 +640,11 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="small text-secondary fw-semibold mb-1">分潤成數 (小數例如 0.7 代表 70%)</label>
-                        <input type="number" step="0.01" min="0" max="1" id="editRate" name="commission_rate" class="form-control form-control-glass font-monospace text-end" required>
+                        <label class="small text-secondary fw-semibold mb-1 d-flex justify-content-between align-items-center">
+                            <span>個人獨立分潤成數 (例如 0.8 代表 80%)</span>
+                        </label>
+                        <input type="number" step="0.01" min="0" max="1" id="editRate" name="commission_rate" class="form-control form-control-glass font-monospace text-end" placeholder="依工作室預設">
+                        <div class="text-light text-end mt-1" style="font-size: 0.78rem; color: #cbd5e1 !important;">* 若空白則自動採用「抽佣設定」之全域類別預設</div>
                     </div>
 
                     <div class="mb-2">
@@ -736,8 +661,6 @@
     </div>
 </div>
 
-
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     const staffDetailModal = new bootstrap.Modal(document.getElementById('staffDetailModal'));
@@ -750,18 +673,26 @@
         document.getElementById('detailStatusBadge').textContent = data.statusName;
         document.getElementById('detailUsername').textContent = `@${data.username}`;
         document.getElementById('detailId').textContent = `ID: ${data.id}`;
-        document.getElementById('detailRate').textContent = `${(Number(data.commissionRate) * 100).toFixed(0)}%`;
+        
+        document.getElementById('detailRate').textContent = data.commissionRate !== null 
+            ? `${(Number(data.commissionRate) * 100).toFixed(0)}% (個人特例)` 
+            : '工作室預設';
+            
         document.getElementById('detailOrders').textContent = `${data.totalOrders} 單`;
         document.getElementById('detailRevenue').textContent = `$${Number(data.totalRevenue).toLocaleString()}`;
         document.getElementById('detailBirthday').textContent = data.birthday;
         document.getElementById('detailGender').textContent = data.gender;
         document.getElementById('detailMbti').textContent = data.mbti;
         document.getElementById('detailChannel').textContent = data.staffChannelId || '未綁定';
-        document.getElementById('detailRealName').textContent = data.realName;
-        document.getElementById('detailBankName').textContent = data.bankName;
-        document.getElementById('detailBankCode').textContent = data.bankCode;
-        document.getElementById('detailBankBranch').textContent = data.bankBranch;
-        document.getElementById('detailBankAccount').textContent = data.bankAccount;
+
+        const realNameEl = document.getElementById('detailRealName');
+        if (realNameEl) {
+            realNameEl.textContent = data.realName;
+            document.getElementById('detailBankName').textContent = data.bankName;
+            document.getElementById('detailBankCode').textContent = data.bankCode;
+            document.getElementById('detailBankBranch').textContent = data.bankBranch;
+            document.getElementById('detailBankAccount').textContent = data.bankAccount;
+        }
 
         staffDetailModal.show();
     }
@@ -771,8 +702,9 @@
         document.getElementById('editTargetName').textContent = data.displayName;
         document.getElementById('editRole').value = data.role;
         document.getElementById('editStatus').value = data.status;
-        document.getElementById('editRate').value = data.commissionRate;
-        document.getElementById('editChannel').value = data.staffChannelId;
+        
+        document.getElementById('editRate').value = (data.commissionRate !== null && data.commissionRate !== undefined) ? data.commissionRate : '';
+        document.getElementById('editChannel').value = data.staffChannelId || '';
 
         staffEditModal.show();
     }

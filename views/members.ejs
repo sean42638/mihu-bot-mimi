@@ -226,7 +226,6 @@
         }
         .btn-circle-icon:hover { transform: scale(1.08); }
 
-        /* 🚀 徹底解決輸入框點擊 Focus 反白白底問題 */
         .modal-content-glass {
             background: rgba(20, 16, 35, 0.97) !important;
             border: 1px solid rgba(168, 85, 247, 0.35) !important;
@@ -331,8 +330,9 @@
                     <tbody id="membersTableBody">
                         <% 
                             const perms = (typeof userPerms !== 'undefined' && userPerms) ? userPerms : [];
-                            const canAdjustBalance = (typeof currentUser !== 'undefined' && currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager' || currentUser.role === 'cfo')) || perms.includes('member_adjust_balance');
-                            const canAdjustVip = (typeof currentUser !== 'undefined' && currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager' || currentUser.role === 'cfo')) || perms.includes('member_adjust_vip');
+                            const isSuperUser = (typeof currentUser !== 'undefined' && currentUser && currentUser.role === 'admin');
+                            const canAdjustBalance = isSuperUser || perms.includes('member_adjust_balance');
+                            const canAdjustVip = isSuperUser || perms.includes('member_adjust_vip');
 
                             members.forEach(m => { 
                             const avUrl = m.avatar 
@@ -351,7 +351,7 @@
                             };
                             const roleObj = roleMap[m.role] || { name: '會員', class: 'bg-secondary' };
 
-                            const memberDataJson = JSON.stringify({
+                            const memberDataObj = {
                                 id: m.id,
                                 displayName: displayName,
                                 username: m.username,
@@ -368,7 +368,8 @@
                                 roleName: roleObj.name,
                                 birthday: m.birthday || '未填寫',
                                 createdAt: m.created_at || '無紀錄'
-                            });
+                            };
+                            const memberDataJson = JSON.stringify(memberDataObj).replace(/'/g, "&apos;");
                         %>
                             <tr class="member-row" 
                                 data-member='<%- memberDataJson %>'
@@ -429,12 +430,14 @@
                                             <i class="fa-solid fa-circle-info me-1"></i>詳細內容
                                         </button>
 
+                                        <!-- 🚀 動態帳務調整權限控制 -->
                                         <% if (canAdjustBalance) { %>
                                             <button type="button" class="btn btn-sm btn-outline-warning btn-circle-icon btn-balance-trigger" title="帳務調整 (增減點數/金額)">
                                                 <i class="fa-solid fa-coins"></i>
                                             </button>
                                         <% } %>
 
+                                        <!-- 🚀 動態 VIP 調整權限控制 -->
                                         <% if (canAdjustVip) { %>
                                             <button type="button" class="btn btn-sm btn-outline-warning btn-circle-icon btn-vip-trigger" style="color: #fde047; border-color: rgba(253, 224, 71, 0.4);" title="手動調整VIP等級">
                                                 <i class="fa-solid fa-crown"></i>
@@ -535,7 +538,7 @@
     </div>
 </div>
 
-<!-- 🚀 彈窗 2：全新欄位對齊【會員帳務調整 Modal】 -->
+<!-- 彈窗 2：會員帳務調整 Modal -->
 <div class="modal fade" id="adjustBalanceModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
         <div class="modal-content modal-content-glass">
@@ -592,7 +595,7 @@
     </div>
 </div>
 
-<!-- 彈窗 3：獨立【VIP 調整】彈窗 -->
+<!-- 彈窗 3：獨立 VIP 調整彈窗 -->
 <div class="modal fade" id="vipModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
         <div class="modal-content modal-content-glass">

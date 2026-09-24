@@ -6,10 +6,13 @@
         ? (user.custom_nickname || user.global_name || user.username) 
         : '管理者';
 
+    // 🚀 修正職位 Key 對照表 (完全對齊 roles.json 與資料庫欄位)
     const roleNames = {
         'admin': '負責人',
         'manager': '店長',
         'cfo': '財務長',
+        'aftersales': '售後管理',
+        'after_sales': '售後管理',
         'after_sales_manager': '售後管理',
         'cs_director': '客服主管',
         'cs': '客服',
@@ -17,7 +20,13 @@
         'talent': '陪玩師',
         'member': '一般會員'
     };
-    const roleChinese = (typeof user !== 'undefined' && user && roleNames[user.role]) ? roleNames[user.role] : '一般會員';
+    
+    // 優先讀取 currentUser 或 user 的 role
+    const currentRoleKey = (typeof currentUser !== 'undefined' && currentUser && currentUser.role) 
+        ? currentUser.role 
+        : ((typeof user !== 'undefined' && user && user.role) ? user.role : 'member');
+
+    const roleChinese = roleNames[currentRoleKey] || '在職人員';
 
     const mascotImages = [
         '/images/Hello1.png',

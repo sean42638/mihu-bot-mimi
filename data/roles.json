@@ -8,10 +8,25 @@
     "color_badge": "danger",
     "description": "擁有全站最高管理權限，可存取與配置系統所有模組與財務資料",
     "permissions": [
-      "home", "home_banner", "home_wallet_card", "home_info",
-      "personal", "profile", "profile_discord", "profile_nickname", "my_wallet", "my_income", "my_orders",
-      "manage", "manage_members", "member_adjust_balance", "member_adjust_vip", "manage_staff", "manage_orders",
-      "system", "sys_commission", "sys_vip", "sys_roles", "sys_settings", "sys_logs"
+      "home",
+      "personal",
+      "profile",
+      "my_wallet",
+      "my_income",
+      "my_orders",
+      "manage",
+      "manage_members",
+      "manage_staff",
+      "manage_orders",
+      "system",
+      "sys_vip",
+      "sys_roles",
+      "sys_settings",
+      "member_adjust_balance",
+      "member_adjust_vip",
+      "staff_view_payroll",
+      "staff_edit_role_commission",
+      "orders_edit_and_reassign"
     ]
   },
   {
@@ -23,10 +38,17 @@
     "color_badge": "danger",
     "description": "負責全站會員帳務調整、抽成核算、提領審核與工作室財務管理",
     "permissions": [
-      "home", "home_banner", "home_wallet_card", "home_info",
-      "personal", "profile", "profile_discord", "profile_nickname", "my_wallet", "my_income", "my_orders",
-      "manage", "manage_members", "member_adjust_balance", "member_adjust_vip", "manage_staff", "manage_orders",
-      "system", "sys_commission", "sys_vip", "sys_logs"
+      "home",
+      "manage",
+      "manage_members",
+      "manage_staff",
+      "manage_orders",
+      "system",
+      "sys_vip",
+      "member_adjust_balance",
+      "member_adjust_vip",
+      "staff_view_payroll",
+      "staff_edit_role_commission"
     ]
   },
   {
@@ -38,10 +60,17 @@
     "color_badge": "warning",
     "description": "專責處理顧客售後客訴、爭議訂單仲裁、退款稽核與客服運作監管",
     "permissions": [
-      "home", "home_banner", "home_wallet_card", "home_info",
-      "personal", "profile", "profile_discord", "profile_nickname", "my_wallet", "my_income", "my_orders",
-      "manage", "manage_members", "member_adjust_balance", "member_adjust_vip", "manage_staff", "manage_orders",
-      "system", "sys_vip", "sys_logs"
+      "home",
+      "personal",
+      "profile",
+      "my_wallet",
+      "my_income",
+      "my_orders",
+      "manage_members",
+      "manage_staff",
+      "manage_orders",
+      "member_adjust_balance",
+      "member_adjust_vip"
     ]
   },
   {
@@ -53,10 +82,18 @@
     "color_badge": "warning",
     "description": "督導日常派單運作、管理客服與陪陪人員、處理售後爭議與訂單改派",
     "permissions": [
-      "home", "home_banner", "home_wallet_card", "home_info",
-      "personal", "profile", "profile_discord", "profile_nickname", "my_wallet", "my_income", "my_orders",
-      "manage", "manage_members", "manage_staff", "manage_orders",
-      "system", "sys_vip", "sys_settings"
+      "home",
+      "personal",
+      "profile",
+      "my_wallet",
+      "my_income",
+      "my_orders",
+      "manage",
+      "manage_members",
+      "manage_staff",
+      "manage_orders",
+      "member_adjust_balance",
+      "orders_edit_and_reassign"
     ]
   },
   {
@@ -68,9 +105,15 @@
     "color_badge": "info",
     "description": "負責 Discord 前線派單、接單改派、處理玩家諮詢與訂單狀態維護",
     "permissions": [
-      "home", "home_wallet_card", "home_info",
-      "personal", "profile", "profile_nickname", "my_wallet", "my_orders",
-      "manage", "manage_orders"
+      "home",
+      "personal",
+      "profile",
+      "my_wallet",
+      "my_orders",
+      "manage_members",
+      "manage_staff",
+      "manage_orders",
+      "orders_edit_and_reassign"
     ]
   },
   {
@@ -82,8 +125,12 @@
     "color_badge": "primary",
     "description": "工作室陪玩師，可即時查看接單紀錄、收益明細與提領帳務",
     "permissions": [
-      "home", "home_wallet_card", "home_info",
-      "personal", "profile", "profile_nickname", "my_wallet", "my_income", "my_orders"
+      "home",
+      "personal",
+      "profile",
+      "my_wallet",
+      "my_income",
+      "my_orders"
     ]
   },
   {
@@ -95,8 +142,14 @@
     "color_badge": "secondary",
     "description": "平台一般註冊玩家老闆，可進行點單、儲值與檢視個人錢包 VIP 進度",
     "permissions": [
-      "home", "home_wallet_card", "home_info",
-      "personal", "profile", "profile_nickname", "my_wallet", "my_orders"
+      "home",
+      "home_wallet_card",
+      "home_info",
+      "personal",
+      "profile",
+      "profile_nickname",
+      "my_wallet",
+      "my_orders"
     ]
   }
 ]

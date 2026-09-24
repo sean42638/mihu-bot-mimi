@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>抽佣設定 · 米胡電競 MiHu Gaming</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #0b0914;
+            --sidebar-bg: #131021;
+            --card-bg: rgba(23, 19, 38, 0.85);
+            --card-border: rgba(168, 85, 247, 0.2);
+            --mihu-purple-light: #c084fc;
+            --text-light: #f3f4f6;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-light);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .main-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            max-height: 100vh;
+        }
+
+        .content-body { padding: 20px 36px 32px; flex-grow: 1; }
+
+        .glass-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 28px;
+            box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(15px);
+        }
+
+        .category-item-box {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s ease;
+        }
+        .category-item-box:hover {
+            border-color: rgba(168, 85, 247, 0.35);
+            background: rgba(168, 85, 247, 0.05);
+        }
+
+        .category-badge {
+            font-size: 0.85rem;
+            font-weight: 700;
+            padding: 5px 14px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .badge-陪玩單 { background: rgba(168, 85, 247, 0.18); border: 1px solid rgba(168, 85, 247, 0.4); color: #d8b4fe; }
+        .badge-禮物單 { background: rgba(236, 72, 153, 0.18); border: 1px solid rgba(236, 72, 153, 0.4); color: #f472b6; }
+        .badge-有獎   { background: rgba(56, 189, 248, 0.18); border: 1px solid rgba(56, 189, 248, 0.4); color: #7dd3fc; }
+        .badge-冠名   { background: rgba(245, 158, 11, 0.18); border: 1px solid rgba(245, 158, 11, 0.4); color: #fde047; }
+        .badge-獎金   { background: rgba(16, 185, 129, 0.18); border: 1px solid rgba(16, 185, 129, 0.4); color: #6ee7b7; }
+
+        .form-control-glass {
+            background-color: rgba(255, 255, 255, 0.05) !important;
+            border: 1px solid rgba(255, 255, 255, 0.18) !important;
+            color: #ffffff !important;
+            border-radius: 12px;
+            padding: 8px 14px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            font-family: monospace;
+            width: 120px;
+            text-align: right;
+        }
+        .form-control-glass:focus {
+            background-color: #171326 !important;
+            border-color: #c084fc !important;
+            box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.3) !important;
+            outline: none !important;
+        }
+    </style>
+</head>
+<body>
+
+<%- include('partials/sidebar', { activePage: 'commission' }) %>
+
+<div class="main-wrapper">
+    <%- include('partials/navbar', { activePage: 'commission' }) %>
+
+    <div class="content-body">
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+            <div>
+                <div class="page-title-text" style="font-size: 1.5rem; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                    <i class="fa-solid fa-percent text-warning"></i>
+                    <span>全域抽佣與分潤設定</span>
+                </div>
+                <p class="text-secondary small mb-0">設定全站各訂單類別之員工預設分潤成數（員工個人若有特例設定將優先套用）</p>
+            </div>
+        </div>
+
+        <% if (typeof success !== 'undefined' && success) { %>
+            <div class="alert alert-success py-2 px-3 small mb-4 border-0 bg-success bg-opacity-25 text-success">
+                ✅ 全域抽佣比率已成功更新！
+            </div>
+        <% } %>
+
+        <div class="glass-card" style="max-width: 800px;">
+            <form action="/system/commission/update" method="POST">
+                <div class="alert alert-info py-2 px-3 small mb-4 bg-info bg-opacity-10 border-info border-opacity-25 text-info d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-circle-info fs-6"></i>
+                    <span><strong>計算規則：</strong> 填寫小數點，例如 <code>0.7</code> 代表員工抽成 70%（工作室留存 30%）。若員工在「員工管理」有設定專屬抽佣，將優先採計個人比率。</span>
+                </div>
+
+                <div class="d-flex flex-column gap-3 mb-4">
+                    <% const categories = ["陪玩單", "禮物單", "有獎", "冠名", "獎金"]; %>
+                    <% categories.forEach(cat => { 
+                        const currentRate = commission[cat] !== undefined ? commission[cat] : 0.7;
+                    %>
+                        <div class="category-item-box">
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="category-badge badge-<%= cat %>"><%= cat %></span>
+                                <span class="small text-secondary">全域預設分潤</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <input type="number" step="0.01" min="0" max="1" name="rates[<%= cat %>]" value="<%= currentRate %>" class="form-control form-control-glass" required>
+                                <span class="fw-bold text-warning font-monospace" style="width: 45px;"><%= (currentRate * 100).toFixed(0) %>%</span>
+                            </div>
+                        </div>
+                    <% }) %>
+                </div>
+
+                <div class="d-flex justify-content-end">
+                    <button type="submit" class="btn btn-warning rounded-pill px-4 fw-bold text-dark" style="background: linear-gradient(135deg, #fde047, #eab308); border: none;">
+                        <i class="fa-solid fa-floppy-disk me-1.5"></i>儲存全域抽佣設定
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<%- include('partials/feature_modal') %>
+</body>
+</html>

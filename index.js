@@ -3,10 +3,12 @@ const express = require('express');
 const session = require('express-session');
 const passport = require('passport');
 const DiscordStrategy = require('passport-discord').Strategy;
-const path = require('path');
-const fs = require('fs');
 const db = require('./database');
 const { client } = require('./bot');
+// 🚀 引入獨立權限控管中間件與檔案套件
+const { requireAuth, requirePerm } = require('./middleware/auth');
+const fs = require('fs');
+const path = require('path');
 
 // 🚀 引入獨立的管理路由 (包含斜線指令熱重載與訂單更新)
 const managementRouter = require('./routes/management');
@@ -26,6 +28,8 @@ const usersFilePath = path.join(dataDir, 'users.json');
 const talentsFilePath = path.join(dataDir, 'talents.json');
 const commandsFilePath = path.join(dataDir, 'commands.json');
 const topupsFilePath = path.join(dataDir, 'topups.json');
+const commissionFilePath = path.join(dataDir, 'commission.json');
+
 
 // 💾 輔助同步寫回 JSON 函式模組
 function syncUsersJsonFromDb() {
@@ -92,6 +96,33 @@ function saveRolesData(data) {
         return true;
     } catch (e) {
         console.error('❌ 寫入 roles.json 失敗:', e);
+        return false;
+    }
+}
+
+// 🚀 全域抽佣設定讀寫工具
+function getCommissionData() {
+    try {
+        if (!fs.existsSync(commissionFilePath)) {
+            const defaultRates = { "陪玩單": 0.7, "禮物單": 0.8, "有獎": 0.85, "冠名": 0.9, "獎金": 1.0 };
+            fs.writeFileSync(commissionFilePath, JSON.stringify(defaultRates, null, 2), 'utf8');
+            return defaultRates;
+        }
+        const raw = fs.readFileSync(commissionFilePath, 'utf8');
+        return JSON.parse(raw || '{}');
+    } catch (e) {
+        console.error('❌ 讀取 commission.json 失敗:', e);
+        return { "陪玩單": 0.7, "禮物單": 0.8, "有獎": 0.85, "冠名": 0.9, "獎金": 1.0 };
+    }
+}
+
+function saveCommissionData(data) {
+    try {
+        fs.writeFileSync(commissionFilePath, JSON.stringify(data, null, 2), 'utf8');
+        console.log('💾 已即時同步最新全域抽佣設定至 data/commission.json');
+        return true;
+    } catch (e) {
+        console.error('❌ 寫入 commission.json 失敗:', e);
         return false;
     }
 }
@@ -191,7 +222,7 @@ function ensureAuth(req, res, next) {
     res.redirect('/login?error=請先登入後臺');
 }
 
-// 全局權限中間件 (優先從 roles.json 讀取最新動態權限)
+// 🚀 全局動態權限中間件 (畫面顯示真實職位，但保留 Admin ID 最高特權)
 app.use((req, res, next) => {
     if (req.isAuthenticated() && req.user) {
         db.get('SELECT * FROM users WHERE id = ?', [req.user.id], (uErr, freshUser) => {
@@ -200,8 +231,11 @@ app.use((req, res, next) => {
             const roleObj = rolesData.find(r => r.role_key === currentUser.role);
 
             let perms = [];
-            const highLevelRoles = ['admin', 'manager', 'cfo', 'aftersales'];
-            if (highLevelRoles.includes(currentUser.role)) {
+            // 防鎖機制：特定的 Discord ID 擁有全功能解鎖特權
+            const myAdminId = "604610298581876746";
+            const isSuperAdmin = (currentUser.id === myAdminId || currentUser.role === 'admin');
+
+            if (isSuperAdmin) {
                 perms = [
                     'home', 'home_banner', 'home_wallet_card', 'home_info',
                     'personal', 'profile', 'profile_discord', 'profile_nickname', 'my_wallet', 'my_income', 'my_orders',
@@ -216,7 +250,8 @@ app.use((req, res, next) => {
 
             res.locals.userPerms = perms;
             res.locals.currentUser = currentUser;
-            res.locals.hasPerm = (node) => highLevelRoles.includes(currentUser.role) || perms.includes(node);
+            
+            res.locals.hasPerm = (node) => isSuperAdmin || perms.includes(node);
             next();
         });
     } else {
@@ -231,8 +266,7 @@ function checkPerm(permNode) {
     return (req, res, next) => {
         if (!req.user) return res.redirect('/login');
 
-        const highLevelRoles = ['admin', 'manager', 'cfo', 'aftersales'];
-        if (highLevelRoles.includes(req.user.role)) {
+        if (req.user.role === 'admin') {
             return next();
         }
 
@@ -273,7 +307,7 @@ app.get('/logout', (req, res, next) => {
     });
 });
 
-// 1. 首頁
+// 1. 首頁 (讀取最新公告)
 app.get('/dashboard', ensureAuth, checkPerm('home'), (req, res) => {
     db.get('SELECT * FROM users WHERE id = ?', [req.user.id], (err, currentUser) => {
         db.get('SELECT * FROM announcements ORDER BY created_at DESC LIMIT 1', (aErr, latestAnnouncement) => {
@@ -400,16 +434,20 @@ app.get('/wallet', ensureAuth, checkPerm('my_wallet'), (req, res) => {
     });
 });
 
-// 3-1. 我的收入
+// 3-1. 我的收入 (優先採用個人特例抽佣，次採全域類別抽佣)
 app.get('/income', ensureAuth, checkPerm('my_income'), (req, res) => {
     const userId = req.user.id;
 
     db.get('SELECT * FROM users WHERE id = ?', [userId], (err, currentUser) => {
         db.get('SELECT commission_rate FROM talents WHERE user_id = ?', [userId], (tErr, talentRow) => {
-            const commissionRate = talentRow && talentRow.commission_rate !== null ? Number(talentRow.commission_rate) : 0.7;
+            const globalCommissions = getCommissionData();
+            
+            const personalRate = (talentRow && talentRow.commission_rate !== null && talentRow.commission_rate !== undefined && talentRow.commission_rate > 0) 
+                ? Number(talentRow.commission_rate) 
+                : null;
 
             if (!talentRow && currentUser) {
-                db.run('INSERT OR IGNORE INTO talents (user_id, nickname, commission_rate, status) VALUES (?, ?, 0.7, "idle")', [userId, currentUser.custom_nickname || currentUser.username], () => syncTalentsJsonFromDb());
+                db.run('INSERT OR IGNORE INTO talents (user_id, nickname, commission_rate, status) VALUES (?, ?, NULL, "idle")', [userId, currentUser.custom_nickname || currentUser.username], () => syncTalentsJsonFromDb());
             }
 
             const orderSql = `
@@ -429,14 +467,23 @@ app.get('/income', ensureAuth, checkPerm('my_income'), (req, res) => {
                 const orderList = orders || [];
                 const completedOrders = orderList.filter(o => o.status === 'completed');
 
-                const totalIncome = completedOrders.reduce((sum, o) => sum + Math.round(Number(o.total_amount || 0) * commissionRate), 0);
+                const totalIncome = completedOrders.reduce((sum, o) => {
+                    const cat = o.category || '陪玩單';
+                    const rate = (personalRate !== null && personalRate > 0) ? personalRate : (globalCommissions[cat] || 0.7);
+                    return sum + Math.round(Number(o.total_amount || 0) * rate);
+                }, 0);
 
                 const currentMonthPrefix = new Date().toISOString().slice(0, 7);
                 const monthlyOrders = completedOrders.filter(o => {
                     const dateStr = o.end_time || o.created_at || '';
                     return dateStr.startsWith(currentMonthPrefix);
                 });
-                const monthlyIncome = monthlyOrders.reduce((sum, o) => sum + Math.round(Number(o.total_amount || 0) * commissionRate), 0);
+                
+                const monthlyIncome = monthlyOrders.reduce((sum, o) => {
+                    const cat = o.category || '陪玩單';
+                    const rate = (personalRate !== null && personalRate > 0) ? personalRate : (globalCommissions[cat] || 0.7);
+                    return sum + Math.round(Number(o.total_amount || 0) * rate);
+                }, 0);
 
                 db.get('SELECT COALESCE(SUM(amount), 0) as total_withdrawn FROM payouts WHERE user_id = ? AND status = "completed"', [userId], (pErr, payoutStats) => {
                     const totalWithdrawn = payoutStats ? Number(payoutStats.total_withdrawn) : 0;
@@ -444,7 +491,7 @@ app.get('/income', ensureAuth, checkPerm('my_income'), (req, res) => {
 
                     res.render('income', {
                         user: currentUser || req.user,
-                        commissionRate: commissionRate,
+                        commissionRate: personalRate || globalCommissions['陪玩單'] || 0.7,
                         stats: {
                             totalIncome: totalIncome,
                             monthlyIncome: monthlyIncome,
@@ -563,18 +610,85 @@ app.post('/system/vip/add', ensureAuth, checkPerm('sys_vip'), (req, res) => {
     );
 });
 
-// 6. 身分管理 (自動生成 role_key，無需使用者輸入)
-app.get('/system/roles', ensureAuth, checkPerm('sys_roles'), (req, res) => {
-    db.get('SELECT * FROM users WHERE id = ?', [req.user.id], (err, currentUser) => {
-        const roles = getRolesData().sort((a, b) => b.tier_level - a.tier_level);
-        res.render('roles', {
-            user: currentUser || req.user,
-            roles: roles,
-            success: req.query.saved === '1'
-        });
+// =========================================================================
+// 🚀 5-1. 全域抽佣設定 (同步 data/commission.json，連動訂單類別)
+// =========================================================================
+app.get('/system/commission', ensureAuth, checkPerm('sys_commission'), (req, res) => {
+    const commissionData = getCommissionData();
+    res.render('commission', {
+        user: req.user,
+        activePage: 'commission',
+        commission: commissionData,
+        success: req.query.saved === '1'
     });
 });
 
+app.post('/system/commission/update', ensureAuth, checkPerm('sys_commission'), (req, res) => {
+    try {
+        const { rates } = req.body;
+        const currentData = getCommissionData();
+
+        if (rates && typeof rates === 'object') {
+            for (const key in rates) {
+                const val = parseFloat(rates[key]);
+                if (!isNaN(val)) {
+                    currentData[key] = Math.min(1, Math.max(0, val));
+                }
+            }
+            saveCommissionData(currentData);
+        }
+        res.redirect('/system/commission?saved=1');
+    } catch (err) {
+        console.error('❌ 更新全域抽佣設定失敗:', err);
+        res.redirect('/system/commission?error=' + encodeURIComponent('更新失敗'));
+    }
+});
+
+// =========================================================================
+// 🚀 6. 身分權限管理 (純 JSON 雙向同步，絕不崩潰)
+// =========================================================================
+
+// 6-1. GET: 渲染身分權限管理頁面
+app.get('/system/roles', ensureAuth, checkPerm('sys_roles'), (req, res) => {
+    const rolesData = getRolesData();
+    res.render('roles', {
+        user: req.user,
+        activePage: 'roles',
+        roles: rolesData,
+        rolesData: rolesData,
+        saved: req.query.saved === '1'
+    });
+});
+
+// 6-2. POST: 變更身分組存取權限矩陣 (防崩潰修復版：純寫入 data/roles.json)
+app.post('/system/roles/update-permissions', ensureAuth, checkPerm('sys_roles'), (req, res) => {
+    try {
+        const { role, permissions } = req.body;
+        if (!role) {
+            return res.status(400).send('<script>alert("目標身分組不可為空！"); history.back();</script>');
+        }
+
+        const permsArray = Array.isArray(permissions) ? permissions : (permissions ? [permissions] : []);
+        let rolesArray = getRolesData();
+        if (!Array.isArray(rolesArray)) rolesArray = [];
+
+        const roleIndex = rolesArray.findIndex(r => r.role_key === role);
+        if (roleIndex !== -1) {
+            rolesArray[roleIndex].permissions = permsArray;
+            saveRolesData(rolesArray);
+            console.log(`✅ [Roles JSON Saved] 身分組 [${role}] 權限更新成功！現有權限數量: ${permsArray.length}`);
+        } else {
+            console.warn(`⚠️ [Roles Update Warning] 找不到身分組: ${role}`);
+        }
+
+        return res.redirect('/system/roles?saved=1');
+    } catch (err) {
+        console.error('❌ [Roles Update Critical Error] 寫入 roles.json 失敗:', err);
+        return res.redirect('/system/roles?error=' + encodeURIComponent('權限更新失敗'));
+    }
+});
+
+// 6-3. POST: 編輯身分基本資訊
 app.post('/system/roles/update-info/:id', ensureAuth, checkPerm('sys_roles'), (req, res) => {
     const roleId = Number(req.params.id);
     const { name, category, tier_level, description } = req.body;
@@ -605,6 +719,7 @@ app.post('/system/roles/update-info/:id', ensureAuth, checkPerm('sys_roles'), (r
     res.redirect('/system/roles?saved=1');
 });
 
+// 6-4. POST: 直接更新身分權限 (帶 ID 陣列)
 app.post('/system/roles/update-perms/:id', ensureAuth, checkPerm('sys_roles'), (req, res) => {
     const roleId = Number(req.params.id);
     let permissions = req.body['perms[]'] || req.body.perms || [];
@@ -624,12 +739,12 @@ app.post('/system/roles/update-perms/:id', ensureAuth, checkPerm('sys_roles'), (
     res.redirect('/system/roles?saved=1');
 });
 
+// 6-5. POST: 新增全新身分組
 app.post('/system/roles/add', ensureAuth, checkPerm('sys_roles'), (req, res) => {
     const { name, category, tier_level, description } = req.body;
     let permissions = req.body['perms[]'] || req.body.perms || [];
     if (!Array.isArray(permissions)) permissions = [permissions];
 
-    // 💡 核心映射表：無須填寫識別碼，自動匹配或 Hash 生成
     const keyMap = {
         '售後管理': 'aftersales',
         '財務長': 'cfo',
@@ -822,7 +937,6 @@ app.post('/management/members/update-balance/:id', ensureAuth, checkPerm('member
 
             let newBalance = oldUser.balance || 0;
 
-            // 🚀 若有填寫「本次充值金額」，優先加到餘額上；否則讀取「調整目前餘額」
             if (add_amount !== undefined && add_amount !== null && String(add_amount).trim() !== '') {
                 const addVal = parseFloat(add_amount) || 0;
                 newBalance = Math.max(0, newBalance + addVal);
@@ -916,7 +1030,7 @@ app.get('/management/staff', ensureAuth, checkPerm('manage_staff'), (req, res) =
             SELECT 
                 u.*,
                 t.status,
-                COALESCE(t.commission_rate, 0.7) as commission_rate,
+                t.commission_rate,
                 t.staff_channel_id,
                 COALESCE((SELECT COUNT(*) FROM orders WHERE talent_id = u.id AND status = 'completed'), 0) as total_orders,
                 COALESCE((SELECT SUM(total_amount) FROM orders WHERE talent_id = u.id AND status = 'completed'), 0) as total_revenue
@@ -975,9 +1089,14 @@ app.get('/management/staff/sync-all', ensureAuth, checkPerm('manage_staff'), (re
     });
 });
 
+// 🚀 員工更新：若 commission_rate 為空白，正確存入 null 代表採用工作室全域預設
 app.post('/management/staff/update/:id', ensureAuth, checkPerm('manage_staff'), (req, res) => {
     const targetId = req.params.id;
     const { role, status, commission_rate, staff_channel_id } = req.body;
+
+    const parsedRate = (commission_rate !== undefined && commission_rate !== null && String(commission_rate).trim() !== '') 
+        ? parseFloat(commission_rate) 
+        : null;
 
     db.run('UPDATE users SET role = ? WHERE id = ?', [role, targetId], (uErr) => {
         if (uErr) return res.redirect('/management/staff?error=更新失敗');
@@ -987,7 +1106,7 @@ app.post('/management/staff/update/:id', ensureAuth, checkPerm('manage_staff'), 
             if (!talentRow) {
                 db.run(
                     'INSERT INTO talents (user_id, nickname, staff_channel_id, commission_rate, status) VALUES (?, ?, ?, ?, ?)',
-                    [targetId, '', staff_channel_id || null, parseFloat(commission_rate) || 0.7, status || 'idle'],
+                    [targetId, '', staff_channel_id || null, parsedRate, status || 'idle'],
                     () => {
                         syncTalentsJsonFromDb();
                         res.redirect('/management/staff?saved=1');
@@ -996,7 +1115,7 @@ app.post('/management/staff/update/:id', ensureAuth, checkPerm('manage_staff'), 
             } else {
                 db.run(
                     'UPDATE talents SET status = ?, commission_rate = ?, staff_channel_id = ? WHERE user_id = ?',
-                    [status || 'idle', parseFloat(commission_rate) || 0.7, staff_channel_id || null, targetId],
+                    [status || 'idle', parsedRate, staff_channel_id || null, targetId],
                     () => {
                         syncTalentsJsonFromDb();
                         res.redirect('/management/staff?saved=1');

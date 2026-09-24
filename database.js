@@ -86,6 +86,7 @@ db.serialize(() => {
             }
         }
     });
+
     // 2. 陪玩師資產/細節資料表 (自動與 data/talents.json 雙向同步)
     db.run(`
         CREATE TABLE IF NOT EXISTS talents (
@@ -362,7 +363,7 @@ db.serialize(() => {
                     );
                 });
                 stmt.finalize(() => {
-                    console.log('✅ 成功從 data/roles.json 同步 6 大身分組資料至資料庫！');
+                    console.log('✅ 成功從 data/roles.json 同步身分組資料至資料庫！');
                 });
             } catch (e) {
                 console.error('❌ 同步 roles.json 至資料庫失敗:', e);
@@ -438,6 +439,15 @@ db.serialize(() => {
             }
         }
     });
+
+    // 🚀 10. 角色權限關聯表 (防止未建表導致 SQL 查詢拋出 no such table 崩潰)
+    db.run(`
+        CREATE TABLE IF NOT EXISTS role_permissions (
+            role_key TEXT PRIMARY KEY,
+            permissions TEXT DEFAULT '[]',
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
 });
 
 module.exports = db;
