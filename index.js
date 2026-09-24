@@ -15,6 +15,9 @@ const userRouter = require('./routes/user');
 const systemRouter = require('./routes/system');
 const managementRouter = require('./routes/management');
 
+// 🚀 載入 Modal 派單處理器
+const { handleDispatchModal } = require('./handlers/dispatchModalHandler');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -71,6 +74,17 @@ app.use((req, res, next) => {
         next();
     }
 });
+
+// 🤖 Discord 機器人 Modal 事件監聽 (監聽派單 Modal 提交)
+if (client) {
+    client.on('interactionCreate', async (interaction) => {
+        if (interaction.isModalSubmit()) {
+            if (interaction.customId.startsWith('modal_disp_')) {
+                await handleDispatchModal(interaction);
+            }
+        }
+    });
+}
 
 // 🔀 掛載模組化路由
 app.use('/', authRouter);

@@ -1,0 +1,265 @@
+<!-- 🚀 訂單詳細內容與檢視/編輯動態切換 Modal 模組 -->
+<style>
+    #orderDetailModal .modal-content-glass {
+        background: rgba(20, 16, 35, 0.97) !important;
+        border: 1px solid rgba(168, 85, 247, 0.35) !important;
+        border-radius: 20px !important;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), 0 0 30px rgba(168, 85, 247, 0.25) !important;
+        backdrop-filter: blur(20px) !important;
+        color: #ffffff !important;
+    }
+    #orderDetailModal .info-detail-label {
+        font-size: 0.74rem;
+        color: #94a3b8 !important;
+        margin-bottom: 4px;
+        display: block;
+    }
+    #orderDetailModal .info-detail-val {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #ffffff !important;
+        font-family: monospace;
+    }
+    #orderDetailModal .form-control-glass {
+        background-color: rgba(255, 255, 255, 0.06) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        color: #ffffff !important;
+        border-radius: 12px;
+        padding: 8px 12px;
+        font-size: 0.9rem;
+    }
+    #orderDetailModal .form-control-glass:disabled {
+        background-color: rgba(255, 255, 255, 0.02) !important;
+        border-color: rgba(255, 255, 255, 0.05) !important;
+        color: #e2e8f0 !important;
+        opacity: 0.85;
+    }
+    #orderDetailModal .form-control-glass:focus {
+        border-color: #c084fc !important;
+        box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.25) !important;
+    }
+    #orderDetailModal select.form-control-glass option {
+        background-color: #131021 !important;
+        color: #ffffff !important;
+    }
+    #orderDetailModal .talent-message-box {
+        background: linear-gradient(135deg, rgba(147, 51, 234, 0.15), rgba(236, 72, 153, 0.1)) !important;
+        border: 1px solid rgba(192, 132, 252, 0.3) !important;
+        border-radius: 14px;
+        padding: 14px 18px;
+    }
+</style>
+
+<div class="modal fade" id="orderDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" style="max-width: 720px;">
+        <div class="modal-content modal-content-glass">
+            <form id="modalOrderEditForm" method="POST" action="">
+                <div class="modal-header border-0 pb-2 pt-4 px-4 d-flex justify-content-between align-items-center">
+                    <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2 font-monospace">
+                        <i class="fa-solid fa-file-invoice-dollar text-warning fs-5"></i>
+                        <span id="modalHeaderTitle">訂單詳細內容</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body px-4 py-3" style="max-height: 75vh; overflow-y: auto;">
+                    <!-- A. 基礎資訊卡片 (依指定順序與排版) -->
+                    <div class="p-3 mb-3 rounded-4" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08);">
+                        <div class="row g-3">
+                            <!-- 第一排：訂單編號 / 下單時間 / 訂單狀態 -->
+                            <div class="col-4">
+                                <span class="info-detail-label">訂單編號</span>
+                                <div class="info-detail-val text-warning font-monospace fs-6" id="detailOrderNo">--</div>
+                            </div>
+                            <div class="col-4">
+                                <span class="info-detail-label">下單時間 / 建立時間</span>
+                                <div class="info-detail-val text-light font-monospace small" id="detailCreatedAt">--</div>
+                            </div>
+                            <div class="col-4">
+                                <span class="info-detail-label">訂單狀態</span>
+                                <div class="info-detail-val text-info fs-6" id="detailStatusAndCs">--</div>
+                            </div>
+
+                            <!-- 第二排：闆闆 / 陪陪 / 訂單客服 (移除小字) -->
+                            <div class="col-4 pt-2 border-top border-white-50 border-opacity-10">
+                                <span class="info-detail-label">闆闆</span>
+                                <div class="info-detail-val text-white" id="detailBossInfo">--</div>
+                            </div>
+                            <div class="col-4 pt-2 border-top border-white-50 border-opacity-10">
+                                <span class="info-detail-label">陪陪</span>
+                                <div class="info-detail-val text-purple-light fw-bold" id="detailTalentInfo">--</div>
+                            </div>
+                            <div class="col-4 pt-2 border-top border-white-50 border-opacity-10">
+                                <span class="info-detail-label">訂單客服</span>
+                                <div class="info-detail-val text-info fw-bold" id="detailCsInfo">--</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- B. 服務規格與狀態設定區 -->
+                    <div class="p-3 mb-3 rounded-4" id="detailFormCard" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); transition: all 0.3s ease;">
+                        <div class="fw-bold text-purple-light small mb-2 d-flex align-items-center gap-1">
+                            <i class="fa-solid fa-sliders"></i> 服務規格與狀態調整
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="small text-secondary mb-1">類別</label>
+                                <input type="text" id="editCategory" name="category" class="form-control form-control-glass" disabled required>
+                            </div>
+                            <div class="col-6">
+                                <label class="small text-secondary mb-1">項目名稱</label>
+                                <input type="text" id="editGame" name="game" class="form-control form-control-glass" disabled required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="small text-secondary mb-1">內容 / 規格細項</label>
+                            <input type="text" id="editContentTier" name="content_tier" class="form-control form-control-glass" disabled>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="small text-secondary mb-1">數量 / 時長</label>
+                                <input type="number" step="0.5" id="editDuration" name="duration" class="form-control form-control-glass font-monospace" disabled required>
+                            </div>
+                            <div class="col-6">
+                                <label class="small text-secondary mb-1">單位</label>
+                                <input type="text" id="editUnit" name="unit" class="form-control form-control-glass" disabled placeholder="小時/局/首">
+                            </div>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="small text-secondary mb-1">訂單狀態</label>
+                            <select id="editOrderStatus" name="status" class="form-select form-control-glass text-warning fw-bold" disabled>
+                                <option value="pending">派單中 (Pending)</option>
+                                <option value="accepted">進行中 (Accepted)</option>
+                                <option value="in_progress">進行中 (In Progress)</option>
+                                <option value="completed">已完成 (Completed)</option>
+                                <option value="cancelled">售後中 (Cancelled)</option>
+                                <option value="rejected">已駁回 (Rejected)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- C. 金額與折扣明細專區 -->
+                    <div class="p-3 mb-3 rounded-4" style="background: rgba(16, 185, 129, 0.06); border: 1px solid rgba(16, 185, 129, 0.25);">
+                        <div class="fw-bold text-success small mb-2 d-flex align-items-center gap-1">
+                            <i class="fa-solid fa-calculator"></i> 金額與折扣明細
+                        </div>
+                        <div class="row g-3 align-items-center">
+                            <div class="col-4">
+                                <span class="info-detail-label">訂單原價</span>
+                                <div class="info-detail-val text-secondary fs-6" id="detailOriginalPrice">$0</div>
+                            </div>
+                            <div class="col-4">
+                                <span class="info-detail-label">折抵 / 折扣</span>
+                                <div class="info-detail-val text-warning fs-6" id="detailDiscount">$0</div>
+                            </div>
+                            <div class="col-4">
+                                <span class="info-detail-label">實收金額 (最終)</span>
+                                <div class="info-detail-val text-success fs-5 fw-bold" id="detailTotalAmountText">$0 NTD</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- D. 陪陪留言區 -->
+                    <div class="talent-message-box mb-3">
+                        <div class="d-flex align-items-center gap-2 mb-1.5">
+                            <i class="fa-solid fa-heart text-danger fs-6"></i>
+                            <span class="fw-bold text-white small">陪陪留言區</span>
+                        </div>
+                        <textarea id="editTalentMessage" name="talent_message" class="form-control form-control-glass" rows="2" disabled placeholder="尚無留言..."></textarea>
+                    </div>
+
+                    <!-- E. 附加條件與備註 -->
+                    <div class="p-3 rounded-4 mb-3" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08);">
+                        <div class="text-secondary small fw-semibold mb-1">✨ 附加條件：</div>
+                        <div class="text-white small fw-medium px-1" id="detailExtra">無特別條件</div>
+                    </div>
+
+                    <div class="p-3 rounded-4" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08);">
+                        <div class="text-secondary small fw-semibold mb-1">訂單說明與客服備註：</div>
+                        <input type="text" id="editNote" name="note" class="form-control form-control-glass mt-1" disabled placeholder="補充內容或客服說明">
+                    </div>
+                </div>
+
+                <!-- 模式切換操作底部列 -->
+                <div class="modal-footer border-0 pt-1 pb-4 px-4 d-flex justify-content-between align-items-center">
+                    <div>
+                        <button type="button" id="btnDeleteOrderModal" onclick="submitModalDeleteOrder()" class="btn btn-sm btn-outline-danger rounded-pill px-3" style="display: none;">
+                            <i class="fa-solid fa-trash-can me-1"></i>徹底刪除訂單
+                        </button>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="button" id="btnEnableEdit" onclick="switchEditMode(true)" class="btn btn-sm btn-outline-info rounded-pill px-4 fw-semibold" style="display: none;">
+                            <i class="fa-solid fa-pen-to-square me-1"></i>編輯訂單
+                        </button>
+                        <button type="button" id="btnCloseView" class="btn btn-sm btn-secondary rounded-pill px-4" data-bs-dismiss="modal">關閉</button>
+
+                        <button type="button" id="btnCancelEdit" onclick="switchEditMode(false)" class="btn btn-sm btn-outline-secondary rounded-pill px-3" style="display: none;">取消編輯</button>
+                        <button type="submit" id="btnSaveOrderModal" class="btn btn-sm btn-primary rounded-pill px-4 fw-semibold" style="background: linear-gradient(135deg, #9333ea, #7e22ce); border: none; display: none;">儲存訂單變更</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function switchEditMode(isEdit) {
+        const formCard = document.getElementById('detailFormCard');
+        const headerTitle = document.getElementById('modalHeaderTitle');
+        const inputs = document.querySelectorAll('#orderDetailModal .form-control-glass');
+
+        const btnEnableEdit = document.getElementById('btnEnableEdit');
+        const btnCloseView = document.getElementById('btnCloseView');
+        const btnCancelEdit = document.getElementById('btnCancelEdit');
+        const btnSaveOrderModal = document.getElementById('btnSaveOrderModal');
+        const btnDeleteOrderModal = document.getElementById('btnDeleteOrderModal');
+
+        if (isEdit) {
+            inputs.forEach(input => input.disabled = false);
+            if (headerTitle) headerTitle.textContent = '編輯訂單規格與狀態';
+            if (formCard) {
+                formCard.style.background = 'rgba(147, 51, 234, 0.12)';
+                formCard.style.borderColor = 'rgba(168, 85, 247, 0.45)';
+            }
+
+            if (btnEnableEdit) btnEnableEdit.style.display = 'none';
+            if (btnCloseView) btnCloseView.style.display = 'none';
+            if (btnCancelEdit) btnCancelEdit.style.display = 'inline-block';
+            if (btnSaveOrderModal) btnSaveOrderModal.style.display = 'inline-block';
+            if (btnDeleteOrderModal && window.currentOrderCanEdit) btnDeleteOrderModal.style.display = 'inline-block';
+        } else {
+            inputs.forEach(input => input.disabled = true);
+            if (headerTitle) headerTitle.textContent = '訂單詳細內容';
+            if (formCard) {
+                formCard.style.background = 'rgba(255, 255, 255, 0.03)';
+                formCard.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+            }
+
+            if (btnEnableEdit && window.currentOrderCanEdit) btnEnableEdit.style.display = 'inline-block';
+            if (btnCloseView) btnCloseView.style.display = 'inline-block';
+            if (btnCancelEdit) btnCancelEdit.style.display = 'none';
+            if (btnSaveOrderModal) btnSaveOrderModal.style.display = 'none';
+            if (btnDeleteOrderModal) btnDeleteOrderModal.style.display = 'none';
+        }
+    }
+
+    function submitModalDeleteOrder() {
+        if (confirm('⚠️【身分驗證】確定要徹底刪除此筆訂單嗎？此操作將永久移除，無法復原！')) {
+            const form = document.getElementById('modalOrderEditForm');
+            let deleteInput = document.getElementById('isDeleteInputModal');
+            if (!deleteInput) {
+                deleteInput = document.createElement('input');
+                deleteInput.type = 'hidden';
+                deleteInput.id = 'isDeleteInputModal';
+                deleteInput.name = 'is_delete';
+                form.appendChild(deleteInput);
+            }
+            deleteInput.value = '1';
+            form.submit();
+        }
+    }
+</script>

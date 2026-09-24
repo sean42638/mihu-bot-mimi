@@ -2,7 +2,11 @@ require('dotenv').config();
 const { Client, GatewayIntentBits, REST, Routes, Collection } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
+
+// 🚀 載入按鈕與彈窗模組化處理常式
 const handleButtonInteraction = require('./handlers/buttonHandler');
+// ✅ 修改為新的檔名與函數名稱匯入
+const { handleDispatchModal } = require('./handlers/dispatchModalHandler');
 
 const botToken = process.env.DISCORD_BOT_TOKEN || process.env.DISCORD_TOKEN;
 const client = new Client({
@@ -14,7 +18,6 @@ const client = new Client({
     ]
 });
 
-// 📂 動態加載 commands/ 資料夾下的所有指令模組
 client.commands = new Collection();
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
@@ -27,7 +30,6 @@ for (const file of commandFiles) {
     }
 }
 
-// ⚡ 熱重載與註冊全域斜線指令
 async function registerSlashCommands() {
     if (!botToken || !process.env.DISCORD_CLIENT_ID) return false;
     try {
@@ -51,15 +53,32 @@ client.once('ready', () => {
     registerSlashCommands();
 });
 
-// 🔀 全局事件分發 (Distributor)
+// 🚀 全局事件極致分發器
 client.on('interactionCreate', async (interaction) => {
-    // 1. 優先交給按鈕 Handler 處理計時按鈕
+    // 1. 處理按鈕點擊事件 (分發至 handlers/buttonHandler.js)
     if (interaction.isButton()) {
-        const handled = await handleButtonInteraction(interaction);
-        if (handled) return;
+        try {
+            const handled = await handleButtonInteraction(interaction);
+            if (handled) return;
+        } catch (bErr) {
+            console.error('❌ 處理按鈕互動發生錯誤:', bErr);
+        }
     }
 
-    // 2. 指令事件調度
+    // 2. 處理 Modal 彈窗提交事件 (分發至 handlers/dispatchModalHandler.js)
+    if (interaction.isModalSubmit()) {
+        try {
+            // 🚀 修正：對應上方匯入的 handleDispatchModal，並針對派單 CustomID 進行匹配
+            if (interaction.customId.startsWith('modal_disp_')) {
+                await handleDispatchModal(interaction);
+                return;
+            }
+        } catch (mErr) {
+            console.error('❌ 處理 Modal 彈窗發生錯誤:', mErr);
+        }
+    }
+
+    // 3. 處理斜線指令事件 (分發至 commands/*.js)
     if (!interaction.isChatInputCommand()) return;
     const command = client.commands.get(interaction.commandName);
     if (!command) return;

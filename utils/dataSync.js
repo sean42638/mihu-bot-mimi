@@ -14,6 +14,8 @@ const talentsFilePath = path.join(dataDir, 'talents.json');
 const commandsFilePath = path.join(dataDir, 'commands.json');
 const topupsFilePath = path.join(dataDir, 'topups.json');
 const commissionFilePath = path.join(dataDir, 'commission.json');
+const payoutsFilePath = path.join(dataDir, 'payouts.json');
+const ordersFilePath = path.join(dataDir, 'orders.json'); // 🚀 獨立訂單數據 JSON 檔
 
 function syncUsersJsonFromDb() {
     db.all('SELECT * FROM users ORDER BY created_at DESC', (err, rows) => {
@@ -27,6 +29,20 @@ function syncTalentsJsonFromDb() {
     db.all('SELECT * FROM talents', (err, rows) => {
         if (!err && rows) {
             try { fs.writeFileSync(talentsFilePath, JSON.stringify(rows, null, 2), 'utf8'); } catch (e) {}
+        }
+    });
+}
+
+// 🚀 新增：獨立訂單數據（orders.json）同步函式
+function syncOrdersJsonFromDb() {
+    db.all('SELECT * FROM orders ORDER BY created_at DESC', (err, rows) => {
+        if (!err && rows) {
+            try {
+                fs.writeFileSync(ordersFilePath, JSON.stringify(rows, null, 2), 'utf8');
+                console.log('💾 [DataSync] 已即時同步最新全量訂單數據至 data/orders.json');
+            } catch (e) {
+                console.error('❌ 寫入 data/orders.json 失敗:', e);
+            }
         }
     });
 }
@@ -98,14 +114,24 @@ function syncTopupsJsonFromDb() {
     });
 }
 
+function syncPayoutsJsonFromDb() {
+    db.all('SELECT * FROM payouts ORDER BY created_at DESC', (err, rows) => {
+        if (!err && rows) {
+            try { fs.writeFileSync(payoutsFilePath, JSON.stringify(rows, null, 2), 'utf8'); } catch (e) {}
+        }
+    });
+}
+
 module.exports = {
     syncUsersJsonFromDb,
     syncTalentsJsonFromDb,
+    syncOrdersJsonFromDb,
     saveVipJsonFromDb,
     getRolesData,
     saveRolesData,
     getCommissionData,
     saveCommissionData,
     syncCommandsJsonFromDb,
-    syncTopupsJsonFromDb
+    syncTopupsJsonFromDb,
+    syncPayoutsJsonFromDb
 };

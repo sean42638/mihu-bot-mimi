@@ -98,43 +98,81 @@ router.get('/wallet', ensureAuth, checkPerm('my_wallet'), (req, res) => {
     });
 });
 
-// 我的收入
+// 我的收入 (僅採計 status = 'completed' 已完成訂單)
 router.get('/income', ensureAuth, checkPerm('my_income'), (req, res) => {
     const userId = req.user.id;
+
     db.get('SELECT * FROM users WHERE id = ?', [userId], (err, currentUser) => {
         db.get('SELECT commission_rate FROM talents WHERE user_id = ?', [userId], (tErr, talentRow) => {
             const globalCommissions = getCommissionData();
-            const personalRate = (talentRow && talentRow.commission_rate !== null && talentRow.commission_rate !== undefined && talentRow.commission_rate > 0) ? Number(talentRow.commission_rate) : null;
+            
+            const personalRate = (talentRow && talentRow.commission_rate !== null && talentRow.commission_rate !== undefined && talentRow.commission_rate > 0) 
+                ? Number(talentRow.commission_rate) 
+                : null;
 
             if (!talentRow && currentUser) {
-                db.run('INSERT OR IGNORE INTO talents (user_id, nickname, commission_rate, status) VALUES (?, ?, NULL, "idle")', [userId, currentUser.custom_nickname || currentUser.username], () => syncTalentsJsonFromDb());
+                db.run('INSERT OR IGNORE INTO talents (user_id, nickname, commission_rate, status) VALUES (?, ?, NULL, "idle")', 
+                    [userId, currentUser.custom_nickname || currentUser.username], 
+                    () => syncTalentsJsonFromDb()
+                );
             }
 
-            const orderSql = `SELECT o.*, b.username as boss_username, b.global_name as boss_global_name, b.custom_nickname as boss_nickname, b.avatar as boss_avatar FROM orders o LEFT JOIN users b ON o.boss_id = b.id WHERE o.talent_id = ? ORDER BY o.created_at DESC`;
+            const orderSql = `
+                SELECT 
+                    o.*,
+                    b.username as boss_username,
+                    b.global_name as boss_global_name,
+                    b.custom_nickname as boss_nickname,
+                    b.avatar as boss_avatar
+                FROM orders o
+                LEFT JOIN users b ON o.boss_id = b.id
+                WHERE o.talent_id = ?
+                ORDER BY o.created_at DESC
+            `;
+
             db.all(orderSql, [userId], (oErr, orders) => {
                 const orderList = orders || [];
                 const completedOrders = orderList.filter(o => o.status === 'completed');
 
+                // 算總收入
                 const totalIncome = completedOrders.reduce((sum, o) => {
                     const cat = o.category || '陪玩單';
-                    const rate = (personalRate !== null && personalRate > 0) ? personalRate : (globalCommissions[cat] || 0.7);
+                    const rate = (personalRate !== null && personalRate > 0) 
+                        ? personalRate 
+                        : (globalCommissions[cat] !== undefined ? globalCommissions[cat] : 0.7);
                     return sum + Math.round(Number(o.total_amount || 0) * rate);
                 }, 0);
 
+                // 算當月收入
                 const currentMonthPrefix = new Date().toISOString().slice(0, 7);
-                const monthlyOrders = completedOrders.filter(o => (o.end_time || o.created_at || '').startsWith(currentMonthPrefix));
+                const monthlyOrders = completedOrders.filter(o => {
+                    const dateStr = o.end_time || o.created_at || '';
+                    return dateStr.startsWith(currentMonthPrefix);
+                });
+                
                 const monthlyIncome = monthlyOrders.reduce((sum, o) => {
                     const cat = o.category || '陪玩單';
-                    const rate = (personalRate !== null && personalRate > 0) ? personalRate : (globalCommissions[cat] || 0.7);
+                    const rate = (personalRate !== null && personalRate > 0) 
+                        ? personalRate 
+                        : (globalCommissions[cat] !== undefined ? globalCommissions[cat] : 0.7);
                     return sum + Math.round(Number(o.total_amount || 0) * rate);
                 }, 0);
 
                 db.get('SELECT COALESCE(SUM(amount), 0) as total_withdrawn FROM payouts WHERE user_id = ? AND status = "completed"', [userId], (pErr, payoutStats) => {
                     const totalWithdrawn = payoutStats ? Number(payoutStats.total_withdrawn) : 0;
+                    const availableToWithdraw = Math.max(0, totalIncome - totalWithdrawn);
+
                     res.render('income', {
                         user: currentUser || req.user,
+                        personalRate: personalRate,
+                        globalCommissions: globalCommissions,
                         commissionRate: personalRate || globalCommissions['陪玩單'] || 0.7,
-                        stats: { totalIncome, monthlyIncome, totalWithdrawn, availableToWithdraw: Math.max(0, totalIncome - totalWithdrawn) },
+                        stats: {
+                            totalIncome: totalIncome,
+                            monthlyIncome: monthlyIncome,
+                            totalWithdrawn: totalWithdrawn,
+                            availableToWithdraw: availableToWithdraw
+                        },
                         orders: orderList
                     });
                 });
