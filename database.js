@@ -87,6 +87,28 @@ db.serialize(() => {
         }
     });
 
+    // 🚀 1.1 會員資金獨立資料表 (user_wallets - 獨立當前餘額、贈送金、累積消費與累積實充)
+    db.run(`
+        CREATE TABLE IF NOT EXISTS user_wallets (
+            user_id TEXT PRIMARY KEY,
+            balance REAL DEFAULT 0,
+            bonus_balance REAL DEFAULT 0,
+            manual_spent REAL DEFAULT 0,
+            manual_deposited REAL DEFAULT 0,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    `, () => {
+        // 🚀 自動將 users 表格或原紀錄轉移同步至獨立 user_wallets 表
+        db.run(`
+            INSERT OR IGNORE INTO user_wallets (user_id, balance, bonus_balance, manual_spent, manual_deposited)
+            SELECT id, COALESCE(balance, 0), COALESCE(bonus_balance, 0), COALESCE(manual_spent, 0), COALESCE(manual_deposited, 0)
+            FROM users
+        `, () => {
+            console.log('✅ 會員資金獨立資料表 (user_wallets) 建立與資料同步完成！');
+        });
+    });
+
     // 2. 陪玩師資產/細節資料表 (自動與 data/talents.json 雙向同步)
     db.run(`
         CREATE TABLE IF NOT EXISTS talents (
@@ -138,7 +160,7 @@ db.serialize(() => {
         }
     });
 
-    // 3. 🚀 訂單紀錄資料表 (建表直接宣告 cs_id 與 cs_name)
+    // 3. 訂單紀錄資料表 (建表宣告 cs_id 與 cs_name)
     db.run(`
         CREATE TABLE IF NOT EXISTS orders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -169,7 +191,6 @@ db.serialize(() => {
             FOREIGN KEY (talent_id) REFERENCES users (id)
         )
     `, () => {
-        // 先確保舊表完成結構擴充後，再進入 JSON 資料寫入
         db.run("ALTER TABLE orders ADD COLUMN cs_id TEXT", () => {
             db.run("ALTER TABLE orders ADD COLUMN cs_name TEXT", () => {
                 syncOrdersJson();

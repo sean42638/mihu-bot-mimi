@@ -73,11 +73,15 @@
     </div>
 </div>
 
-<!-- 彈窗 2：會員帳務調整 Modal -->
+<!-- 彈窗 2：會員帳務調整 Modal (乾淨標題文字規範) -->
 <div class="modal fade" id="adjustBalanceModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
         <div class="modal-content modal-content-glass">
             <form id="adjustBalanceForm" method="POST">
+                <!-- 隱藏欄位：傳送原始數值作為運算基底 -->
+                <input type="hidden" name="current_balance" id="hiddenCurrentBalance" value="0">
+                <input type="hidden" name="current_bonus" id="hiddenCurrentBonus" value="0">
+
                 <div class="modal-header border-0 pb-0">
                     <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-wallet text-warning me-2"></i>會員帳務調整</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -88,32 +92,37 @@
                     <div class="row g-2 mb-3">
                         <div class="col-6">
                             <label class="small text-secondary fw-semibold mb-1">本次充值金額 ($)</label>
-                            <input type="text" name="add_amount" id="modalAddAmount" class="form-control form-control-glass" placeholder="例如：1000">
+                            <input type="number" step="any" name="add_amount" id="modalAddAmount" class="form-control form-control-glass" placeholder="例如：1000 或 -500">
+                            <div class="text-secondary" style="font-size: 0.72rem; margin-top: 2px;">可進行正負加減運算</div>
                         </div>
                         <div class="col-6">
                             <label class="small text-secondary fw-semibold mb-1">贈送金 ($)</label>
-                            <input type="text" name="bonus_balance" id="modalBonusBalance" class="form-control form-control-glass" placeholder="例如：100">
+                            <input type="number" step="any" name="bonus_change" id="modalBonusBalance" class="form-control form-control-glass" placeholder="例如：100 或 -50">
+                            <div class="text-secondary" style="font-size: 0.72rem; margin-top: 2px;">可進行正負加減運算</div>
                         </div>
                     </div>
 
                     <div class="mb-3">
                         <label class="small text-secondary fw-semibold mb-1">調整目前餘額 ($)</label>
-                        <input type="text" name="balance" id="modalBalance" class="form-control form-control-glass" placeholder="覆蓋當前總實充餘額">
+                        <input type="number" step="any" name="balance" id="modalBalance" class="form-control form-control-glass" placeholder="不覆蓋請留空">
+                        <div class="text-secondary" style="font-size: 0.72rem; margin-top: 2px;">直接更改會員目前實充餘額</div>
                     </div>
 
                     <div class="row g-2 mb-3">
                         <div class="col-6">
                             <label class="small text-secondary fw-semibold mb-1">調整累積消費 ($)</label>
-                            <input type="text" name="total_spent" id="modalSpent" class="form-control form-control-glass" placeholder="覆蓋累積消費金額">
+                            <input type="number" step="any" name="total_spent" id="modalSpent" class="form-control form-control-glass" placeholder="直接輸入數值">
+                            <div class="text-secondary" style="font-size: 0.72rem; margin-top: 2px;">直接更改會員總累積消費額</div>
                         </div>
                         <div class="col-6">
                             <label class="small text-secondary fw-semibold mb-1">調整累積實充 ($)</label>
-                            <input type="text" name="total_deposited" id="modalDeposited" class="form-control form-control-glass" placeholder="覆蓋累積實充金額">
+                            <input type="number" step="any" name="total_deposited" id="modalDeposited" class="form-control form-control-glass" placeholder="直接輸入數值">
+                            <div class="text-secondary" style="font-size: 0.72rem; margin-top: 2px;">直接更改會員總累積充值金額</div>
                         </div>
                     </div>
 
                     <div class="alert alert-warning py-2 small mb-3 bg-warning bg-opacity-10 border-warning border-opacity-25 text-warning" style="font-size: 0.8rem;">
-                        ⚠️ 零負數防護：最終餘額經計算後若小於 0，系統將自動鎖定歸零。
+                        ⚠️ 零負數防護：最終經計算後之數目若小於 0，將觸發鎖定歸零或無法提交。
                     </div>
 
                     <div class="mb-2">
@@ -179,16 +188,107 @@
     </div>
 </div>
 
-<!-- 彈出小框框通知 Modal -->
-<div class="modal fade" id="notifyModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 380px;">
-        <div class="modal-content modal-content-glass text-center p-4">
-            <div class="mb-3">
-                <i class="fa-solid fa-circle-check text-success fs-1" id="notifyIcon"></i>
+<!-- 🚨 獨立防呆彈窗：數目不得為負數 Modal -->
+<div class="modal fade" id="negativeErrorModal" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content" style="background: #1f1a30; border: 1px solid rgba(239, 68, 68, 0.5); border-radius: 18px; color: #f3f4f6; box-shadow: 0 10px 30px rgba(239, 68, 68, 0.35);">
+            <div class="modal-body text-center py-4">
+                <div class="text-danger fs-1 mb-2">
+                    <i class="fa-solid fa-circle-xmark"></i>
+                </div>
+                <h6 class="fw-bold text-white mb-2">數目不得為負數</h6>
+                <p id="negativeErrorText" class="text-secondary small mb-3">計算後的帳務數目不得小於 0！</p>
+                <button type="button" class="btn btn-danger rounded-pill px-4 py-1 small fw-bold" data-bs-dismiss="modal">確定</button>
             </div>
-            <h5 class="fw-bold text-white mb-2" id="notifyTitle">操作成功</h5>
-            <p class="small text-secondary mb-4" id="notifyMessage">會員帳務與 VIP 身分已成功同步更新！</p>
-            <button type="button" class="btn btn-sm btn-light rounded-pill px-4 fw-bold w-100" data-bs-dismiss="modal">確定</button>
         </div>
     </div>
 </div>
+
+<script>
+    window.currentMemberBalance = 0;
+    window.currentMemberBonus = 0;
+
+    // 🚀 全域提供開啟帳務 Modal 函數
+    window.openAdjustBalanceModal = function(memberData) {
+        if (!memberData) return;
+
+        window.currentMemberBalance = Number(memberData.balance || 0);
+        window.currentMemberBonus = Number(memberData.bonus_balance || memberData.bonus || 0);
+
+        const form = document.getElementById('adjustBalanceForm');
+        if (form) form.action = `/management/members/update-balance/${memberData.id}`;
+
+        const nameEl = document.getElementById('balanceTargetName');
+        if (nameEl) nameEl.textContent = memberData.custom_nickname || memberData.global_name || memberData.username;
+
+        // 寫入隱藏欄位
+        document.getElementById('hiddenCurrentBalance').value = window.currentMemberBalance;
+        document.getElementById('hiddenCurrentBonus').value = window.currentMemberBonus;
+
+        // 清空充值與覆蓋餘額輸入框
+        document.getElementById('modalAddAmount').value = '';
+        document.getElementById('modalBonusBalance').value = '';
+        document.getElementById('modalBalance').value = ''; 
+
+        // 🚀 帶入當前的累積消費與累積實充 (相容 manual_spent 與 spent)
+        document.getElementById('modalSpent').value = memberData.manual_spent !== undefined ? memberData.manual_spent : (memberData.spent !== undefined ? memberData.spent : 0);
+        document.getElementById('modalDeposited').value = memberData.manual_deposited !== undefined ? memberData.manual_deposited : (memberData.deposited !== undefined ? memberData.deposited : 0);
+
+        const modalEl = document.getElementById('adjustBalanceModal');
+        if (modalEl) {
+            const instance = bootstrap.Modal.getOrCreateInstance(modalEl);
+            instance.show();
+        }
+    };
+
+    // 🚀 前端提交攔截與負數獨立彈窗顯示
+    document.addEventListener('DOMContentLoaded', () => {
+        const adjustForm = document.getElementById('adjustBalanceForm');
+        if (adjustForm) {
+            adjustForm.addEventListener('submit', function (e) {
+                const currBalance = Number(window.currentMemberBalance || 0);
+                const currBonus = Number(window.currentMemberBonus || 0);
+
+                const addAmountVal = document.getElementById('modalAddAmount').value.trim();
+                const bonusChangeVal = document.getElementById('modalBonusBalance').value.trim();
+                const directBalanceVal = document.getElementById('modalBalance').value.trim();
+                const totalSpentVal = document.getElementById('modalSpent').value.trim();
+                const totalDepositedVal = document.getElementById('modalDeposited').value.trim();
+
+                let finalBalance = currBalance;
+                let finalBonus = currBonus;
+
+                if (directBalanceVal !== '') {
+                    finalBalance = Number(directBalanceVal);
+                } else if (addAmountVal !== '') {
+                    finalBalance = currBalance + Number(addAmountVal);
+                }
+
+                if (bonusChangeVal !== '') {
+                    finalBonus = currBonus + Number(bonusChangeVal);
+                }
+
+                let errorMsg = '';
+                if (finalBalance < 0) {
+                    errorMsg = `當前實充為 $${currBalance}，扣除後最終餘額為 $${finalBalance}，數目不得為負數！`;
+                } else if (finalBonus < 0) {
+                    errorMsg = `當前贈送金為 $${currBonus}，扣除後最終贈送金為 $${finalBonus}，數目不得為負數！`;
+                } else if (totalSpentVal !== '' && Number(totalSpentVal) < 0) {
+                    errorMsg = '「累積消費」不得設定為負數！';
+                } else if (totalDepositedVal !== '' && Number(totalDepositedVal) < 0) {
+                    errorMsg = '「累積實充」不得設定為負數！';
+                }
+
+                if (errorMsg) {
+                    e.preventDefault();
+                    document.getElementById('negativeErrorText').textContent = errorMsg;
+                    const errModalEl = document.getElementById('negativeErrorModal');
+                    if (errModalEl) {
+                        const errInstance = bootstrap.Modal.getOrCreateInstance(errModalEl);
+                        errInstance.show();
+                    }
+                }
+            });
+        }
+    });
+</script>

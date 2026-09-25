@@ -88,23 +88,48 @@
         }
         .search-icon-left { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.88rem; }
         .search-clear-btn { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; display: none; border: none; background: transparent; }
+
+        .btn-batch-delete {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 0.84rem;
+            border-radius: 20px;
+            padding: 6px 16px;
+            border: 1px solid rgba(239, 68, 68, 0.5);
+            box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-batch-delete:hover {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            box-shadow: 0 6px 18px rgba(239, 68, 68, 0.5);
+            transform: translateY(-1px);
+        }
     </style>
 </head>
 <body>
 
+<% 
+    const activeCurrUser = typeof currentUser !== 'undefined' && currentUser ? currentUser : ((typeof user !== 'undefined' && user) ? user : {});
+    const currRole = String(activeCurrUser.role || '').toLowerCase();
+    const isOwnerAdmin = ['admin', 'owner'].includes(currRole);
+%>
+
 <div class="app-layout">
-    <!-- 🚀 1. 側邊導覽列 -->
     <%- include('partials/sidebar', { activePage: 'orders' }) %>
 
     <div class="main-wrapper">
-        <!-- 🚀 2. 頂部導覽列 -->
         <%- include('partials/navbar', { activePage: 'orders' }) %>
 
         <div class="content-body">
             <div class="page-header-content">
                 <div>
                     <div class="h4 fw-bold text-white mb-1">
-                        <i class="fa-solid fa-list-check text-pink me-2"></i>工作室訂單管理
+                        <i class="fa-solid fa-list-check text-pink me-2" style="color: #ec4899;"></i>工作室訂單管理
                     </div>
                     <p class="text-secondary small mb-0">即時監控與核算工作室訂單收益 (點擊任意訂單列即可檢視詳情或進行編輯)</p>
                 </div>
@@ -116,7 +141,7 @@
                 </div>
             </div>
 
-            <!-- 🚀 3. 狀態標籤篩選器 -->
+            <!-- 🚀 3. 狀態標籤篩選器 & 店長專屬批量刪除隱藏 Form -->
             <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                 <div class="filter-tabs">
                     <button type="button" class="filter-tab-btn active" data-filter="all">全部訂單 (<%= orders ? orders.length : 0 %>)</button>
@@ -126,6 +151,17 @@
                     <button type="button" class="filter-tab-btn" data-filter="cancelled">售後中</button>
                     <button type="button" class="filter-tab-btn" data-filter="rejected">已駁回</button>
                 </div>
+
+                <% if (isOwnerAdmin) { %>
+                    <!-- 🚀 店長專用表單：點擊時以原生 Form 提交，不使用抓取 json -->
+                    <form id="batchDeleteForm" action="/management/orders/batch-delete" method="POST" style="margin: 0;">
+                        <div id="batchInputsContainer"></div>
+                        <button type="button" class="btn-batch-delete" id="btnBatchDelete" style="display: none;">
+                            <i class="fa-solid fa-trash-can"></i>
+                            <span>批量刪除 (<span id="selectedCount">0</span>)</span>
+                        </button>
+                    </form>
+                <% } %>
             </div>
 
             <% if (typeof success !== 'undefined' && success) { %>
@@ -134,13 +170,23 @@
                 </div>
             <% } %>
 
+            <% if (typeof successMsg !== 'undefined' && successMsg) { %>
+                <div class="alert alert-success py-2 px-3 small mb-3 border-0 bg-success bg-opacity-25 text-success">
+                    ✅ <%= successMsg %>
+                </div>
+            <% } %>
+
             <!-- 📊 4. 獨立模組：訂單清單表格卡片 -->
-            <%- include('partials/orders_table', { orders: typeof orders !== 'undefined' ? orders : [], currentUser: typeof currentUser !== 'undefined' ? currentUser : null, userPerms: typeof userPerms !== 'undefined' ? userPerms : [] }) %>
+            <%- include('partials/orders_table', { 
+                orders: typeof orders !== 'undefined' ? orders : [], 
+                currentUser: activeCurrUser, 
+                userPerms: typeof userPerms !== 'undefined' ? userPerms : [],
+                isOwnerAdmin: isOwnerAdmin 
+            }) %>
         </div>
     </div>
 </div>
 
-<!-- 🚀 5. 獨立模組：訂單詳情與編輯彈窗 -->
 <%- include('modals/order_detail_modal') %>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -175,7 +221,6 @@
         const form = document.getElementById('modalOrderEditForm');
         if (form) form.action = `/management/orders/update/${data.id}`;
 
-        // 展示基本詳情
         setText('detailOrderNo', data.orderNo);
         setText('detailCreatedAt', data.createdAt);
         setText('detailStatusAndCs', `${data.statusName || '進行中'} / ${data.csName || '米胡客服'}`);
@@ -184,12 +229,10 @@
         setText('detailTalentInfo', data.talentId ? `${data.talentName} (@${data.talentId})` : '派單中 (尚未指派)');
         setText('detailExtra', (data.extra && data.extra.trim() !== '' && data.extra !== '無') ? data.extra : '無特別條件');
 
-        // 填寫金額明細專區
         setText('detailOriginalPrice', `$${Number(data.originalPrice || data.totalAmount).toLocaleString()}`);
         setText('detailDiscount', data.discount ? `-$${Number(data.discount).toLocaleString()}` : '$0');
         setText('detailTotalAmountText', `$${Number(data.totalAmount).toLocaleString()} NTD`);
 
-        // 可調整規格
         setVal('editCategory', data.category || '陪玩單');
         setVal('editGame', data.itemName);
         setVal('editContentTier', data.contentTier);
@@ -265,6 +308,62 @@
                 applyFilters();
             });
         });
+
+        // 🚀 批量刪除勾選連動 (以Form提交, 完全不觸發抓取JSON問題)
+        const checkAll = document.getElementById('checkAllOrders');
+        const itemChecks = document.querySelectorAll('.order-checkbox');
+        const batchBtn = document.getElementById('btnBatchDelete');
+        const countSpan = document.getElementById('selectedCount');
+        const batchForm = document.getElementById('batchDeleteForm');
+        const inputsContainer = document.getElementById('batchInputsContainer');
+
+        function updateBatchButton() {
+            const checkedBoxes = document.querySelectorAll('.order-checkbox:checked');
+            const count = checkedBoxes.length;
+
+            if (countSpan) countSpan.textContent = count;
+            if (batchBtn) batchBtn.style.display = count > 0 ? 'inline-flex' : 'none';
+        }
+
+        if (checkAll) {
+            checkAll.addEventListener('change', () => {
+                const visibleCheckboxes = document.querySelectorAll('.order-row:not([style*="display: none"]) .order-checkbox');
+                visibleCheckboxes.forEach(cb => cb.checked = checkAll.checked);
+                updateBatchButton();
+            });
+        }
+
+        itemChecks.forEach(cb => {
+            cb.addEventListener('change', () => {
+                updateBatchButton();
+                if (checkAll && !cb.checked) checkAll.checked = false;
+            });
+        });
+
+        if (batchBtn && batchForm) {
+            batchBtn.addEventListener('click', () => {
+                const checkedBoxes = document.querySelectorAll('.order-checkbox:checked');
+                if (checkedBoxes.length === 0) return;
+
+                if (!confirm(`⚠️ 確定要刪除勾選的 ${checkedBoxes.length} 筆訂單嗎？`)) {
+                    return;
+                }
+
+                // 動態產生 hidden input 提交給後端
+                if (inputsContainer) {
+                    inputsContainer.innerHTML = '';
+                    checkedBoxes.forEach(cb => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'order_ids';
+                        input.value = cb.value;
+                        inputsContainer.appendChild(input);
+                    });
+                }
+
+                batchForm.submit();
+            });
+        }
     });
 </script>
 <%- include('partials/feature_modal') %>

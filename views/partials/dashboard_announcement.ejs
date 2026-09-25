@@ -1,0 +1,95 @@
+<% if (announcement) { %>
+<style>
+    /* 🚀 米胡電競 - 高質感霓虹公告欄 */
+    .announcement-banner-glass {
+        background: linear-gradient(135deg, rgba(147, 51, 234, 0.18) 0%, rgba(19, 16, 33, 0.85) 100%);
+        border: 1px solid rgba(168, 85, 247, 0.35);
+        border-radius: 18px;
+        padding: 14px 24px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(15px);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .announcement-banner-glass:hover {
+        border-color: rgba(192, 132, 252, 0.6);
+        box-shadow: 0 12px 36px rgba(168, 85, 247, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    }
+
+    /* 左側流光裝飾條 */
+    .announcement-banner-glass::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: linear-gradient(180deg, #c084fc 0%, #9333ea 100%);
+        box-shadow: 0 0 12px #c084fc;
+    }
+
+    .announcement-tag-glow {
+        background: linear-gradient(135deg, #9333ea 0%, #a855f7 100%);
+        color: #ffffff;
+        font-size: 0.76rem;
+        font-weight: 800;
+        padding: 5px 14px;
+        border-radius: 20px;
+        letter-spacing: 0.5px;
+        box-shadow: 0 0 12px rgba(168, 85, 247, 0.5);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+
+    .announcement-content-text {
+        color: #f3f4f6;
+        font-size: 0.95rem;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .announcement-date-badge {
+        color: #94a3b8;
+        font-size: 0.8rem;
+        font-family: monospace;
+        font-weight: 600;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 4px 10px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        flex-shrink: 0;
+    }
+</style>
+
+<div class="announcement-banner-glass">
+    <div class="d-flex align-items-center gap-3 style-min-width-0">
+        <!-- 📣 高亮紫色發光標籤 -->
+        <span class="announcement-tag-glow">
+            <i class="fa-solid fa-bullhorn text-warning"></i>
+            <span><%= announcement.tag || '最新公告' %></span>
+        </span>
+
+        <!-- 📝 公告內容文字 -->
+        <span class="announcement-content-text">
+            <%= announcement.content %>
+        </span>
+    </div>
+
+    <!-- 📅 數位質感日期標籤 -->
+    <div class="announcement-date-badge">
+        <i class="fa-regular fa-clock me-1 text-secondary"></i>
+        <span><%= (announcement.created_at || '').slice(0, 10) %></span>
+    </div>
+</div>
+<% } %>

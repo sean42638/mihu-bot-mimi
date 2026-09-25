@@ -1,4 +1,4 @@
-<!-- 📊 模組化：訂單清單表格組件 (獨立滾動高 + 狀態樣式) -->
+<!-- 📊 模組化：訂單清單表格組件 (獨立滾動高 + 狀態樣式 + 店長批量刪除勾選) -->
 <style>
     .glass-table-card {
         background: rgba(23, 19, 38, 0.85) !important;
@@ -78,6 +78,14 @@
     .status-badge-completed { background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; }
     .status-badge-cancelled { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; }
     .status-badge-rejected  { background: rgba(148, 163, 184, 0.15); border: 1px solid rgba(148, 163, 184, 0.3); color: #94a3b8; }
+
+    /* 🚀 勾選框獨立自訂樣式 */
+    .order-checkbox-custom {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+        accent-color: #ec4899;
+    }
 </style>
 
 <div class="glass-table-card">
@@ -85,6 +93,12 @@
         <table class="mihu-table" id="ordersTable">
             <thead>
                 <tr>
+                    <% if (typeof isOwnerAdmin !== 'undefined' && isOwnerAdmin) { %>
+                        <!-- 🚀 僅限店長/最高管理員顯示勾選方塊欄 -->
+                        <th style="width: 40px; text-align: center;">
+                            <input type="checkbox" id="checkAllOrders" class="order-checkbox-custom" title="全選/取消全選">
+                        </th>
+                    <% } %>
                     <th style="width: 14%;">訂單編號</th>
                     <th style="width: 14%;">闆闆</th>
                     <th style="width: 14%;">陪陪</th>
@@ -99,7 +113,9 @@
             <tbody id="ordersTableBody">
                 <% if (!orders || orders.length === 0) { %>
                     <tr>
-                        <td colspan="9" class="text-center py-5 text-secondary">目前尚無相關訂單紀錄</td>
+                        <td colspan="<%= (typeof isOwnerAdmin !== 'undefined' && isOwnerAdmin) ? 10 : 9 %>" class="text-center py-5 text-secondary">
+                            目前尚無相關訂單紀錄
+                        </td>
                     </tr>
                 <% } else { %>
                     <% orders.forEach(o => { 
@@ -178,9 +194,17 @@
                             data-search="<%= `${o.order_no} ${csName} ${bossName} ${talentName} ${category} ${itemName} ${contentTier}`.toLowerCase() %>"
                             onclick="openUnifiedModal(this)">
                             
+                            <!-- 🚀 隱藏欄位：注入可供彈窗開啟的單筆 JSON 數據 -->
                             <script type="application/json" class="order-data-json">
                                 <%- JSON.stringify(orderObj) %>
                             </script>
+
+                            <% if (typeof isOwnerAdmin !== 'undefined' && isOwnerAdmin) { %>
+                                <!-- 🚀 僅限店長顯示 Checkbox，並使用 stopPropagation 避免點擊勾選框時誤觸展開編輯 Modal -->
+                                <td style="text-align: center;" onclick="event.stopPropagation();">
+                                    <input type="checkbox" class="order-checkbox order-checkbox-custom" value="<%= o.id %>">
+                                </td>
+                            <% } %>
 
                             <td>
                                 <div class="fw-bold font-monospace text-light"><%= o.order_no %></div>

@@ -1,0 +1,116 @@
+<%
+    const activeUser = (typeof user !== 'undefined' && user) ? user : ((typeof currentUser !== 'undefined' && currentUser) ? currentUser : {});
+    
+    // 全域身分與權重連動
+    const userRoleInfo = (typeof getRoleInfo === 'function') 
+        ? getRoleInfo(activeUser.role || 'member') 
+        : { name: '店長', badgeClass: 'bg-danger' };
+
+    const emailStr = activeUser.email || '尚未綁定 Email';
+    const isEmailVerified = !!activeUser.email;
+%>
+
+<style>
+    .info-list-group {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .info-item-row {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        border-radius: 12px;
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .info-item-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #94a3b8;
+        font-size: 0.88rem;
+        font-weight: 600;
+    }
+    .info-item-val {
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 0.9rem;
+        font-family: monospace;
+    }
+</style>
+
+<div class="home-card-glass">
+    <div>
+        <div class="home-card-header">
+            <i class="fa-solid fa-id-card text-info fs-5"></i>
+            <div>
+                <div class="home-card-title">我的信息</div>
+                <div class="text-secondary small">個人帳號身分與 Discord 連動認證狀態</div>
+            </div>
+        </div>
+
+        <div class="info-list-group">
+            <!-- Discord ID -->
+            <div class="info-item-row">
+                <div class="info-item-left">
+                    <i class="fa-brands fa-discord text-primary"></i>
+                    <span>Discord ID</span>
+                </div>
+                <div class="info-item-val"><%= activeUser.id || '604610298581876746' %></div>
+            </div>
+
+            <!-- Discord 使用者名稱 -->
+            <div class="info-item-row">
+                <div class="info-item-left">
+                    <i class="fa-solid fa-at text-info"></i>
+                    <span>Discord 使用者名稱</span>
+                </div>
+                <div class="info-item-val"><%= activeUser.username || 'mcky.17' %></div>
+            </div>
+
+            <!-- Email 認證狀態 -->
+            <div class="info-item-row">
+                <div class="info-item-left">
+                    <i class="fa-solid fa-envelope text-warning"></i>
+                    <span>綁定 Email</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="info-item-val" style="font-size: 0.82rem;"><%= emailStr %></span>
+                    <% if (isEmailVerified) { %>
+                        <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25" style="font-size: 0.68rem;">
+                            <i class="fa-solid fa-circle-check me-1"></i>已驗證
+                        </span>
+                    <% } else { %>
+                        <span class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-25" style="font-size: 0.68rem;">
+                            <i class="fa-solid fa-circle-exclamation me-1"></i>未認證
+                        </span>
+                    <% } %>
+                </div>
+            </div>
+
+            <!-- 自定暱稱 -->
+            <div class="info-item-row">
+                <div class="info-item-left">
+                    <i class="fa-solid fa-user-pen text-warning"></i>
+                    <span>自定義暱稱</span>
+                </div>
+                <div class="info-item-val text-warning"><%= activeUser.custom_nickname || activeUser.global_name || activeUser.username %></div>
+            </div>
+
+            <!-- 工作室身分 (完全與全後台 100% 同步連動) -->
+            <div class="info-item-row">
+                <div class="info-item-left">
+                    <i class="fa-solid fa-user-shield text-success"></i>
+                    <span>工作室身分</span>
+                </div>
+                <div>
+                    <span class="badge <%= userRoleInfo.badgeClass %>" style="font-size: 0.8rem; font-weight: 800; padding: 5px 14px; border-radius: 20px;">
+                        <%= userRoleInfo.name %>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -250,67 +250,155 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const memberDetailModal = new bootstrap.Modal(document.getElementById('memberDetailModal'));
-        const adjustBalanceModal = new bootstrap.Modal(document.getElementById('adjustBalanceModal'));
-        const vipModal = new bootstrap.Modal(document.getElementById('vipModal'));
-        const notifyModal = new bootstrap.Modal(document.getElementById('notifyModal'));
+        const memberDetailModalEl = document.getElementById('memberDetailModal');
+        const adjustBalanceModalEl = document.getElementById('adjustBalanceModal');
+        const vipModalEl = document.getElementById('vipModal');
+        const notifyModalEl = document.getElementById('notifyModal');
+        const negativeErrorModalEl = document.getElementById('negativeErrorModal');
+
+        const memberDetailModal = memberDetailModalEl ? bootstrap.Modal.getOrCreateInstance(memberDetailModalEl) : null;
+        const adjustBalanceModal = adjustBalanceModalEl ? bootstrap.Modal.getOrCreateInstance(adjustBalanceModalEl) : null;
+        const vipModal = vipModalEl ? bootstrap.Modal.getOrCreateInstance(vipModalEl) : null;
+        const notifyModal = notifyModalEl ? bootstrap.Modal.getOrCreateInstance(notifyModalEl) : null;
+        const negativeErrorModal = negativeErrorModalEl ? bootstrap.Modal.getOrCreateInstance(negativeErrorModalEl) : null;
+
+        window.currentMemberBalance = 0;
+        window.currentMemberBonus = 0;
 
         function showMemberDetail(data) {
-            document.getElementById('detailAvatar').src = data.avatar;
-            document.getElementById('detailDisplayName').textContent = data.displayName;
-            document.getElementById('detailRoleBadge').textContent = data.roleName;
-            document.getElementById('detailUsername').textContent = `@${data.username}`;
-            document.getElementById('detailId').textContent = `ID: ${data.id}`;
-            document.getElementById('detailVip').textContent = `VIP ${data.vip}`;
-            document.getElementById('detailTotalBalance').textContent = `$${Number(data.totalBalance).toLocaleString()} NTD`;
-            document.getElementById('detailSpent').textContent = `$${Number(data.spent).toLocaleString()} NTD`;
-            document.getElementById('detailDeposited').textContent = `$${Number(data.deposited).toLocaleString()} NTD`;
-            document.getElementById('detailVipGap').textContent = data.vipGap;
-            document.getElementById('detailBirthday').textContent = data.birthday;
-            document.getElementById('detailCreatedAt').textContent = String(data.createdAt).slice(0, 16);
-            memberDetailModal.show();
+            if (!data) return;
+            document.getElementById('detailAvatar').src = data.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png';
+            document.getElementById('detailDisplayName').textContent = data.displayName || '--';
+            document.getElementById('detailRoleBadge').textContent = data.roleName || '會員';
+            document.getElementById('detailUsername').textContent = `@${data.username || ''}`;
+            document.getElementById('detailId').textContent = `ID: ${data.id || ''}`;
+            document.getElementById('detailVip').textContent = `VIP ${data.vip !== undefined ? data.vip : 0}`;
+            document.getElementById('detailTotalBalance').textContent = `$${Number(data.totalBalance || 0).toLocaleString()} NTD`;
+            document.getElementById('detailSpent').textContent = `$${Number(data.spent || 0).toLocaleString()} NTD`;
+            document.getElementById('detailDeposited').textContent = `$${Number(data.deposited || 0).toLocaleString()} NTD`;
+            document.getElementById('detailVipGap').textContent = data.vipGap || '已達頂級';
+            document.getElementById('detailBirthday').textContent = data.birthday || '未填寫';
+            document.getElementById('detailCreatedAt').textContent = String(data.createdAt || '').slice(0, 16);
+            if (memberDetailModal) memberDetailModal.show();
         }
 
+        // 🚀 關鍵修復：帳務 Modal 開啟時，絕不預填 balance 輸入框！
         function showBalanceEdit(data) {
-            document.getElementById('adjustBalanceForm').action = `/management/members/update-balance/${data.id}`;
-            document.getElementById('balanceTargetName').textContent = data.displayName;
+            if (!data) return;
+            
+            window.currentMemberBalance = Number(data.balance || 0);
+            window.currentMemberBonus = Number(data.bonus || 0);
+
+            const form = document.getElementById('adjustBalanceForm');
+            if (form) form.action = `/management/members/update-balance/${data.id}`;
+
+            const nameEl = document.getElementById('balanceTargetName');
+            if (nameEl) nameEl.textContent = data.displayName || '--';
+
+            // 寫入隱藏欄位作為後端加減基底
+            const hiddenBal = document.getElementById('hiddenCurrentBalance');
+            if (hiddenBal) hiddenBal.value = window.currentMemberBalance;
+            const hiddenBonus = document.getElementById('hiddenCurrentBonus');
+            if (hiddenBonus) hiddenBonus.value = window.currentMemberBonus;
+
+            // 🚨 清空欄位！防填入舊資料導致覆蓋
             document.getElementById('modalAddAmount').value = '';
-            document.getElementById('modalBonusBalance').value = data.bonus;
-            document.getElementById('modalBalance').value = data.balance;
-            document.getElementById('modalSpent').value = data.spent;
-            document.getElementById('modalDeposited').value = data.deposited;
-            adjustBalanceModal.show();
+            document.getElementById('modalBonusBalance').value = '';
+            document.getElementById('modalBalance').value = ''; // 留空！不預先填入 balance
+            document.getElementById('modalSpent').value = data.spent !== undefined ? data.spent : '';
+            document.getElementById('modalDeposited').value = data.deposited !== undefined ? data.deposited : '';
+
+            if (adjustBalanceModal) adjustBalanceModal.show();
         }
 
         function showVipEdit(data) {
-            document.getElementById('vipForm').action = `/management/members/update-vip/${data.id}`;
-            document.getElementById('vipTargetName').textContent = data.displayName;
-            document.getElementById('inputVipOnly').value = data.vip;
+            if (!data) return;
+            const form = document.getElementById('vipForm');
+            if (form) form.action = `/management/members/update-vip/${data.id}`;
+
+            const nameEl = document.getElementById('vipTargetName');
+            if (nameEl) nameEl.textContent = data.displayName || '--';
+
+            document.getElementById('inputVipOnly').value = data.vip !== undefined ? data.vip : 0;
             const roleSelect = document.getElementById('inputRoleSelect');
             if (roleSelect && data.roleKey) {
                 roleSelect.value = data.roleKey;
             }
-            vipModal.show();
+            if (vipModal) vipModal.show();
         }
 
+        // 🚀 帳務表單提交負數防呆攔截 (跳出負數獨立 Modal)
+        const adjustForm = document.getElementById('adjustBalanceForm');
+        if (adjustForm) {
+            adjustForm.addEventListener('submit', function (e) {
+                const currBalance = Number(window.currentMemberBalance || 0);
+                const currBonus = Number(window.currentMemberBonus || 0);
+
+                const addAmountVal = document.getElementById('modalAddAmount').value.trim();
+                const bonusChangeVal = document.getElementById('modalBonusBalance').value.trim();
+                const directBalanceVal = document.getElementById('modalBalance').value.trim();
+                const totalSpentVal = document.getElementById('modalSpent').value.trim();
+                const totalDepositedVal = document.getElementById('modalDeposited').value.trim();
+
+                let finalBalance = currBalance;
+                let finalBonus = currBonus;
+
+                if (directBalanceVal !== '') {
+                    finalBalance = Number(directBalanceVal);
+                } else if (addAmountVal !== '') {
+                    finalBalance = currBalance + Number(addAmountVal);
+                }
+
+                if (bonusChangeVal !== '') {
+                    finalBonus = currBonus + Number(bonusChangeVal);
+                }
+
+                let errorMsg = '';
+                if (finalBalance < 0) {
+                    errorMsg = `當前實充為 $${currBalance}，扣除後最終餘額為 $${finalBalance}，數目不得為負數！`;
+                } else if (finalBonus < 0) {
+                    errorMsg = `當前贈送金為 $${currBonus}，扣除後最終贈送金為 $${finalBonus}，數目不得為負數！`;
+                } else if (totalSpentVal !== '' && Number(totalSpentVal) < 0) {
+                    errorMsg = '「累積消費」不得設定為負數！';
+                } else if (totalDepositedVal !== '' && Number(totalDepositedVal) < 0) {
+                    errorMsg = '「累積實充」不得設定為負數！';
+                }
+
+                if (errorMsg) {
+                    e.preventDefault();
+                    const errTextEl = document.getElementById('negativeErrorText');
+                    if (errTextEl) errTextEl.textContent = errorMsg;
+                    if (negativeErrorModal) negativeErrorModal.show();
+                }
+            });
+        }
+
+        // 🚀 操作成功 / 失敗提示彈窗
         const flash = document.getElementById('flashStatus');
         if (flash) {
             const isSuccess = flash.getAttribute('data-success') === '1';
             const errorMsg = flash.getAttribute('data-error');
 
             if (isSuccess) {
-                document.getElementById('notifyIcon').className = 'fa-solid fa-circle-check text-success fs-1';
-                document.getElementById('notifyTitle').textContent = '操作成功';
-                document.getElementById('notifyMessage').textContent = '會員資料與全後台身分已成功同步更新！';
-                notifyModal.show();
+                const icon = document.getElementById('notifyIcon');
+                if (icon) icon.className = 'fa-solid fa-circle-check text-success fs-1';
+                const title = document.getElementById('notifyTitle');
+                if (title) title.textContent = '操作成功';
+                const msg = document.getElementById('notifyMessage');
+                if (msg) msg.textContent = '會員帳務與全後台身分已成功同步更新！';
+                if (notifyModal) notifyModal.show();
             } else if (errorMsg && errorMsg.trim() !== '') {
-                document.getElementById('notifyIcon').className = 'fa-solid fa-circle-xmark text-danger fs-1';
-                document.getElementById('notifyTitle').textContent = '操作失敗';
-                document.getElementById('notifyMessage').textContent = errorMsg;
-                notifyModal.show();
+                const icon = document.getElementById('notifyIcon');
+                if (icon) icon.className = 'fa-solid fa-circle-xmark text-danger fs-1';
+                const title = document.getElementById('notifyTitle');
+                if (title) title.textContent = '操作失敗';
+                const msg = document.getElementById('notifyMessage');
+                if (msg) msg.textContent = errorMsg;
+                if (notifyModal) notifyModal.show();
             }
         }
 
+        // 🚀 關鍵字搜尋與清空邏輯
         const rows = document.querySelectorAll('.member-row');
         const searchInput = document.getElementById('memberSearchInput');
         const clearBtn = document.getElementById('clearSearchBtn');
@@ -322,9 +410,9 @@
                 let visibleCount = 0;
 
                 if (query.length > 0) {
-                    clearBtn.style.display = 'block';
+                    if (clearBtn) clearBtn.style.display = 'block';
                 } else {
-                    clearBtn.style.display = 'none';
+                    if (clearBtn) clearBtn.style.display = 'none';
                 }
 
                 rows.forEach(row => {
@@ -337,25 +425,35 @@
                     }
                 });
 
-                noMatchRow.style.display = visibleCount === 0 ? 'block' : 'none';
+                if (noMatchRow) noMatchRow.style.display = visibleCount === 0 ? 'block' : 'none';
             });
 
-            clearBtn.addEventListener('click', () => {
-                searchInput.value = '';
-                clearBtn.style.display = 'none';
-                rows.forEach(row => row.style.display = '');
-                noMatchRow.style.display = 'none';
-                searchInput.focus();
-            });
+            if (clearBtn) {
+                clearBtn.addEventListener('click', () => {
+                    searchInput.value = '';
+                    clearBtn.style.display = 'none';
+                    rows.forEach(row => row.style.display = '');
+                    if (noMatchRow) noMatchRow.style.display = 'none';
+                    searchInput.focus();
+                });
+            }
         }
 
+        // 🚀 表格列與 4 個獨立按鈕觸發監聽 (含 stopPropagation 防誤觸)
         rows.forEach(row => {
-            const data = JSON.parse(row.getAttribute('data-member'));
+            let data = null;
+            try {
+                data = JSON.parse(row.getAttribute('data-member'));
+            } catch (e) {}
 
+            if (!data) return;
+
+            // 點擊整列預設開啟詳細內容 Modal
             row.addEventListener('click', () => {
                 showMemberDetail(data);
             });
 
+            // 按鈕 1：詳細內容
             const detailBtn = row.querySelector('.btn-detail-trigger');
             if (detailBtn) {
                 detailBtn.addEventListener('click', (e) => {
@@ -364,6 +462,7 @@
                 });
             }
 
+            // 按鈕 2：🪙 會員帳務調整
             const balanceBtn = row.querySelector('.btn-balance-trigger');
             if (balanceBtn) {
                 balanceBtn.addEventListener('click', (e) => {
@@ -372,6 +471,7 @@
                 });
             }
 
+            // 按鈕 3：👑 手動 VIP 與身分調整
             const vipBtn = row.querySelector('.btn-vip-trigger');
             if (vipBtn) {
                 vipBtn.addEventListener('click', (e) => {

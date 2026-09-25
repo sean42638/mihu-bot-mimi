@@ -2,7 +2,7 @@
     const perms = (typeof userPerms !== 'undefined' && userPerms) ? userPerms : [];
     const currUser = (typeof currentUser !== 'undefined' && currentUser) ? currentUser : {};
 
-    // 🚀 1. 寬鬆匹配所有管理員角色名稱 (包含 admin, manager, cfo, owner, administrator 等)
+    // 🚀 1. 寬鬆匹配所有管理員角色名稱 (包含 admin, manager, cfo, owner, administrator, cs 等)
     const userRole = String(currUser.role || '').toLowerCase();
     const isAdminUser = ['admin', 'cfo', 'manager', 'owner', 'administrator', 'cs'].includes(userRole);
 
@@ -222,7 +222,8 @@
                                 <i class="fa-solid fa-users-gear" style="color: #10b981;"></i>
                                 <span>員工列表</span>
                             </a>
-                            <a href="javascript:void(0)" class="submenu-item under-construction" data-feature="薪轉管理">
+                            <!-- 🚀 正式開放進入薪轉管理頁面 -->
+                            <a href="/management/payroll" class="submenu-item <%= typeof activePage !== 'undefined' && activePage === 'payroll' ? 'active-staff' : '' %>">
                                 <i class="fa-solid fa-money-check-dollar" style="color: #fde047;"></i>
                                 <span>薪轉管理</span>
                             </a>
@@ -249,7 +250,6 @@
                 </a>
             <% } %>
 
-            <!-- 🚀 正式啟用：全域抽佣設定頁面連結 -->
             <% if (hasPerm('sys_commission')) { %>
                 <a href="/system/commission" class="menu-item <%= typeof activePage !== 'undefined' && activePage === 'commission' ? 'active' : '' %>">
                     <i class="fa-solid fa-percent" style="color: #fde047;"></i>

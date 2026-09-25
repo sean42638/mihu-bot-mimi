@@ -1,0 +1,187 @@
+<!-- 📊 薪轉管理表格清單 (7 筆數據高獨立暗色滾動) -->
+<style>
+    .glass-table-card {
+        background: rgba(23, 19, 38, 0.85) !important;
+        border: 1px solid rgba(168, 85, 247, 0.2) !important;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45);
+        backdrop-filter: blur(15px);
+    }
+
+    .payroll-table-scroll {
+        margin: 0;
+        max-height: 480px; /* 約 7 筆數據固定滾動高度 */
+        overflow-y: auto !important;
+        overflow-x: auto;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(245, 158, 11, 0.4) transparent;
+    }
+    .payroll-table-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+    .payroll-table-scroll::-webkit-scrollbar-thumb {
+        background: rgba(245, 158, 11, 0.4);
+        border-radius: 4px;
+    }
+
+    .mihu-table {
+        width: 100%;
+        margin-bottom: 0;
+        color: #f3f4f6 !important;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    .mihu-table th {
+        background: #131021 !important;
+        color: #94a3b8 !important;
+        font-weight: 700;
+        font-size: 0.84rem;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        padding: 16px 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+        white-space: nowrap;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    .mihu-table td {
+        padding: 15px 20px;
+        vertical-align: middle;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+        font-size: 0.92rem;
+        white-space: nowrap;
+        color: #f3f4f6 !important;
+    }
+    .mihu-table tbody tr.payroll-row {
+        transition: background 0.15s ease;
+    }
+    .mihu-table tbody tr.payroll-row:hover {
+        background: rgba(245, 158, 11, 0.08) !important;
+    }
+
+    .staff-avatar-sm {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid rgba(245, 158, 11, 0.45);
+    }
+
+    .bank-code-badge {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: #7dd3fc;
+        font-size: 0.8rem;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-family: monospace;
+        font-weight: 700;
+    }
+
+    .bank-account-text {
+        font-family: monospace;
+        font-weight: 800;
+        color: #fde047;
+        font-size: 0.95rem;
+        letter-spacing: 0.5px;
+    }
+</style>
+
+<div class="glass-table-card">
+    <div class="payroll-table-scroll">
+        <table class="mihu-table" id="payrollTable">
+            <thead>
+                <tr>
+                    <th style="width: 18%;">員工暱稱</th>
+                    <th style="width: 12%;">本名</th>
+                    <th style="width: 15%;">銀行名稱</th>
+                    <th style="width: 10%; text-align: center;">機構代碼</th>
+                    <th style="width: 15%;">分行名稱</th>
+                    <th style="width: 18%;">銀行帳戶</th>
+                    <th style="width: 12%; text-align: right;">已累積薪資</th>
+                </tr>
+            </thead>
+            <tbody id="payrollTableBody">
+                <% if (!staffList || staffList.length === 0) { %>
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-secondary">尚無員工薪轉資料紀錄</td>
+                    </tr>
+                <% } else { %>
+                    <% staffList.forEach(s => { 
+                        const avUrl = s.avatar 
+                            ? `https://cdn.discordapp.com/avatars/${s.id}/${s.avatar}.png` 
+                            : `https://cdn.discordapp.com/embed/avatars/0.png`;
+                        const displayName = s.custom_nickname || s.global_name || s.username;
+                        const realName = s.real_name || '未填寫';
+                        const bankName = s.bank_name || '未填寫';
+                        const bankCode = s.bank_code || '---';
+                        const bankBranch = s.bank_branch || '未填寫';
+                        const bankAccount = s.bank_account || '未填寫';
+                        const accumulatedPayout = Number(s.accumulated_payout || 0);
+
+                        const searchStr = `${displayName} ${s.username} ${realName} ${bankName} ${bankCode} ${bankAccount}`.toLowerCase();
+                    %>
+                        <tr class="payroll-row" data-search="<%= searchStr %>">
+                            <!-- 1. 員工暱稱 -->
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <img src="<%= avUrl %>" alt="頭像" class="staff-avatar-sm">
+                                    <div>
+                                        <div class="fw-bold text-white small"><%= displayName %></div>
+                                        <div class="text-secondary font-monospace" style="font-size: 0.7rem;">@<%= s.username %></div>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- 2. 本名 -->
+                            <td>
+                                <span class="fw-bold <%= s.real_name ? 'text-white' : 'text-secondary opacity-75' %>">
+                                    <%= realName %>
+                                </span>
+                            </td>
+
+                            <!-- 3. 銀行名稱 -->
+                            <td>
+                                <span class="fw-semibold <%= s.bank_name ? 'text-light' : 'text-secondary opacity-75' %>">
+                                    <%= bankName %>
+                                </span>
+                            </td>
+
+                            <!-- 4. 機構代碼 -->
+                            <td class="text-center">
+                                <span class="bank-code-badge"><%= bankCode %></span>
+                            </td>
+
+                            <!-- 5. 分行名稱 -->
+                            <td>
+                                <span class="<%= s.bank_branch ? 'text-light' : 'text-secondary opacity-75' %> small">
+                                    <%= bankBranch %>
+                                </span>
+                            </td>
+
+                            <!-- 6. 銀行帳戶 -->
+                            <td>
+                                <span class="bank-account-text">
+                                    <%= bankAccount %>
+                                </span>
+                            </td>
+
+                            <!-- 7. 已累積薪資 -->
+                            <td class="text-end">
+                                <span class="fw-bold text-success font-monospace fs-6">
+                                    $<%= accumulatedPayout.toLocaleString() %>
+                                </span>
+                                <span class="small text-secondary">NTD</span>
+                            </td>
+                        </tr>
+                    <% }) %>
+                <% } %>
+            </tbody>
+        </table>
+
+        <div id="noPayrollMatchRow" class="text-center py-5 text-secondary" style="display: none;">
+            <i class="fa-solid fa-user-slash fs-3 mb-2 opacity-50"></i>
+            <p class="small mb-0">找不到符合搜尋條件的薪轉資料</p>
+        </div>
+    </div>
+</div>
