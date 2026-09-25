@@ -83,20 +83,24 @@
 
                 <hr class="border-secondary border-opacity-25 my-4">
 
-                <!-- 💰 2. 下方實充餘額 / 贈送餘額區 -->
+                <!-- 💰 2. 下方實充餘額 / 贈送餘額 / 累積實充區 -->
                 <% 
-                    const realBalance = Number(user.real_balance || user.balance || 0);
+                    const currentBalance = Number(user.balance || 0);
                     const bonusBalance = Number(user.bonus_balance || 0);
+                    const accumulatedDeposited = Number(user.manual_deposited !== undefined ? user.manual_deposited : (user.total_deposited || 0));
+                    const accumulatedSpent = Number(user.manual_spent !== undefined ? user.manual_spent : (user.total_spent || 0));
+
                     const userAvatar = user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` : `https://cdn.discordapp.com/embed/avatars/0.png`;
-                    const userName = user.nickname || user.global_name || user.username || '會員闆闆';
+                    const userName = user.custom_nickname || user.nickname || user.global_name || user.username || '會員闆闆';
 
                     const walletObj = {
                         id: user.id,
                         name: userName,
                         avatar: userAvatar,
-                        balance: user.balance || 0,
-                        realBalance: realBalance,
-                        bonusBalance: bonusBalance
+                        balance: currentBalance,
+                        bonusBalance: bonusBalance,
+                        accumulatedDeposited: accumulatedDeposited,
+                        accumulatedSpent: accumulatedSpent
                     };
                 %>
                 <!-- 隱藏式 JSON 資料 -->
@@ -105,13 +109,17 @@
                 </script>
 
                 <div class="row text-center py-2">
-                    <div class="col-6 balance-divider">
-                        <div class="text-secondary small mb-2 fw-semibold"><i class="fa-solid fa-money-bill-wave text-success me-1"></i>實充餘額</div>
-                        <div class="fs-4 fw-bold text-white font-monospace">$<%= realBalance.toLocaleString() %></div>
+                    <div class="col-4 balance-divider">
+                        <div class="text-secondary small mb-2 fw-semibold"><i class="fa-solid fa-coins text-warning me-1"></i>目前可用餘額</div>
+                        <div class="fs-4 fw-bold text-warning font-monospace">$<%= currentBalance.toLocaleString() %></div>
                     </div>
-                    <div class="col-6">
-                        <div class="text-secondary small mb-2 fw-semibold"><i class="fa-solid fa-gift text-warning me-1"></i>贈送餘額</div>
-                        <div class="fs-4 fw-bold text-warning font-monospace">$<%= bonusBalance.toLocaleString() %></div>
+                    <div class="col-4 balance-divider">
+                        <div class="text-secondary small mb-2 fw-semibold"><i class="fa-solid fa-money-bill-wave text-info me-1"></i>總累積實充</div>
+                        <div class="fs-4 fw-bold text-info font-monospace">$<%= accumulatedDeposited.toLocaleString() %></div>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-secondary small mb-2 fw-semibold"><i class="fa-solid fa-gift text-success me-1"></i>贈送餘額</div>
+                        <div class="fs-4 fw-bold text-success font-monospace">$<%= bonusBalance.toLocaleString() %></div>
                     </div>
                 </div>
             </div>
@@ -126,7 +134,7 @@
                 }) %>
             </div>
 
-            <!-- 📜 4. 獨立模組化：消費歷史與帳戶流水頁籤區 (限制 5 則高度滾動) -->
+            <!-- 📜 4. 獨立模組化：消費歷史與帳戶流水頁籤區 -->
             <%- include('partials/wallet_history', { orders: orders, transactions: transactions, topups: topups, user: user }) %>
         </div>
     </div>
@@ -152,7 +160,7 @@
             setText('walletModalUserName', data.name);
             setText('walletModalUserId', `ID: ${data.id}`);
             setText('walletModalBalance', `$${Number(data.balance || 0).toLocaleString()}`);
-            setText('walletModalRealBalance', `$${Number(data.realBalance || 0).toLocaleString()}`);
+            setText('walletModalRealBalance', `$${Number(data.accumulatedDeposited || 0).toLocaleString()}`);
             setText('walletModalBonusBalance', `$${Number(data.bonusBalance || 0).toLocaleString()}`);
 
             const avatarEl = document.getElementById('walletModalAvatar');

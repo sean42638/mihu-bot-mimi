@@ -3,7 +3,7 @@ const db = require('../database');
 /**
  * 👑 全後台 VIP 自動試算與連動核心 Helper (對接獨立 user_wallets 資金表)
  * @param {string} userId - 目標會員 ID
- * @param {number} [lastSingleTopup=0] - 本次單次正數充值金額 (供單次預存升級條件比對)
+ * @param {number} [lastSingleTopup=0] - 本次單次正數充值金額
  */
 async function checkAndUpdateVipLevel(userId, lastSingleTopup = 0) {
     return new Promise((resolve) => {

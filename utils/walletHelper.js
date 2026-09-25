@@ -2,7 +2,7 @@ const db = require('../database');
 const { checkAndUpdateVipLevel } = require('./vipHelper');
 
 /**
- * 💳 全後台統一帳務調整與資金處理核心 (獨立資金表 user_wallets)
+ * 💳 全後台統一帳務調整與資金處理核心 (獨立資金表 user_wallets 100% 整合)
  */
 async function adjustUserWallet({
     userId,
@@ -17,6 +17,7 @@ async function adjustUserWallet({
     return new Promise((resolve, reject) => {
         if (!userId) return reject(new Error('缺少目標會員 ID'));
 
+        // 1. 從獨立資金表 user_wallets 讀取最新帳務
         const getWalletSql = `
             SELECT 
                 COALESCE(w.balance, u.balance, 0) as balance,
@@ -45,40 +46,40 @@ async function adjustUserWallet({
 
             let singleTopupAmount = 0; // 本次正數充值金額
 
-            // 解析數值
-            const parsedAdd = (addAmount !== null && addAmount !== undefined && String(addAmount).trim() !== '') ? Number(addAmount) : null;
-            const parsedBonus = (bonusChange !== null && bonusChange !== undefined && String(bonusChange).trim() !== '') ? Number(bonusChange) : null;
-            const parsedBalance = (overrideBalance !== null && overrideBalance !== undefined && String(overrideBalance).trim() !== '') ? Number(overrideBalance) : null;
-            const parsedSpent = (overrideSpent !== null && overrideSpent !== undefined && String(overrideSpent).trim() !== '') ? Number(overrideSpent) : null;
-            const parsedDeposited = (overrideDeposited !== null && overrideDeposited !== undefined && String(overrideDeposited).trim() !== '') ? Number(overrideDeposited) : null;
+            // 解析手動輸入 (非 null、非 undefined、非空字串才視為手動覆蓋)
+            const hasManualDeposited = overrideDeposited !== null && overrideDeposited !== undefined && String(overrideDeposited).trim() !== '';
+            const hasManualSpent = overrideSpent !== null && overrideSpent !== undefined && String(overrideSpent).trim() !== '';
+            const hasManualBalance = overrideBalance !== null && overrideBalance !== undefined && String(overrideBalance).trim() !== '';
 
-            // 🚀 1. 處理累積消費 (overrideSpent)
-            if (parsedSpent !== null && !isNaN(parsedSpent)) {
-                newSpent = parsedSpent;
+            // 🚀 A. 處理「累積消費」覆蓋
+            if (hasManualSpent) {
+                newSpent = Number(overrideSpent);
             }
 
-            // 🚀 2. 處理「本次充值 / 扣款 (addAmount)」與「目前餘額」
-            if (parsedBalance !== null && !isNaN(parsedBalance)) {
-                newBalance = parsedBalance;
-            } else if (parsedAdd !== null && !isNaN(parsedAdd)) {
-                newBalance = currBalance + parsedAdd;
+            // 🚀 B. 處理「本次充值 / 扣款 (addAmount)」與「目前餘額 / 累積實充」
+            if (hasManualBalance) {
+                newBalance = Number(overrideBalance);
+            } else if (addAmount !== null && addAmount !== undefined && String(addAmount).trim() !== '' && !isNaN(Number(addAmount))) {
+                const parsedAdd = Number(addAmount);
+                newBalance = currBalance + parsedAdd; // 正數加餘額，負數扣款
+
+                // 🌟 本次充值 > 0 時，100% 自動加進「累積實充」 (除非管理員有單獨輸入「調整累積實充」)
                 if (parsedAdd > 0) {
                     singleTopupAmount = parsedAdd;
+                    if (!hasManualDeposited) {
+                        newDeposited = currDeposited + parsedAdd;
+                    }
                 }
             }
 
-            // 🚀 3. 關鍵連動：累積實充 (newDeposited) 計算
-            // 規則 A：若有輸入「本次充值」(正數)，且沒有顯式指定一個「大於 0 的手動覆蓋值」，累積實充 100% 自動累加！
-            if (singleTopupAmount > 0 && (parsedDeposited === null || isNaN(parsedDeposited) || parsedDeposited === 0)) {
-                newDeposited = currDeposited + singleTopupAmount;
-            } 
-            // 規則 B：若單獨手動指定「調整累積實充」(包含輸入指定金額或歸零 0，且本次無充值)，以手動覆蓋值為準！
-            else if (parsedDeposited !== null && !isNaN(parsedDeposited)) {
-                newDeposited = parsedDeposited;
+            // 🚀 C. 若管理員有手動在「調整累積實充」框框填寫數字 (包含填 0)，手動覆蓋值優先！
+            if (hasManualDeposited) {
+                newDeposited = Number(overrideDeposited);
             }
 
-            // 🚀 4. 處理贈送金 (計算至目前餘額)
-            if (parsedBonus !== null && !isNaN(parsedBonus)) {
+            // 🚀 D. 處理「贈送金」(計算至目前餘額)
+            if (bonusChange !== null && bonusChange !== undefined && String(bonusChange).trim() !== '' && !isNaN(Number(bonusChange))) {
+                const parsedBonus = Number(bonusChange);
                 newBonus = currBonus + parsedBonus;
                 newBalance = newBalance + parsedBonus;
             }
@@ -104,31 +105,31 @@ async function adjustUserWallet({
             db.run(upsertWalletSql, [userId, newBalance, newBonus, newSpent, newDeposited], async function (uErr) {
                 if (uErr) return reject(uErr);
 
-                // 備份至 users 主表
+                // 同步寫回 users 主表，確保資料庫一致
                 db.run(`UPDATE users SET balance = ?, bonus_balance = ?, manual_spent = ?, manual_deposited = ? WHERE id = ?`,
-                    [newBalance, newBonus, newSpent, newDeposited, userId], () => {});
+                    [newBalance, newBonus, newSpent, newDeposited, userId], () => {
 
-                // 寫入 topups 流水紀錄
-                if (singleTopupAmount > 0) {
-                    db.run(`
-                        INSERT INTO topups (user_id, amount, bonus, channel_type, note, operator_id, created_at)
-                        VALUES (?, ?, ?, '後台手動充值', ?, ?, DATETIME('now', 'localtime'))
-                    `, [userId, singleTopupAmount, bonusChange || 0, reason, operatorId], () => {});
-                }
+                    // 7. 寫入 topups 流水紀錄並即刻重算 VIP
+                    if (singleTopupAmount > 0) {
+                        db.run(`
+                            INSERT INTO topups (user_id, amount, bonus, channel_type, note, operator_id, created_at)
+                            VALUES (?, ?, ?, '後台手動充值', ?, ?, DATETIME('now', 'localtime'))
+                        `, [userId, singleTopupAmount, bonusChange || 0, reason, operatorId], () => {});
+                    }
 
-                // 7. 🚀 核心連動：即刻調用 VIP Helper 重算 (帶入單次充值額度)
-                try {
-                    await checkAndUpdateVipLevel(userId, singleTopupAmount);
-                } catch (vErr) {
-                    console.error('❌ VIP 重算失敗:', vErr);
-                }
+                    try {
+                        checkAndUpdateVipLevel(userId, singleTopupAmount);
+                    } catch (vErr) {
+                        console.error('❌ VIP 重算失敗:', vErr);
+                    }
 
-                resolve({
-                    success: true,
-                    newBalance,
-                    newBonus,
-                    newSpent,
-                    newDeposited
+                    resolve({
+                        success: true,
+                        newBalance,
+                        newBonus,
+                        newSpent,
+                        newDeposited
+                    });
                 });
             });
         });

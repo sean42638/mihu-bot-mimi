@@ -5,16 +5,15 @@ const { ensureAuth } = require('../../middleware/auth');
 const { sortByRoleWeight } = require('../../utils/roleHelper');
 const { adjustUserWallet } = require('../../utils/walletHelper');
 
-// 1.1 渲染「會員管理」頁面 (優先取 user_wallets 數據)
+// 1.1 渲染「會員管理」頁面 (完全整合 user_wallets 資料庫)
 router.get('/', ensureAuth, (req, res) => {
     const membersSql = `
         SELECT u.*,
             COALESCE(w.balance, u.balance, 0) as balance,
             COALESCE(w.bonus_balance, u.bonus_balance, 0) as bonus_balance,
-            w.manual_spent as wallet_manual_spent,
-            w.manual_deposited as wallet_manual_deposited,
-            COALESCE((SELECT SUM(total_amount) FROM orders WHERE boss_id = u.id AND status = 'completed'), 0) as sys_spent,
-            COALESCE((SELECT SUM(amount) FROM topups WHERE user_id = u.id AND amount > 0), 0) as sys_deposited
+            COALESCE(w.manual_spent, u.manual_spent, 0) as manual_spent,
+            COALESCE(w.manual_deposited, u.manual_deposited, 0) as manual_deposited,
+            (COALESCE(w.balance, u.balance, 0) + COALESCE(w.bonus_balance, u.bonus_balance, 0)) as total_balance
         FROM users u 
         LEFT JOIN user_wallets w ON u.id = w.user_id
     `;
@@ -29,11 +28,8 @@ router.get('/', ensureAuth, (req, res) => {
             const tiers = vipTiers || [];
             
             const processedMembers = (rawMembers || []).map(m => {
-                const manualSpent = m.wallet_manual_spent !== null && m.wallet_manual_spent !== undefined ? Number(m.wallet_manual_spent) : null;
-                const manualDeposited = m.wallet_manual_deposited !== null && m.wallet_manual_deposited !== undefined ? Number(m.wallet_manual_deposited) : null;
-
-                const spent = manualSpent !== null ? manualSpent : Number(m.sys_spent || 0);
-                const deposited = manualDeposited !== null ? manualDeposited : Number(m.sys_deposited || 0);
+                const spent = Number(m.manual_spent || 0);
+                const deposited = Number(m.manual_deposited || 0);
 
                 let currentVip = Number(m.vip_level || 0);
                 for (const tier of tiers) {
@@ -67,11 +63,11 @@ router.get('/', ensureAuth, (req, res) => {
                 return {
                     ...m,
                     vip_level: currentVip,
-                    total_balance: Number(m.balance || 0) + Number(m.bonus_balance || 0),
+                    total_balance: Number(m.total_balance || 0),
                     balance: Number(m.balance || 0),
                     bonus_balance: Number(m.bonus_balance || 0),
-                    manual_spent: manualSpent !== null ? manualSpent : 0,
-                    manual_deposited: deposited, // 🚀 精準顯示最新累積實充
+                    manual_spent: spent,
+                    manual_deposited: deposited,
                     total_spent: spent,
                     total_deposited: deposited,
                     gap_spent: gapSpent,
@@ -121,7 +117,7 @@ router.get('/sync-all', ensureAuth, async (req, res) => {
     res.redirect('/management/members?success=1');
 });
 
-// 1.4 手動更新會員帳務金額 API (精準處理空字串與 0)
+// 1.4 手動更新會員帳務金額 API (整合資金資料庫)
 router.post('/update-balance/:id', ensureAuth, async (req, res) => {
     const targetUserId = req.params.id;
     const { add_amount, bonus_change, bonus_balance, balance, total_spent, total_deposited, note } = req.body;
