@@ -1,0 +1,176 @@
+<!-- 彈窗 1：員工詳細檔案彈窗 -->
+<div class="modal fade" id="staffDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 520px;">
+        <div class="modal-content modal-content-glass">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-id-card-clip text-success"></i>
+                    <span>員工完整個人與薪資檔案</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-3">
+                <div class="d-flex align-items-center gap-3 p-3 rounded-3 mb-3" style="background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.08);">
+                    <img id="detailAvatar" src="" class="staff-avatar" style="width: 54px; height: 54px;">
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-bold fs-5 text-white" id="detailDisplayName"></span>
+                            <span id="detailRoleBadge" class="badge bg-primary" style="font-size: 0.72rem;">職位</span>
+                            <span id="detailStatusBadge" class="status-pill status-idle" style="font-size: 0.7rem;">狀態</span>
+                        </div>
+                        <div class="small text-secondary font-monospace" id="detailUsername"></div>
+                        <div class="small text-white-50 font-monospace" id="detailId"></div>
+                    </div>
+                </div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-4">
+                        <div class="info-detail-box">
+                            <span class="info-detail-label">分潤抽佣規則</span>
+                            <span class="info-detail-val text-warning" id="detailRate">工作室預設</span>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="info-detail-box">
+                            <span class="info-detail-label">完成單數</span>
+                            <span class="info-detail-val text-white" id="detailOrders">0 單</span>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="info-detail-box">
+                            <span class="info-detail-label">累積總業績</span>
+                            <span class="info-detail-val text-success" id="detailRevenue">$0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-3 rounded-3 mb-3" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06);">
+                    <div class="row g-2 small">
+                        <div class="col-6">
+                            <span class="text-secondary">生日：</span>
+                            <span class="text-white font-monospace fw-bold" id="detailBirthday">未填寫</span>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-secondary">性別：</span>
+                            <span class="text-white fw-bold" id="detailGender">未設定</span>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-secondary">MBTI 人格：</span>
+                            <span class="text-info font-monospace fw-bold" id="detailMbti">未設定</span>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-secondary">專屬工單頻道：</span>
+                            <span class="text-white-50 font-monospace" id="detailChannel">未綁定</span>
+                        </div>
+                    </div>
+                </div>
+
+                <% 
+                    const isSuperId = (typeof currentUser !== 'undefined' && currentUser && (currentUser.id === '604610298581876746' || currentUser.role === 'admin'));
+                    const canViewPayroll = isSuperId || (typeof hasPerm === 'function' ? hasPerm('staff_view_payroll') : false);
+                %>
+
+                <% if (canViewPayroll) { %>
+                    <div class="p-3 rounded-3" style="background: rgba(239, 68, 68, 0.06); border: 1px solid rgba(239, 68, 68, 0.25);">
+                        <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom border-danger border-opacity-25">
+                            <span class="text-danger small fw-bold"><i class="fa-solid fa-lock me-1"></i>敏感薪轉個資</span>
+                            <span class="badge bg-danger bg-opacity-25 text-danger" style="font-size: 0.68rem;">機密</span>
+                        </div>
+                        <div class="row g-2 small">
+                            <div class="col-6">
+                                <span class="text-secondary">本名：</span>
+                                <span class="text-white fw-bold" id="detailRealName">未填寫</span>
+                            </div>
+                            <div class="col-6">
+                                <span class="text-secondary">銀行名稱：</span>
+                                <span class="text-white fw-bold" id="detailBankName">未填寫</span>
+                            </div>
+                            <div class="col-6">
+                                <span class="text-secondary">機構代碼：</span>
+                                <span class="text-white font-monospace" id="detailBankCode">未填寫</span>
+                            </div>
+                            <div class="col-6">
+                                <span class="text-secondary">分行名稱：</span>
+                                <span class="text-white" id="detailBankBranch">未填寫</span>
+                            </div>
+                            <div class="col-12 mt-2">
+                                <span class="text-secondary">薪轉帳戶：</span>
+                                <span class="text-warning font-monospace fw-bold fs-6" id="detailBankAccount">未填寫</span>
+                            </div>
+                        </div>
+                    </div>
+                <% } else { %>
+                    <div class="p-3 rounded-3 text-center" style="background: rgba(255, 255, 255, 0.02); border: 1px dashed rgba(255, 255, 255, 0.15);">
+                        <i class="fa-solid fa-user-shield text-secondary fs-4 mb-2"></i>
+                        <div class="text-secondary small fw-medium">您的身分組無權限查看員工敏感薪轉個資</div>
+                    </div>
+                <% } %>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-sm btn-secondary rounded-pill px-4" data-bs-dismiss="modal">關閉</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 彈窗 2：編輯員工職位、狀態與抽佣彈窗 -->
+<div class="modal fade" id="staffEditModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 460px;">
+        <div class="modal-content modal-content-glass">
+            <form id="staffEditForm" method="POST">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-user-gear text-success"></i>
+                        <span>設定員工職務與抽佣</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <div class="text-secondary small mb-3">
+                        目標員工：<span class="text-white fw-bold" id="editTargetName"></span>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="small text-secondary fw-semibold mb-1">指派身分職位</label>
+                            <select id="editRole" name="role" class="form-select form-control-glass" style="background-color: #171326; color: #fff;">
+                                <option value="admin">店長 (最高權限)</option>
+                                <option value="cfo">財務長</option>
+                                <option value="aftersales">售後管理</option>
+                                <option value="manager">客服主管</option>
+                                <option value="cs">客服</option>
+                                <option value="staff">陪陪</option>
+                                <option value="member">一般會員</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="small text-secondary fw-semibold mb-1">在職服務狀態</label>
+                            <select id="editStatus" name="status" class="form-select form-control-glass" style="background-color: #171326; color: #fff;">
+                                <option value="idle">空閒中</option>
+                                <option value="busy">接單中</option>
+                                <option value="leave">請假中</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="small text-secondary fw-semibold mb-1 d-flex justify-content-between align-items-center">
+                            <span>個人獨立分潤成數 (例如 0.8 代表 80%)</span>
+                        </label>
+                        <input type="number" step="0.01" min="0" max="1" id="editRate" name="commission_rate" class="form-control form-control-glass font-monospace text-end" placeholder="依工作室預設">
+                        <div class="text-light text-end mt-1" style="font-size: 0.78rem; color: #cbd5e1 !important;">* 若空白則自動採用「抽佣設定」之全域類別預設</div>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="small text-secondary fw-semibold mb-1">Discord 專屬工單文字頻道 ID</label>
+                        <input type="text" id="editChannel" name="staff_channel_id" class="form-control form-control-glass font-monospace" placeholder="例如：123456789012345678">
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-sm btn-success rounded-pill px-4 fw-semibold">儲存設定</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

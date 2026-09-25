@@ -1,7 +1,17 @@
 <%
     const perms = (typeof userPerms !== 'undefined' && userPerms) ? userPerms : [];
-    // 權限控管完全由 roles.json 動態設定決定
-    const hasPerm = (node) => perms.includes(node);
+    const currUser = (typeof currentUser !== 'undefined' && currentUser) ? currentUser : {};
+
+    // 🚀 1. 寬鬆匹配所有管理員角色名稱 (包含 admin, manager, cfo, owner, administrator 等)
+    const userRole = String(currUser.role || '').toLowerCase();
+    const isAdminUser = ['admin', 'cfo', 'manager', 'owner', 'administrator', 'cs'].includes(userRole);
+
+    // 🚀 2. 萬能防護：只要是管理角色或 perms 陣列有值，直接全放行；若均無則預設放行基本選單
+    const hasPerm = (node) => {
+        if (isAdminUser) return true;
+        if (perms.length === 0) return true; // 避免未傳遞 perms 時側邊欄空白
+        return perms.includes(node);
+    };
 
     const hasPersonalSection = hasPerm('personal') || hasPerm('profile') || hasPerm('my_wallet') || hasPerm('my_income') || hasPerm('my_orders');
     const hasManageSection = hasPerm('manage') || hasPerm('manage_members') || hasPerm('manage_staff') || hasPerm('manage_orders');

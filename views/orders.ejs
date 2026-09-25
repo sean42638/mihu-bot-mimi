@@ -48,63 +48,6 @@
             gap: 14px;
         }
 
-        .glass-table-card {
-            background: rgba(23, 19, 38, 0.85) !important;
-            border: 1px solid rgba(168, 85, 247, 0.2) !important;
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45);
-        }
-
-        .table-responsive-scroll { 
-            margin: 0; 
-            max-height: 520px; 
-            overflow-y: auto !important; 
-            overflow-x: auto;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(168, 85, 247, 0.4) transparent;
-        }
-
-        .mihu-table {
-            width: 100%;
-            margin-bottom: 0;
-            color: #f3f4f6 !important;
-            border-collapse: separate;
-            border-spacing: 0;
-        }
-
-        .mihu-table th {
-            background: #131021 !important;
-            color: #94a3b8 !important;
-            font-weight: 700;
-            font-size: 0.84rem;
-            text-transform: uppercase;
-            letter-spacing: 0.6px;
-            padding: 16px 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-            white-space: nowrap;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
-        .mihu-table td {
-            padding: 15px 20px;
-            vertical-align: middle;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-            font-size: 0.92rem;
-            white-space: nowrap;
-            color: #f3f4f6 !important;
-        }
-
-        .mihu-table tbody tr.order-row {
-            cursor: pointer;
-            transition: background 0.15s ease;
-        }
-        .mihu-table tbody tr.order-row:hover {
-            background: rgba(168, 85, 247, 0.12) !important;
-        }
-
         .filter-tabs {
             display: flex;
             gap: 8px;
@@ -145,31 +88,16 @@
         }
         .search-icon-left { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.88rem; }
         .search-clear-btn { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; display: none; border: none; background: transparent; }
-
-        .user-mini-col { display: flex; align-items: center; gap: 10px; }
-        .user-mini-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255, 255, 255, 0.15); }
-
-        .category-badge { font-size: 0.78rem; font-weight: 700; padding: 4px 12px; border-radius: 20px; display: inline-flex; align-items: center; gap: 6px; }
-        .badge-陪玩單   { background: rgba(168, 85, 247, 0.18); border: 1px solid rgba(168, 85, 247, 0.4); color: #d8b4fe; }
-        .badge-禮物單   { background: rgba(236, 72, 153, 0.18); border: 1px solid rgba(236, 72, 153, 0.4); color: #f472b6; }
-        .badge-有獎     { background: rgba(56, 189, 248, 0.18); border: 1px solid rgba(56, 189, 248, 0.4); color: #7dd3fc; }
-        .badge-冠名     { background: rgba(245, 158, 11, 0.18); border: 1px solid rgba(245, 158, 11, 0.4); color: #fde047; }
-        .badge-獎金     { background: rgba(16, 185, 129, 0.18); border: 1px solid rgba(16, 185, 129, 0.4); color: #6ee7b7; }
-
-        .status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: 0.76rem; font-weight: 700; }
-        .status-badge-pending   { background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #fde047; }
-        .status-badge-active    { background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; }
-        .status-badge-completed { background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; }
-        .status-badge-cancelled { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; }
-        .status-badge-rejected  { background: rgba(148, 163, 184, 0.15); border: 1px solid rgba(148, 163, 184, 0.3); color: #94a3b8; }
     </style>
 </head>
 <body>
 
 <div class="app-layout">
+    <!-- 🚀 1. 側邊導覽列 -->
     <%- include('partials/sidebar', { activePage: 'orders' }) %>
 
     <div class="main-wrapper">
+        <!-- 🚀 2. 頂部導覽列 -->
         <%- include('partials/navbar', { activePage: 'orders' }) %>
 
         <div class="content-body">
@@ -188,6 +116,7 @@
                 </div>
             </div>
 
+            <!-- 🚀 3. 狀態標籤篩選器 -->
             <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                 <div class="filter-tabs">
                     <button type="button" class="filter-tab-btn active" data-filter="all">全部訂單 (<%= orders ? orders.length : 0 %>)</button>
@@ -205,169 +134,13 @@
                 </div>
             <% } %>
 
-            <div class="glass-table-card">
-                <div class="table-responsive-scroll">
-                    <table class="mihu-table" id="ordersTable">
-                        <thead>
-                            <tr>
-                                <th style="width: 14%;">訂單編號</th>
-                                <th style="width: 14%;">闆闆</th>
-                                <th style="width: 14%;">陪陪</th>
-                                <th style="width: 11%;">類別</th>
-                                <th style="width: 13%;">項目</th>
-                                <th style="width: 13%;">內容</th>
-                                <th style="width: 9%;">數量 / 時長</th>
-                                <th style="width: 12%;">訂單金額</th>
-                                <th style="width: 9%; text-align: center;">狀態</th>
-                            </tr>
-                        </thead>
-                        <tbody id="ordersTableBody">
-                            <% if (!orders || orders.length === 0) { %>
-                                <tr>
-                                    <td colspan="9" class="text-center py-5 text-secondary">目前尚無相關訂單紀錄</td>
-                                </tr>
-                            <% } else { %>
-                                <% orders.forEach(o => { 
-                                    // 1. 客服資訊 (背景保留資料數據，供點擊 Modal 詳情內查看)
-                                    const csName = o.cs_nickname || o.cs_global_name || o.cs_username || o.cs_name || '米胡客服';
-                                    const csAvatar = o.cs_avatar 
-                                        ? `https://cdn.discordapp.com/avatars/${o.cs_id}/${o.cs_avatar}.png`
-                                        : `https://cdn.discordapp.com/embed/avatars/2.png`;
-
-                                    // 2. 闆闆與陪陪資訊
-                                    const bossAvatar = o.boss_avatar 
-                                        ? `https://cdn.discordapp.com/avatars/${o.boss_id}/${o.boss_avatar}.png` 
-                                        : `https://cdn.discordapp.com/embed/avatars/0.png`;
-                                    const bossName = o.boss_nickname || o.boss_global_name || o.boss_username || '匿名闆闆';
-
-                                    const talentAvatar = o.talent_avatar 
-                                        ? `https://cdn.discordapp.com/avatars/${o.talent_id}/${o.talent_avatar}.png` 
-                                        : `https://cdn.discordapp.com/embed/avatars/1.png`;
-                                    const talentName = o.talent_id ? (o.talent_nickname || o.talent_global_name || o.talent_username || '陪玩師') : '派單中';
-
-                                    const category = o.category || o.extra || '陪玩單';
-                                    const itemName = o.game || o.item_name || '一般';
-                                    const contentTier = o.content_tier || o.note || '-';
-                                    const unit = o.unit || '小時';
-
-                                    const statusMap = {
-                                        'pending': { name: '派單中', class: 'status-badge-pending', icon: 'fa-clock', group: 'pending' },
-                                        'accepted': { name: '進行中', class: 'status-badge-active', icon: 'fa-gamepad', group: 'active' },
-                                        'active': { name: '進行中', class: 'status-badge-active', icon: 'fa-gamepad', group: 'active' },
-                                        'in_progress': { name: '進行中', class: 'status-badge-active', icon: 'fa-gamepad', group: 'active' },
-                                        'completed': { name: '已完成', class: 'status-badge-completed', icon: 'fa-circle-check', group: 'completed' },
-                                        'cancelled': { name: '售後中', class: 'status-badge-cancelled', icon: 'fa-triangle-exclamation', group: 'cancelled' },
-                                        'rejected': { name: '已駁回', class: 'status-badge-rejected', icon: 'fa-ban', group: 'rejected' }
-                                    };
-                                    const statusObj = statusMap[o.status] || { name: '進行中', class: 'status-badge-active', icon: 'fa-gamepad', group: 'active' };
-
-                                    const totalAmount = Number(o.total_amount || 0);
-                                    const discount = Number(o.discount || 0);
-                                    const originalPrice = totalAmount + discount;
-
-                                    const myAdminId = "604610298581876746";
-                                    const canEdit = (typeof currentUser !== 'undefined' && currentUser && (currentUser.id === myAdminId || currentUser.role === 'admin')) || 
-                                                    (typeof userPerms !== 'undefined' && (userPerms.includes('manage_orders') || userPerms.includes('orders_edit_and_reassign')));
-
-                                    const orderObj = {
-                                        id: o.id,
-                                        orderNo: o.order_no,
-                                        bossId: o.boss_id,
-                                        bossName: bossName,
-                                        bossAvatar: bossAvatar,
-                                        talentId: o.talent_id || '',
-                                        talentName: talentName,
-                                        talentAvatar: talentAvatar,
-                                        csId: o.cs_id || '',
-                                        csName: csName,
-                                        csAvatar: csAvatar,
-                                        category: category,
-                                        itemName: itemName,
-                                        contentTier: contentTier,
-                                        duration: o.duration,
-                                        unit: unit,
-                                        originalPrice: originalPrice,
-                                        discount: discount,
-                                        totalAmount: totalAmount,
-                                        extra: o.extra || '無特別條件',
-                                        note: o.note || '無特別備註',
-                                        talentMessage: o.talent_message || o.review_comment || '尚無留言',
-                                        status: o.status,
-                                        statusName: statusObj.name,
-                                        startTime: o.start_time || '尚未開始',
-                                        endTime: o.end_time || '尚未結束',
-                                        createdAt: o.created_at || o.created_time || o.order_date || '未記錄時間',
-                                        canEdit: canEdit
-                                    };
-                                %>
-                                    <tr class="order-row" 
-                                        data-status="<%= statusObj.group %>"
-                                        data-search="<%= `${o.order_no} ${csName} ${bossName} ${talentName} ${category} ${itemName} ${contentTier}`.toLowerCase() %>"
-                                        onclick="openUnifiedModal(this)">
-                                        
-                                        <script type="application/json" class="order-data-json">
-                                            <%- JSON.stringify(orderObj) %>
-                                        </script>
-
-                                        <td>
-                                            <div class="fw-bold font-monospace text-light"><%= o.order_no %></div>
-                                            <div class="small text-secondary font-monospace" style="font-size: 0.72rem;"><%= (o.created_at || '').slice(0, 16) %></div>
-                                        </td>
-
-                                        <td>
-                                            <div class="user-mini-col">
-                                                <img src="<%= bossAvatar %>" alt="闆闆頭像" class="user-mini-avatar">
-                                                <div>
-                                                    <div class="fw-bold text-white small"><%= bossName %></div>
-                                                    <div class="text-secondary font-monospace" style="font-size: 0.68rem;">•••• <%= (o.boss_id || '').slice(-4) %></div>
-                                                </div>
-                                            </div>
-                                        </td>
-
-                                        <td>
-                                            <div class="user-mini-col">
-                                                <% if (o.talent_id) { %>
-                                                    <img src="<%= talentAvatar %>" alt="陪陪頭像" class="user-mini-avatar" style="border-color: rgba(168, 85, 247, 0.4);">
-                                                    <div>
-                                                        <div class="fw-bold text-light small"><%= talentName %></div>
-                                                        <div class="text-secondary font-monospace" style="font-size: 0.68rem;">•••• <%= (o.talent_id || '').slice(-4) %></div>
-                                                    </div>
-                                                <% } else { %>
-                                                    <div class="badge bg-warning text-dark px-2 py-1" style="font-size: 0.74rem;">
-                                                        <i class="fa-solid fa-hourglass-start me-1"></i>派單中
-                                                    </div>
-                                                <% } %>
-                                            </div>
-                                        </td>
-
-                                        <td><span class="category-badge badge-<%= category %>"><%= category %></span></td>
-                                        <td><span class="fw-bold text-white small"><%= itemName %></span></td>
-                                        <td><span class="text-white-50 small text-truncate d-inline-block" style="max-width: 120px;" title="<%= contentTier %>"><%= contentTier %></span></td>
-                                        <td><span class="font-monospace text-light small"><%= o.duration %> <%= unit %></span></td>
-                                        <td><span class="font-monospace text-warning fw-bold">$<%= Number(o.total_amount).toLocaleString() %></span> <span class="small text-secondary">NTD</span></td>
-
-                                        <td class="text-center">
-                                            <span class="status-badge <%= statusObj.class %>">
-                                                <i class="fa-solid <%= statusObj.icon %>"></i>
-                                                <span><%= statusObj.name %></span>
-                                            </span>
-                                        </td>
-                                    </tr>
-                                <% }) %>
-                            <% } %>
-                        </tbody>
-                    </table>
-
-                    <div id="noMatchRow" class="text-center py-5 text-secondary" style="display: none;">
-                        <i class="fa-solid fa-receipt fs-3 mb-2 opacity-50"></i>
-                        <p class="small mb-0">找不到符合條件的訂單記錄</p>
-                    </div>
-                </div>
-            </div>
+            <!-- 📊 4. 獨立模組：訂單清單表格卡片 -->
+            <%- include('partials/orders_table', { orders: typeof orders !== 'undefined' ? orders : [], currentUser: typeof currentUser !== 'undefined' ? currentUser : null, userPerms: typeof userPerms !== 'undefined' ? userPerms : [] }) %>
         </div>
     </div>
 </div>
 
+<!-- 🚀 5. 獨立模組：訂單詳情與編輯彈窗 -->
 <%- include('modals/order_detail_modal') %>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

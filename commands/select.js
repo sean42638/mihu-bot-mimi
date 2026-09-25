@@ -1,8 +1,38 @@
 const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits } = require('discord.js');
 const db = require('../database');
 const { createMihuEmbed, BRAND_COLORS } = require('../utils/embedBuilder');
-const { calculateDiscount } = require('../utils/discountHelper');
-const { syncOrdersJsonFromDb } = require('../utils/dataSync');
+const { syncOrdersJsonFromDb, syncUsersJsonFromDb } = require('../utils/dataSync');
+const { getUserWallet, deductWallet } = require('../utils/walletHelper');
+
+// 🚀 本地安全折扣計算工具 (防範外部 Helper 匯出格式不符問題)
+function calculateDiscount(rawPrice, inputDiscount) {
+    const price = Math.max(0, Number(rawPrice || 0));
+    const disc = Number(inputDiscount || 0);
+
+    let finalAmount = price;
+    let discountAmount = 0;
+    let discountText = '';
+
+    if (disc > 0) {
+        if (disc >= 1) {
+            // 直減金額 (例如 輸入 100 意為折抵 $100)
+            discountAmount = disc;
+            finalAmount = Math.max(0, price - discountAmount);
+            discountText = `直減 $${discountAmount} NTD`;
+        } else {
+            // 折扣比例 (例如 輸入 0.8 意為 8 折 / 20% off)
+            finalAmount = Math.round(price * disc);
+            discountAmount = price - finalAmount;
+            discountText = `${(disc * 10).toFixed(1).replace('.0', '')} 折`;
+        }
+    }
+
+    return {
+        finalAmount,
+        discountAmount,
+        discountText
+    };
+}
 
 function checkDiscordAdminPermission(member, userId) {
     if (userId === "604610298581876746") return true;
@@ -13,7 +43,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('select')
         .setNameLocalizations({ 'zh-TW': '選人' })
-        .setDescription('客服指派陪陪接單並推送詳細訂單卡片至陪陪專屬頻道')
+        .setDescription('客服指派陪陪接單，自動多退少補錢包金額，並推送詳細訂單卡片至陪陪專屬頻道')
         .addStringOption(o => o.setName('order_no').setNameLocalizations({ 'zh-TW': '訂單編號' }).setDescription('欲指派的訂單編號').setRequired(true))
         .addUserOption(o => o.setName('talent').setNameLocalizations({ 'zh-TW': '陪陪' }).setDescription('獲選接單的陪玩師').setRequired(true))
         .addNumberOption(o => o.setName('total_price').setNameLocalizations({ 'zh-TW': '原價' }).setDescription('覆蓋或設定訂單原價 (選填)').setRequired(false))
@@ -34,6 +64,7 @@ module.exports = {
         const inputPrice = interaction.options.getNumber('total_price');
         const inputDiscount = interaction.options.getNumber('discount');
 
+        // 1. 查詢訂單資料
         db.get('SELECT * FROM orders WHERE order_no = ?', [orderNo], (err, order) => {
             if (err || !order) return interaction.editReply({ content: `❌ 找不到編號為 \`${orderNo}\` 的訂單！` });
 
@@ -53,13 +84,69 @@ module.exports = {
                     ? inputDiscount
                     : Number(order.discount || 0);
 
-                // 🚀 使用最終確定的原價與折扣重新演算
+                // 使用防錯計算函式計算新金額
                 const { finalAmount, discountAmount, discountText } = calculateDiscount(effectiveRawPrice, effectiveRawDiscount);
 
-                // 更新資料庫 (包含 unit_price 原價、discount 折抵值、total_amount 實收金額)
+                const oldFinalAmount = Number(order.total_amount || 0);
+                const priceDiff = finalAmount - oldFinalAmount; // >0 代表變貴補扣； <0 代表變便宜退款
+                const bossId = order.boss_id;
+                let walletNoticeText = '';
+
+                // 🚀 2. 錢包金額多退少補檢查與執行
+                try {
+                    if (priceDiff > 0) {
+                        // 情況 A：價格變貴，需要補扣款
+                        const bossWallet = await getUserWallet(bossId);
+
+                        if (bossWallet.total_balance < priceDiff) {
+                            return interaction.editReply({
+                                content: `⚠️ **選人指派失敗：闆闆錢包餘額不足以支付改價差額！**\n` +
+                                         `• 原派單金額：\`$${oldFinalAmount.toLocaleString()}\` NTD\n` +
+                                         `• 新調整金額：\`$${finalAmount.toLocaleString()}\` NTD\n` +
+                                         `• 需要補扣差額：\`$${priceDiff.toLocaleString()}\` NTD\n` +
+                                         `• 闆闆當前總餘額：\`$${bossWallet.total_balance.toLocaleString()}\` NTD\n` +
+                                         `請先引導闆闆充值預存後，再重新執行選人！`
+                            });
+                        }
+
+                        // 執行補扣款 (優先扣除贈送金)
+                        const deductRes = await deductWallet(bossId, priceDiff, `選人改價補扣 - 訂單號: ${orderNo}`);
+                        if (!deductRes.success) {
+                            return interaction.editReply({ content: `❌ 錢包補扣款失敗：${deductRes.error}` });
+                        }
+
+                        walletNoticeText = `\n💳 **錢包補扣**：\`$${priceDiff.toLocaleString()}\` NTD (扣除贈送金 $${deductRes.deductBonus} / 實充 $${deductRes.deductReal})`;
+
+                    } else if (priceDiff < 0) {
+                        // 情況 B：價格變便宜，將差額退回闆闆實充錢包 (balance)
+                        const refundDiff = Math.abs(priceDiff);
+
+                        await new Promise((resolve, reject) => {
+                            db.run(
+                                'UPDATE users SET balance = balance + ? WHERE id = ?',
+                                [refundDiff, bossId],
+                                (refundErr) => refundErr ? reject(refundErr) : resolve()
+                            );
+                        });
+
+                        // 寫入錢包交易流水紀錄 (wallet_transactions)
+                        db.run(`
+                            INSERT INTO wallet_transactions (user_id, type, amount, description, created_at)
+                            VALUES (?, 'order_refund', ?, ?, DATETIME('now', 'localtime'))
+                        `, [bossId, refundDiff, `選人降價退款 - 訂單號: ${orderNo}`], () => {});
+
+                        walletNoticeText = `\n💳 **錢包退款**：\`$${refundDiff.toLocaleString()}\` NTD (已退回闆闆錢包)`;
+                    }
+                } catch (walletError) {
+                    console.error('❌ 選人錢包計算出錯:', walletError);
+                    return interaction.editReply({ content: `❌ 處理錢包帳務時發生錯誤：${walletError.message}` });
+                }
+
+                // 🚀 3. 更新訂單資料庫
                 const updateSql = `
                     UPDATE orders SET 
                         talent_id = ?, 
+                        staff_id = ?, 
                         unit_price = ?, 
                         discount = ?, 
                         total_amount = ?, 
@@ -67,14 +154,18 @@ module.exports = {
                     WHERE order_no = ?
                 `;
 
-                db.run(updateSql, [talentUser.id, effectiveRawPrice, discountAmount, finalAmount, orderNo], async (upErr) => {
+                db.run(updateSql, [talentUser.id, talentUser.id, effectiveRawPrice, discountAmount, finalAmount, orderNo], async (upErr) => {
                     if (upErr) return interaction.editReply({ content: '❌ 更新訂單指派資料失敗。' });
                     
-                    syncOrdersJsonFromDb();
+                    // 同步 JSON 備份
+                    try {
+                        syncOrdersJsonFromDb();
+                        if (typeof syncUsersJsonFromDb === 'function') syncUsersJsonFromDb();
+                    } catch (sErr) {}
 
                     try { await interaction.channel.send({ content: `🎉 **恭喜 <@${talentUser.id}> 接到單！**` }); } catch (e) {}
 
-                    // 推送詳細小卡至陪陪頻道
+                    // 4. 推送詳細小卡至陪陪專屬頻道
                     try {
                         const staffChannel = await client.channels.fetch(targetStaffChannelId);
                         if (staffChannel) {
@@ -120,11 +211,14 @@ module.exports = {
                         console.error('❌ 推送陪陪專屬頻道訊息失敗:', chErr);
                     }
 
+                    // 5. 回應客服訊息 (包含金額與錢包變動)
                     let replyText = `✅ **指派成功！**\n📌 **訂單編號**：\`${orderNo}\` \n🎧 **指派陪陪**：<@${talentUser.id}>\n💰 **實收總價**：$${finalAmount.toLocaleString()} NTD ${discountText ? `(${discountText})` : ''}`;
                     
                     if (inputPrice !== null || inputDiscount !== null) {
-                        replyText += ` *(已調整價格/折扣)*`;
+                        replyText += ` *(已手動調整價格/折扣)*`;
                     }
+
+                    replyText += walletNoticeText;
                     replyText += `\n📢 已推送至頻道 <#${targetStaffChannelId}>！`;
 
                     interaction.editReply({ content: replyText });

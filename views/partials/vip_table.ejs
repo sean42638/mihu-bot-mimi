@@ -1,0 +1,51 @@
+<!-- 📊 模組化：VIP 等級門檻與特權對照表格 -->
+<div class="glass-table-card mb-4">
+    <div class="table-responsive">
+        <table class="mihu-table">
+            <thead>
+                <tr>
+                    <th style="width: 130px;">等級</th>
+                    <th style="width: 150px;">累計消費門檻</th>
+                    <th style="width: 150px;">預存門檻</th>
+                    <th>特權獎勵內容（點擊整行看詳細）</th>
+                    <th style="width: 120px;" class="text-end">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% vipTiers.forEach(vip => { 
+                    const rewards = JSON.parse(vip.rewards || '[]');
+                %>
+                    <tr onclick="openViewModal('<%= vip.level %>', '<%= vip.name %>', '<%= vip.spent_threshold %>', '<%= vip.deposit_threshold %>', this)" data-rewards='<%- JSON.stringify(rewards) %>'>
+                        <td>
+                            <div class="vip-badge-pill">
+                                <i class="fa-solid fa-gem"></i>
+                                <span><%= vip.name %></span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="font-monospace text-warning fw-bold"><%= Number(vip.spent_threshold).toLocaleString() %></span> <span class="text-secondary small">T</span>
+                        </td>
+                        <td>
+                            <span class="font-monospace text-info fw-bold"><%= Number(vip.deposit_threshold).toLocaleString() %></span> <span class="text-secondary small">T</span>
+                        </td>
+                        <td>
+                            <div class="rewards-preview-badges">
+                                <% rewards.slice(0, 3).forEach(r => { %>
+                                    <span class="reward-tag"><%= r %></span>
+                                <% }) %>
+                                <% if (rewards.length > 3) { %>
+                                    <span class="reward-tag" style="color: #c084fc;">+ 更多 <%= rewards.length - 3 %> 項</span>
+                                <% } %>
+                            </div>
+                        </td>
+                        <td class="text-end" onclick="event.stopPropagation();">
+                            <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-3" onclick="openEditModal('<%= vip.level %>', '<%= vip.name %>', '<%= vip.spent_threshold %>', '<%= vip.deposit_threshold %>', this)" data-rewards='<%- JSON.stringify(rewards) %>'>
+                                <i class="fa-solid fa-pen-to-square me-1"></i>編輯
+                            </button>
+                        </td>
+                    </tr>
+                <% }) %>
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,242 @@
+<!-- 📊 模組化：會員清單表格組件 (最多 7 筆獨立滾動 + 全後台身分 100% 同步) -->
+<style>
+    .members-table-scroll {
+        margin: 0;
+        max-height: 480px; /* 約 7 筆資料高度 */
+        overflow-y: auto !important;
+        overflow-x: auto;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(168, 85, 247, 0.4) transparent;
+    }
+    .members-table-scroll::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    .members-table-scroll::-webkit-scrollbar-thumb {
+        background: rgba(168, 85, 247, 0.4);
+        border-radius: 4px;
+    }
+
+    .mihu-table {
+        width: 100%;
+        margin-bottom: 0;
+        color: #f3f4f6;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    .mihu-table th {
+        background: rgba(0, 0, 0, 0.55) !important;
+        color: #94a3b8;
+        font-weight: 700;
+        font-size: 0.84rem;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        padding: 16px 22px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        white-space: nowrap;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    .mihu-table td {
+        padding: 16px 22px;
+        vertical-align: middle;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        font-size: 0.93rem;
+        white-space: nowrap;
+    }
+    .mihu-table tbody tr.member-row {
+        cursor: pointer;
+        transition: background 0.15s ease;
+    }
+    .mihu-table tbody tr.member-row:hover {
+        background: rgba(168, 85, 247, 0.09);
+    }
+
+    .member-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid rgba(168, 85, 247, 0.45);
+        box-shadow: 0 0 12px rgba(168, 85, 247, 0.25);
+    }
+    .member-info-col { display: flex; align-items: center; gap: 14px; }
+    .dc-tag-badge {
+        background: rgba(88, 101, 242, 0.15);
+        border: 1px solid rgba(88, 101, 242, 0.35);
+        color: #a5b4fc;
+        font-size: 0.74rem;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-family: monospace;
+        display: inline-block;
+        margin-top: 3px;
+    }
+
+    /* 👑 電競 VIP 徽章膠囊 */
+    .vip-pill-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    .vip-badge-0 { background: rgba(148, 163, 184, 0.15); border: 1px solid rgba(148, 163, 184, 0.3); color: #94a3b8; }
+    .vip-badge-1 { background: rgba(148, 163, 184, 0.25); border: 1px solid rgba(148, 163, 184, 0.5); color: #cbd5e1; }
+    .vip-badge-2 { background: rgba(52, 211, 153, 0.2); border: 1px solid rgba(52, 211, 153, 0.5); color: #6ee7b7; }
+    .vip-badge-3 { background: linear-gradient(135deg, rgba(168, 85, 247, 0.3), rgba(236, 72, 153, 0.25)); border: 1px solid rgba(168, 85, 247, 0.5); color: #fef08a; }
+    .vip-badge-4 { background: rgba(255, 255, 255, 0.25); border: 1px solid rgba(255, 255, 255, 0.6); color: #ffffff; }
+    .vip-badge-5 { background: linear-gradient(135deg, rgba(245, 158, 11, 0.3), rgba(180, 83, 9, 0.3)); border: 1px solid rgba(245, 158, 11, 0.6); color: #fef08a; }
+    .vip-badge-6 { background: rgba(239, 68, 68, 0.25); border: 1px solid rgba(239, 68, 68, 0.6); color: #fca5a5; }
+    .vip-badge-7 { background: linear-gradient(90deg, rgba(236, 72, 153, 0.35), rgba(168, 85, 247, 0.35)); border: 1px solid rgba(236, 72, 153, 0.7); color: #f472b6; }
+
+    .stat-val-text { font-family: monospace; font-size: 1rem; font-weight: 700; }
+    .stat-unit-text { font-size: 0.74rem; color: #8b83a8; font-weight: 600; margin-left: 2px; }
+</style>
+
+<div class="glass-table-card">
+    <div class="members-table-scroll">
+        <table class="mihu-table" id="membersTable">
+            <thead>
+                <tr>
+                    <th style="width: 21%;">會員暱稱 / DISCORD</th>
+                    <th style="width: 10%; text-align: center;">VIP 等級</th>
+                    <th style="width: 10%; text-align: center;">後台身分</th>
+                    <th style="width: 12%;">當前餘額</th>
+                    <th style="width: 12%;">累積消費</th>
+                    <th style="width: 12%;">累積實充</th>
+                    <th style="width: 13%;">VIP 升級差距</th>
+                    <th style="width: 10%; text-align: right;">操作</th>
+                </tr>
+            </thead>
+            <tbody id="membersTableBody">
+                <% 
+                    const perms = (typeof userPerms !== 'undefined' && userPerms) ? userPerms : [];
+                    const currUser = (typeof currentUser !== 'undefined' && currentUser) ? currentUser : {};
+
+                    members.forEach(m => { 
+                    const avUrl = m.avatar 
+                        ? `https://cdn.discordapp.com/avatars/${m.id}/${m.avatar}.png` 
+                        : `https://cdn.discordapp.com/embed/avatars/0.png`;
+                    const displayName = m.custom_nickname || m.global_name || m.username;
+
+                    // 🚀 呼叫全域 getRoleInfo 工具，確保身分名稱與樣式全後台 100% 同步 (admin => 店長)
+                    const roleObj = (typeof getRoleInfo === 'function')
+                        ? getRoleInfo(m.role)
+                        : { name: '會員', badgeClass: 'bg-secondary' };
+
+                    const vipNum = Number(m.vip_level || 0);
+
+                    const memberDataObj = {
+                        id: m.id,
+                        displayName: displayName,
+                        username: m.username,
+                        avatar: avUrl,
+                        vip: vipNum,
+                        totalBalance: m.total_balance || 0,
+                        balance: m.balance || 0,
+                        bonus: m.bonus_balance || 0,
+                        spent: m.total_spent || 0,
+                        deposited: m.total_deposited || 0,
+                        vipGap: m.vip_gap_text,
+                        gapSpent: m.gap_spent,
+                        gapDeposit: m.gap_deposit,
+                        roleName: roleObj.name,
+                        roleKey: m.role,
+                        birthday: m.birthday || '未填寫',
+                        createdAt: m.created_at || '無紀錄'
+                    };
+                    const memberDataJson = JSON.stringify(memberDataObj).replace(/'/g, "&apos;");
+                %>
+                    <tr class="member-row" 
+                        data-member='<%- memberDataJson %>'
+                        data-search="<%= `${displayName} ${m.username} ${m.id}`.toLowerCase() %>">
+                        
+                        <td>
+                            <div class="member-info-col">
+                                <img src="<%= avUrl %>" alt="頭像" class="member-avatar">
+                                <div>
+                                    <div class="fw-bold text-white fs-6"><%= displayName %></div>
+                                    <span class="dc-tag-badge">@<%= m.username %></span>
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- 👑 電競 VIP 徽章膠囊 -->
+                        <td class="text-center">
+                            <div class="vip-pill-badge vip-badge-<%= vipNum > 7 ? 7 : vipNum %>">
+                                <i class="fa-solid fa-crown"></i>
+                                <span>VIP <%= vipNum %></span>
+                            </div>
+                        </td>
+
+                        <!-- 👤 全後台身分 100% 同步標籤 -->
+                        <td class="text-center">
+                            <span class="badge <%= roleObj.badgeClass %>" style="font-size:0.76rem; font-weight:700; padding:4px 10px; border-radius:8px;">
+                                <%= roleObj.name %>
+                            </span>
+                        </td>
+
+                        <td>
+                            <span class="stat-val-text text-white">$<%= Number(m.total_balance || 0).toLocaleString() %></span>
+                            <span class="stat-unit-text">NTD</span>
+                        </td>
+
+                        <td>
+                            <span class="stat-val-text text-warning">$<%= Number(m.total_spent || 0).toLocaleString() %></span>
+                            <span class="stat-unit-text">NTD</span>
+                        </td>
+
+                        <td>
+                            <span class="stat-val-text text-info">$<%= Number(m.total_deposited || 0).toLocaleString() %></span>
+                            <span class="stat-unit-text">NTD</span>
+                        </td>
+
+                        <td>
+                            <% if (m.gap_spent > 0 || m.gap_deposit > 0) { %>
+                                <div style="display:flex; flex-direction:column; gap:2px; font-size:0.78rem; font-family:monospace;">
+                                    <div><span style="color:#94a3b8;">消差</span> <span class="text-light fw-bold">$<%= Number(m.gap_spent).toLocaleString() %></span></div>
+                                    <div><span style="color:#94a3b8;">存差</span> <span class="text-secondary fw-semibold">$<%= Number(m.gap_deposit).toLocaleString() %></span></div>
+                                </div>
+                            <% } else { %>
+                                <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 px-2 py-1 small">
+                                    <i class="fa-solid fa-check me-1"></i>已達頂級
+                                </span>
+                            <% } %>
+                        </td>
+
+                        <td class="text-end" onclick="event.stopPropagation();">
+                            <div class="action-btns-group justify-content-end">
+                                <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-3 py-1 btn-detail-trigger" style="font-size: 0.8rem;">
+                                    <i class="fa-solid fa-circle-info me-1"></i>詳細內容
+                                </button>
+
+                                <button type="button" class="btn btn-sm btn-outline-warning btn-circle-icon btn-balance-trigger" title="帳務調整 (增減點數/金額)">
+                                    <i class="fa-solid fa-coins"></i>
+                                </button>
+
+                                <button type="button" class="btn btn-sm btn-outline-warning btn-circle-icon btn-vip-trigger" style="color: #fde047; border-color: rgba(253, 224, 71, 0.4);" title="手動調整VIP與身分">
+                                    <i class="fa-solid fa-crown"></i>
+                                </button>
+
+                                <a href="/management/members/sync/<%= m.id %>" class="btn btn-sm btn-outline-info btn-circle-icon" title="從 Discord 刷新資料">
+                                    <i class="fa-solid fa-rotate"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                <% }) %>
+            </tbody>
+        </table>
+
+        <div id="noMatchRow" class="text-center py-5 text-secondary" style="display: none;">
+            <i class="fa-solid fa-user-slash fs-3 mb-2 opacity-50"></i>
+            <p class="small mb-0">找不到符合搜尋條件的會員</p>
+        </div>
+    </div>
+</div>

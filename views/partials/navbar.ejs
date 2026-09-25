@@ -2,31 +2,20 @@
     const now = new Date();
     const currentHour = now.getHours();
 
-    const displayName = (typeof user !== 'undefined' && user) 
-        ? (user.custom_nickname || user.global_name || user.username) 
+    // 🚀 1. 優先讀取全域 currentUser 或 user，確保暱稱與頭像精準取得
+    const activeUser = (typeof currentUser !== 'undefined' && currentUser) ? currentUser : ((typeof user !== 'undefined' && user) ? user : null);
+
+    const displayName = activeUser 
+        ? (activeUser.custom_nickname || activeUser.global_name || activeUser.username) 
         : '管理者';
 
-    // 🚀 修正職位 Key 對照表 (完全對齊 roles.json 與資料庫欄位)
-    const roleNames = {
-        'admin': '負責人',
-        'manager': '店長',
-        'cfo': '財務長',
-        'aftersales': '售後管理',
-        'after_sales': '售後管理',
-        'after_sales_manager': '售後管理',
-        'cs_director': '客服主管',
-        'cs': '客服',
-        'staff': '陪玩師',
-        'talent': '陪玩師',
-        'member': '一般會員'
-    };
-    
-    // 優先讀取 currentUser 或 user 的 role
-    const currentRoleKey = (typeof currentUser !== 'undefined' && currentUser && currentUser.role) 
-        ? currentUser.role 
-        : ((typeof user !== 'undefined' && user && user.role) ? user.role : 'member');
+    // 🚀 2. 調用 index.js 注入的全域 getRoleInfo 工具，確保身分職位名稱與顏色全後台 100% 同步
+    const currentRoleKey = activeUser && activeUser.role ? activeUser.role : 'member';
+    const userRoleInfo = (typeof getRoleInfo === 'function') 
+        ? getRoleInfo(currentRoleKey) 
+        : { name: '會員', textClass: 'text-secondary' };
 
-    const roleChinese = roleNames[currentRoleKey] || '在職人員';
+    const roleChinese = userRoleInfo.name;
 
     const mascotImages = [
         '/images/Hello1.png',
@@ -49,8 +38,8 @@
 
     const greetingText = greetings[Math.floor(Math.random() * greetings.length)];
 
-    const avatarUrl = (typeof user !== 'undefined' && user && user.avatar) 
-        ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` 
+    const avatarUrl = (activeUser && activeUser.avatar) 
+        ? `https://cdn.discordapp.com/avatars/${activeUser.id}/${activeUser.avatar}.png` 
         : `https://cdn.discordapp.com/embed/avatars/0.png`;
 
     const currentPage = typeof activePage !== 'undefined' ? activePage : '';
@@ -182,7 +171,7 @@
                 <span class="greeting-text"><%= greetingText %></span>
             </div>
         <% } else { %>
-            <!-- 統一圖1樣式：米胡電競管理系統 -->
+            <!-- 統一抬頭：米胡電競管理系統 -->
             <div class="nav-page-title-badge">
                 <i class="fa-solid fa-gamepad nav-title-icon"></i>
                 <span>米胡電競管理系統</span>
@@ -203,9 +192,9 @@
             </div>
             <ul class="dropdown-menu dropdown-menu-end mihu-dropdown-menu">
                 <li class="dropdown-header pb-2">
-                    <div class="fw-bold text-white fs-6"><%= typeof user !== 'undefined' && user ? user.username : '' %></div>
+                    <div class="fw-bold text-white fs-6"><%= activeUser ? activeUser.username : '' %></div>
                     <div style="color: #94a3b8; font-size: 0.78rem; font-family: monospace;">
-                        ID: <%= typeof user !== 'undefined' && user ? user.id : '' %>
+                        ID: <%= activeUser ? activeUser.id : '' %>
                     </div>
                 </li>
                 <li><hr class="dropdown-divider" style="border-color: rgba(255, 255, 255, 0.08);"></li>

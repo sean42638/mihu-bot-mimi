@@ -1,5 +1,6 @@
 const { EmbedBuilder } = require('discord.js');
-const db = require('../database'); // 🚀 引入資料庫模組以寫入訂單
+const db = require('../database'); // 🚀 引入資料庫模組以寫入訂單與更新錢包
+const { getUserWallet, deductWallet } = require('../utils/walletHelper'); // 🚀 引入獨立錢包工具
 
 module.exports = {
     async handleDispatchModal(interaction) {
@@ -46,6 +47,68 @@ module.exports = {
                 }
             }
 
+            const bossId = session.bId;
+
+            // 🚀 2. 核心檢查：使用獨立錢包模組查詢闆闆錢包金額
+            let bossWallet;
+            try {
+                bossWallet = await getUserWallet(bossId);
+            } catch (wErr) {
+                // 降級防錯直接撈資料庫
+                const bossUser = await new Promise((resolve) => {
+                    db.get('SELECT * FROM users WHERE id = ?', [bossId], (err, row) => resolve(row || null));
+                });
+                if (!bossUser) {
+                    return interaction.editReply({ content: `❌ 系統找不到 ID 為 \`${bossId}\` 的闆闆資料，無法進行派單扣款。` });
+                }
+                bossWallet = {
+                    balance: Number(bossUser.balance || 0),
+                    bonus_balance: Number(bossUser.bonus_balance || 0),
+                    total_balance: Number(bossUser.balance || 0) + Number(bossUser.bonus_balance || 0)
+                };
+            }
+
+            // ⚠️ 餘額不足判斷與攔截
+            if (bossWallet.total_balance < finalPrice) {
+                return interaction.editReply({
+                    content: `⚠️ **闆闆帳戶餘額不足，無法完成派單！**\n` +
+                             `• 闆闆名稱：<@${bossId}>\n` +
+                             `• 當前總餘額：\`$${bossWallet.total_balance.toLocaleString()}\` NTD (實充 $${bossWallet.balance.toLocaleString()} + 贈送 $${bossWallet.bonus_balance.toLocaleString()})\n` +
+                             `• 本次訂單金額：\`$${finalPrice.toLocaleString()}\` NTD\n` +
+                             `• 缺少金額：\`$${(finalPrice - bossWallet.total_balance).toLocaleString()}\` NTD\n` +
+                             `請先引導闆闆進行預存充值後再重新派單！`
+                });
+            }
+
+            // 🚀 3. 執行扣款邏輯 (優先扣除贈送金 bonus_balance，剩餘再扣除實充金額 balance)
+            let deductBonus = 0;
+            let deductReal = 0;
+
+            if (bossWallet.bonus_balance >= finalPrice) {
+                deductBonus = finalPrice;
+            } else {
+                deductBonus = bossWallet.bonus_balance;
+                deductReal = finalPrice - bossWallet.bonus_balance;
+            }
+
+            const newBonus = bossWallet.bonus_balance - deductBonus;
+            const newReal = bossWallet.balance - deductReal;
+
+            // 寫入錢包扣款更新
+            await new Promise((resolve, reject) => {
+                db.run(
+                    'UPDATE users SET balance = ?, bonus_balance = ? WHERE id = ?',
+                    [newReal, newBonus, bossId],
+                    (err) => err ? reject(err) : resolve()
+                );
+            });
+
+            // 寫入錢包流水紀錄 (wallet_transactions)
+            db.run(`
+                INSERT INTO wallet_transactions (user_id, type, amount, description, created_at)
+                VALUES (?, 'order_deduct', ?, ?, DATETIME('now', 'localtime'))
+            `, [bossId, -finalPrice, `派單扣款 - 訂單號: ${orderNo} (${game})`], () => {});
+
             // 抓取目標頻道與發送者（負責客服）
             const targetChannel = await interaction.guild.channels.fetch(session.cId).catch(() => null);
             if (!targetChannel) {
@@ -57,7 +120,7 @@ module.exports = {
             const csMention = `<@${csUser.id}>`;
             const csName = interaction.member?.nickname || csUser.globalName || csUser.username;
 
-            // 🚀 2. 將訂單寫入資料庫 (補齊 unit_price 與所有必要欄位)
+            // 🚀 4. 將訂單寫入資料庫
             await new Promise((resolve, reject) => {
                 const querySql = `
                     INSERT INTO orders (
@@ -68,7 +131,7 @@ module.exports = {
                 `;
                 db.run(querySql, [
                     orderNo,
-                    session.bId,
+                    bossId,
                     csUser.id,
                     csName,
                     session.cat || '陪玩單',
@@ -76,7 +139,7 @@ module.exports = {
                     contentTier,
                     duration,
                     session.unit || '小時',
-                    unitPrice,  // 🚀 補上 unit_price 避免 NOT NULL 報錯
+                    unitPrice,
                     finalPrice,
                     session.disc || 0,
                     extra,
@@ -91,10 +154,10 @@ module.exports = {
                 });
             });
 
-            // 3. 發布至群組頻道的外層訊息
+            // 5. 發布至群組頻道的外層訊息
             const contentText = `${session.tag}\n/)/)\n( . .) ｡ o O (   +:｡.｡ ✦**新 單 快 報**✦ ｡.｡:+\n( づ♡`;
 
-            // 4. 發布至群組頻道的派單 Embed 小卡
+            // 6. 發布至群組頻道的派單 Embed 小卡
             const dispatchEmbed = new EmbedBuilder()
                 .setColor('#f59e0b')
                 .setTitle('⋆⋅☆⋅⋆')
@@ -120,9 +183,12 @@ module.exports = {
             // 清理 Session
             global.dispatchSessions.delete(sessionId);
 
-            // 5. 僅限發送者可見的私人簡短回報訊息
+            // 7. 僅限發送者可見的私人簡短回報訊息 (含扣款提示)
             await interaction.editReply({
-                content: `✅ **已成功派單！**\n• 訂單編號：\`${orderNo}\`\n• 發布頻道：<#${session.cId}>`
+                content: `✅ **已成功扣款並發布派單！**\n` +
+                         `• 訂單編號：\`${orderNo}\`\n` +
+                         `• 闆闆扣款：\`$${finalPrice.toLocaleString()}\` NTD (扣除贈送金 $${deductBonus} / 實充 $${deductReal})\n` +
+                         `• 發布頻道：<#${session.cId}>`
             });
 
         } catch (error) {

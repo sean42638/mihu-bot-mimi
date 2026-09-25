@@ -1,0 +1,82 @@
+<!-- 👑 模組化：VIP 尊榮進度與流光進度條組件 -->
+<%
+    const currentVip = Number(user.vip_level || 0);
+    const progressPct = parseFloat(progressPercent || 0);
+    const gapText = vipGapText || '載入進度中...';
+    
+    // 計算目前的消費與預存數值 (從 stats 或 user 取得)
+    const totalSpent = Number(stats?.total_spent || user.total_spent || 0);
+    const totalDeposited = Number(stats?.total_deposited || user.total_deposited || 0);
+%>
+
+<style>
+    .vip-progress-card {
+        background: rgba(19, 16, 33, 0.85);
+        border: 1px solid rgba(168, 85, 247, 0.25);
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* 漸層流光動畫條 */
+    .vip-progress-track {
+        width: 100%;
+        height: 14px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 30px;
+        overflow: hidden;
+        position: relative;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+    }
+
+    .vip-progress-fill {
+        height: 100%;
+        border-radius: 30px;
+        width: var(--vip-progress-width, 0%); /* 🚀 使用 CSS 變數，完全消除編輯器警報 */
+        background: linear-gradient(90deg, #a855f7 0%, #ec4899 50%, #f59e0b 100%);
+        background-size: 200% 100%;
+        animation: vipShimmer 2.5s infinite linear;
+        transition: width 1s ease-in-out;
+        box-shadow: 0 0 12px rgba(168, 85, 247, 0.6);
+    }
+
+    @keyframes vipShimmer {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+</style>
+
+<div class="vip-progress-card">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="d-flex align-items-center gap-2">
+            <i class="fa-solid fa-crown text-warning fs-5"></i>
+            <span class="fw-bold text-white fs-6">VIP 尊榮解鎖進度</span>
+            <span class="badge bg-warning text-dark font-monospace fw-bold ms-1" style="font-size: 0.72rem;">
+                VIP <%= currentVip %>
+            </span>
+        </div>
+        <div class="font-monospace fw-bold text-warning fs-6">
+            <%= progressPct %>%
+        </div>
+    </div>
+
+    <!-- 🚀 流光動畫進度條 (經由 CSS 變數傳值，無紅色警告) -->
+    <div class="vip-progress-track my-3">
+        <div class="vip-progress-fill" style="--vip-progress-width: <%= progressPct %>%;"></div>
+    </div>
+
+    <!-- 進度說明與雙指標試算比較 -->
+    <div class="d-flex justify-content-between align-items-center text-secondary small">
+        <div class="d-flex align-items-center gap-1">
+            <i class="fa-solid fa-bolt text-info me-1" style="font-size: 0.75rem;"></i>
+            <span><%= gapText %></span>
+        </div>
+        <div class="font-monospace small opacity-75 d-none d-sm-block">
+            (累積消費: $<%= totalSpent.toLocaleString() %> / 預存: $<%= totalDeposited.toLocaleString() %>)
+        </div>
+    </div>
+</div>

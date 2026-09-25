@@ -1,0 +1,150 @@
+<!-- 📜 模組化：錢包消費歷史與帳戶流水頁籤組件 (最多 5 則可上下滾動) -->
+<style>
+    /* 多頁籤面板 */
+    .nav-tabs-glass {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        gap: 12px;
+    }
+    .nav-tabs-glass .nav-link {
+        color: #94a3b8;
+        border: none;
+        padding: 10px 22px;
+        font-weight: 700;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.03);
+        transition: all 0.2s ease;
+    }
+    .nav-tabs-glass .nav-link:hover {
+        color: #ffffff;
+        background: rgba(168, 85, 247, 0.15);
+    }
+    .nav-tabs-glass .nav-link.active {
+        color: #ffffff;
+        background: rgba(168, 85, 247, 0.25);
+        border: 1px solid rgba(168, 85, 247, 0.4);
+    }
+
+    /* 🚀 限制 5 則高度並啟用精緻滾動條 */
+    .wallet-table-scroll {
+        margin: 0;
+        max-height: 330px; /* 約 5 則資料高度 */
+        overflow-y: auto !important;
+        overflow-x: auto;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(168, 85, 247, 0.4) transparent;
+    }
+
+    /* 表格欄位設定 */
+    .wallet-table { width: 100%; margin-bottom: 0; color: #f3f4f6 !important; border-collapse: separate; border-spacing: 0; }
+    .wallet-table th {
+        background: #131021 !important; color: #94a3b8 !important; font-weight: 700; font-size: 0.82rem;
+        text-transform: uppercase; padding: 14px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+        white-space: nowrap; position: sticky; top: 0; z-index: 10;
+    }
+    .wallet-table td { padding: 16px 20px; vertical-align: middle; border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important; font-size: 0.9rem; white-space: nowrap; }
+
+    .type-badge { font-size: 0.76rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; display: inline-flex; }
+    .bg-deposit { background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; }
+    .bg-spend   { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; }
+    .bg-refund  { background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; }
+</style>
+
+<div class="glass-panel-card">
+    <!-- 頁籤按鈕切換區 -->
+    <ul class="nav nav-tabs nav-tabs-glass mb-4" id="walletTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders-panel" type="button" role="tab">
+                <i class="fa-solid fa-bag-shopping me-2"></i>消費紀錄 (連動點單)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="transactions-tab" data-bs-toggle="tab" data-bs-target="#transactions-panel" type="button" role="tab">
+                <i class="fa-solid fa-list-check me-2"></i>帳戶流水紀錄
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="walletTabsContent">
+        <!-- 🛍️ 頁籤 1：消費紀錄 (連動點單) -->
+        <div class="tab-pane fade show active" id="orders-panel" role="tabpanel">
+            <div class="wallet-table-scroll">
+                <table class="wallet-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 22%;">點單編號</th>
+                            <th style="width: 20%;">服務陪陪</th>
+                            <th style="width: 18%;">項目 / 類別</th>
+                            <th style="width: 18%;">消費金額</th>
+                            <th style="width: 22%;">時間</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (!orders || orders.length === 0) { %>
+                            <tr><td colspan="5" class="text-center py-5 text-secondary">目前尚無相關消費紀錄</td></tr>
+                        <% } else { %>
+                            <% orders.forEach(o => { 
+                                const talentName = o.talent_nickname || o.talent_global_name || o.talent_username || '派單中';
+                            %>
+                                <tr>
+                                    <td class="font-monospace fw-bold text-light"><%= o.order_no %></td>
+                                    <td><div class="user-mini-col"><%= talentName %></div></td>
+                                    <td><span class="badge bg-dark border border-secondary text-light"><%= o.game || '陪玩單' %></span></td>
+                                    <td class="font-monospace text-warning fw-bold">$<%= Number(o.total_amount || 0).toLocaleString() %> <span class="small text-secondary fw-normal">NTD</span></td>
+                                    <td class="small text-secondary font-monospace"><%= (o.created_at || '').slice(0, 16) %></td>
+                                </tr>
+                            <% }) %>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 📜 頁籤 2：帳戶流水紀錄 -->
+        <div class="tab-pane fade" id="transactions-panel" role="tabpanel">
+            <div class="wallet-table-scroll">
+                <table class="wallet-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 22%;">異動時間</th>
+                            <th style="width: 15%;">類型</th>
+                            <th style="width: 18%;">異動金額</th>
+                            <th style="width: 20%;">異動後餘額</th>
+                            <th style="width: 25%;">說明 / 備註</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% 
+                            // 整合流水檔與 topups 資料防錯
+                            const list = (transactions && transactions.length > 0) ? transactions : (topups || []);
+                        %>
+                        <% if (!list || list.length === 0) { %>
+                            <tr><td colspan="5" class="text-center py-5 text-secondary">目前尚無流水異動紀錄</td></tr>
+                        <% } else { %>
+                            <% list.forEach(item => { 
+                                const isTopup = item.amount && !item.type;
+                                const type = isTopup ? 'deposit' : (item.type || 'deposit');
+                                const typeMap = {
+                                    'deposit': { name: '儲值', class: 'bg-deposit', sign: '+' },
+                                    'spend': { name: '消費扣款', class: 'bg-spend', sign: '-' },
+                                    'refund': { name: '退款', class: 'bg-refund', sign: '+' }
+                                };
+                                const typeObj = typeMap[type] || { name: '異動', class: 'bg-deposit', sign: '' };
+                                const amt = Number(item.amount || 0);
+                            %>
+                                <tr>
+                                    <td class="small text-secondary font-monospace"><%= (item.created_at || '').slice(0, 16) %></td>
+                                    <td><span class="type-badge <%= typeObj.class %>"><%= typeObj.name %></span></td>
+                                    <td class="font-monospace fw-bold <%= type === 'spend' ? 'text-danger' : 'text-success' %>">
+                                        <%= typeObj.sign %>$<%= amt.toLocaleString() %>
+                                    </td>
+                                    <td class="font-monospace text-light">$<%= Number(item.balance_after || user.balance || 0).toLocaleString() %></td>
+                                    <td class="small text-secondary"><%= item.note || item.method || '線上異動' %></td>
+                                </tr>
+                            <% }) %>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

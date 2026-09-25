@@ -5,7 +5,7 @@ const path = require('path');
 const db = require('./database');
 const { client } = require('./bot');
 const { getRolesData } = require('./utils/dataSync');
-
+const { getRoleInfo } = require('./utils/roleHelper');
 // 🔑 載入 Passport 設定模組
 const passport = require('./config/passport');
 
@@ -37,8 +37,11 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// 🛡️ 全局動態權限中間件 (畫面顯示真實職位，但保留 Admin ID 最高特權)
+// 🛡️ 全局動態權限中間件 (注入 getRoleInfo 全後台身分同步工具，保留 Admin ID 最高特權)
 app.use((req, res, next) => {
+    // 🚀 全局注入 getRoleInfo Helper 工具
+    res.locals.getRoleInfo = getRoleInfo;
+
     if (req.isAuthenticated() && req.user) {
         db.get('SELECT * FROM users WHERE id = ?', [req.user.id], (uErr, freshUser) => {
             const currentUser = freshUser || req.user;
@@ -64,12 +67,14 @@ app.use((req, res, next) => {
 
             res.locals.userPerms = perms;
             res.locals.currentUser = currentUser;
+            res.locals.user = currentUser; // 雙向兼容 res.locals.user
             res.locals.hasPerm = (node) => isSuperAdmin || perms.includes(node);
             next();
         });
     } else {
         res.locals.userPerms = [];
         res.locals.currentUser = null;
+        res.locals.user = null;
         res.locals.hasPerm = () => false;
         next();
     }
@@ -90,6 +95,7 @@ if (client) {
 app.use('/', authRouter);
 app.use('/', userRouter);
 app.use('/', systemRouter);
+// 🚀 確保有這一行掛載，將 managementRouter 對齊 /management 前綴
 app.use('/management', managementRouter);
 
 app.get('/', (req, res) => {

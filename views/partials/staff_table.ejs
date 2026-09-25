@@ -1,0 +1,294 @@
+<!-- 📊 模組化：員工清單表格組件 (約 7 筆獨立滾動 + 全後台身分 100% 同步) -->
+<style>
+    .staff-table-scroll {
+        margin: 0;
+        max-height: 480px; /* 約 7 筆數據高度 */
+        overflow-y: auto !important;
+        overflow-x: auto;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(16, 185, 129, 0.4) transparent;
+    }
+    .staff-table-scroll::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    .staff-table-scroll::-webkit-scrollbar-thumb {
+        background: rgba(16, 185, 129, 0.4);
+        border-radius: 4px;
+    }
+
+    .mihu-table {
+        width: 100%;
+        margin-bottom: 0;
+        color: #f3f4f6;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    .mihu-table th {
+        background: rgba(0, 0, 0, 0.55) !important;
+        color: #94a3b8;
+        font-weight: 700;
+        font-size: 0.84rem;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        padding: 16px 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        white-space: nowrap;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    .mihu-table td {
+        padding: 16px 20px;
+        vertical-align: middle;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        font-size: 0.92rem;
+        white-space: nowrap;
+    }
+    .mihu-table tbody tr.staff-row {
+        cursor: pointer;
+        transition: background 0.15s ease;
+    }
+    .mihu-table tbody tr.staff-row:hover {
+        background: rgba(168, 85, 247, 0.09);
+    }
+
+    .staff-avatar {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid rgba(16, 185, 129, 0.45);
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.25);
+    }
+    .staff-info-col {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .dc-tag-badge {
+        background: rgba(88, 101, 242, 0.15);
+        border: 1px solid rgba(88, 101, 242, 0.35);
+        color: #a5b4fc;
+        font-size: 0.74rem;
+        padding: 2px 7px;
+        border-radius: 6px;
+        font-family: monospace;
+        display: inline-block;
+        margin-top: 2px;
+    }
+
+    .role-badge-tag {
+        font-size: 0.78rem;
+        font-weight: 700;
+        padding: 4px 12px;
+        border-radius: 20px;
+        letter-spacing: 0.4px;
+    }
+
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 0.78rem;
+        font-weight: 700;
+    }
+    .status-idle {
+        background: rgba(16, 185, 129, 0.15);
+        border: 1px solid rgba(16, 185, 129, 0.4);
+        color: #34d399;
+    }
+    .status-busy {
+        background: rgba(239, 68, 68, 0.15);
+        border: 1px solid rgba(239, 68, 68, 0.4);
+        color: #f87171;
+    }
+    .status-leave {
+        background: rgba(148, 163, 184, 0.15);
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        color: #cbd5e1;
+    }
+
+    .rate-pill {
+        background: rgba(253, 224, 71, 0.12);
+        border: 1px solid rgba(253, 224, 71, 0.35);
+        color: #fde047;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 8px;
+        font-family: monospace;
+        font-size: 0.85rem;
+    }
+    .rate-pill-default {
+        background: rgba(148, 163, 184, 0.12);
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        color: #cbd5e1;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 8px;
+        font-size: 0.78rem;
+    }
+
+    .channel-code-badge {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #cbd5e1;
+        font-size: 0.76rem;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-family: monospace;
+    }
+</style>
+
+<div class="glass-table-card">
+    <div class="staff-table-scroll">
+        <table class="mihu-table" id="staffTable">
+            <thead>
+                <tr>
+                    <th style="width: 22%;">員工姓名 / DISCORD</th>
+                    <th style="width: 12%; text-align: center;">所屬職位</th>
+                    <th style="width: 11%; text-align: center;">當前狀態</th>
+                    <th style="width: 12%;">分潤抽佣</th>
+                    <th style="width: 13%;">累積接單 / 業績</th>
+                    <th style="width: 18%;">Discord 專屬工單頻道</th>
+                    <th style="width: 12%; text-align: right;">操作</th>
+                </tr>
+            </thead>
+            <tbody id="staffTableBody">
+                <% 
+                    const list = (typeof staffList !== 'undefined' && staffList) ? staffList : [];
+                    const perms = (typeof userPerms !== 'undefined' && userPerms) ? userPerms : [];
+                    const isSuperId = (typeof currentUser !== 'undefined' && currentUser && (currentUser.id === '604610298581876746' || currentUser.role === 'admin'));
+                    
+                    const checkPermission = (node) => {
+                        if (isSuperId) return true;
+                        if (typeof hasPerm === 'function') return hasPerm(node);
+                        return perms.includes(node);
+                    };
+
+                    const canViewPayroll = checkPermission('staff_view_payroll');
+                    const canEditRoleComm = checkPermission('staff_edit_role_commission');
+
+                    list.forEach(s => { 
+                    const avUrl = s.avatar 
+                        ? `https://cdn.discordapp.com/avatars/${s.id}/${s.avatar}.png` 
+                        : `https://cdn.discordapp.com/embed/avatars/0.png`;
+                    const displayName = s.custom_nickname || s.global_name || s.username;
+
+                    // 🚀 呼叫全域 getRoleInfo 工具，確保身分與全後台 100% 同步連動
+                    const roleObj = (typeof getRoleInfo === 'function')
+                        ? getRoleInfo(s.role)
+                        : { name: '陪陪', badgeClass: 'bg-primary' };
+
+                    const statusMap = {
+                        'idle': { name: '空閒中', class: 'status-idle', icon: 'fa-circle-check' },
+                        'busy': { name: '接單中', class: 'status-busy', icon: 'fa-gamepad' },
+                        'leave': { name: '請假中', class: 'status-leave', icon: 'fa-mug-hot' }
+                    };
+                    const statusObj = statusMap[s.status] || { name: '空閒中', class: 'status-idle', icon: 'fa-circle-check' };
+
+                    const hasPersonalRate = (s.commission_rate !== null && s.commission_rate !== undefined && s.commission_rate !== '' && Number(s.commission_rate) > 0);
+
+                    const staffDataJson = JSON.stringify({
+                        id: s.id,
+                        displayName: displayName,
+                        username: s.username,
+                        avatar: avUrl,
+                        role: s.role,
+                        roleName: roleObj.name,
+                        status: s.status || 'idle',
+                        statusName: statusObj.name,
+                        commissionRate: hasPersonalRate ? Number(s.commission_rate) : null,
+                        staffChannelId: s.staff_channel_id || '',
+                        totalOrders: s.total_orders || 0,
+                        totalRevenue: s.total_revenue || 0,
+                        realName: s.real_name || '未填寫',
+                        birthday: s.birthday || '未填寫',
+                        gender: s.gender || '未設定',
+                        mbti: s.mbti || '未設定',
+                        bankName: s.bank_name || '未填寫',
+                        bankCode: s.bank_code || '未填寫',
+                        bankBranch: s.bank_branch || '未填寫',
+                        bankAccount: s.bank_account || '未填寫',
+                        createdAt: s.created_at || '無紀錄'
+                    }).replace(/'/g, "&apos;");
+                %>
+                    <tr class="staff-row" 
+                        data-staff='<%- staffDataJson %>'
+                        data-search="<%= `${displayName} ${s.username} ${s.id} ${s.real_name || ''}`.toLowerCase() %>">
+                        
+                        <td>
+                            <div class="staff-info-col">
+                                <img src="<%= avUrl %>" alt="頭像" class="staff-avatar">
+                                <div>
+                                    <div class="fw-bold text-white fs-6"><%= displayName %></div>
+                                    <span class="dc-tag-badge">@<%= s.username %></span>
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- 👤 所屬職位標籤 (全後台同步) -->
+                        <td class="text-center">
+                            <span class="badge <%= roleObj.badgeClass %> role-badge-tag"><%= roleObj.name %></span>
+                        </td>
+
+                        <td class="text-center">
+                            <span class="status-pill <%= statusObj.class %>">
+                                <i class="fa-solid <%= statusObj.icon %>"></i>
+                                <span><%= statusObj.name %></span>
+                            </span>
+                        </td>
+
+                        <td>
+                            <% if (hasPersonalRate) { %>
+                                <span class="rate-pill"><%= (Number(s.commission_rate) * 100).toFixed(0) %>%</span>
+                                <span class="small text-secondary ms-1">個人特例</span>
+                            <% } else { %>
+                                <span class="rate-pill-default">工作室預設</span>
+                            <% } %>
+                        </td>
+
+                        <td>
+                            <div class="fw-bold text-white font-monospace"><%= Number(s.total_orders || 0) %> 單</div>
+                            <div class="small text-warning font-monospace">$<%= Number(s.total_revenue || 0).toLocaleString() %> NTD</div>
+                        </td>
+
+                        <td>
+                            <% if (s.staff_channel_id) { %>
+                                <span class="channel-code-badge"><i class="fa-solid fa-hashtag text-info me-1"></i><%= s.staff_channel_id %></span>
+                            <% } else { %>
+                                <span class="text-secondary small">未綁定頻道</span>
+                            <% } %>
+                        </td>
+
+                        <td class="text-end" onclick="event.stopPropagation();">
+                            <div class="action-btns-group justify-content-end">
+                                <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-3 py-1 btn-detail-trigger" style="font-size: 0.8rem;">
+                                    <i class="fa-solid fa-address-card me-1"></i>檔案
+                                </button>
+
+                                <% if (canEditRoleComm) { %>
+                                    <button type="button" class="btn btn-sm btn-outline-success btn-circle-icon btn-edit-trigger" title="設定職位、抽佣與頻道">
+                                        <i class="fa-solid fa-user-gear"></i>
+                                    </button>
+                                <% } %>
+
+                                <a href="/management/staff/sync/<%= s.id %>" class="btn btn-sm btn-outline-info btn-circle-icon" title="從 Discord 刷新資料">
+                                    <i class="fa-solid fa-rotate"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                <% }) %>
+            </tbody>
+        </table>
+
+        <div id="noMatchRow" class="text-center py-5 text-secondary" style="display: none;">
+            <i class="fa-solid fa-user-slash fs-3 mb-2 opacity-50"></i>
+            <p class="small mb-0">找不到符合搜尋條件的員工</p>
+        </div>
+    </div>
+</div>

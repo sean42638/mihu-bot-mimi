@@ -1,0 +1,194 @@
+<!-- 彈窗 1：會員詳細內容彈窗 -->
+<div class="modal fade" id="memberDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 500px;">
+        <div class="modal-content modal-content-glass">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-address-card text-info"></i>
+                    <span>會員詳細檔案內容</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-3">
+                <div class="d-flex align-items-center gap-3 p-3 rounded-3 mb-3" style="background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.08);">
+                    <img id="detailAvatar" src="" class="member-avatar" style="width: 52px; height: 52px;">
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-bold fs-5 text-white" id="detailDisplayName"></span>
+                            <span id="detailRoleBadge" class="badge bg-secondary" style="font-size: 0.72rem;">身分</span>
+                        </div>
+                        <div class="small text-secondary font-monospace" id="detailUsername"></div>
+                        <div class="small text-white-50 font-monospace" id="detailId"></div>
+                    </div>
+                </div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <div class="info-detail-box">
+                            <span class="info-detail-label">VIP 等級</span>
+                            <span class="info-detail-val text-warning" id="detailVip"></span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="info-detail-box">
+                            <span class="info-detail-label">當前總可用餘額</span>
+                            <span class="info-detail-val text-white" id="detailTotalBalance"></span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="info-detail-box">
+                            <span class="info-detail-label">累積消費</span>
+                            <span class="info-detail-val text-warning" id="detailSpent"></span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="info-detail-box">
+                            <span class="info-detail-label">累積實充</span>
+                            <span class="info-detail-val text-info" id="detailDeposited"></span>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="info-detail-box">
+                            <span class="info-detail-label">VIP 升級差距</span>
+                            <span class="text-light small font-monospace" id="detailVipGap"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-3 rounded-3" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06);">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-secondary small">會員生日</span>
+                        <span class="text-white small font-monospace fw-bold" id="detailBirthday">未填寫</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-secondary small">創建與註冊時間</span>
+                        <span class="text-white-50 small font-monospace" id="detailCreatedAt"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-sm btn-secondary rounded-pill px-4" data-bs-dismiss="modal">關閉</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 彈窗 2：會員帳務調整 Modal -->
+<div class="modal fade" id="adjustBalanceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
+        <div class="modal-content modal-content-glass">
+            <form id="adjustBalanceForm" method="POST">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-wallet text-warning me-2"></i>會員帳務調整</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <p class="text-secondary small mb-3">目標會員：<strong class="text-white" id="balanceTargetName">--</strong></p>
+                    
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="small text-secondary fw-semibold mb-1">本次充值金額 ($)</label>
+                            <input type="text" name="add_amount" id="modalAddAmount" class="form-control form-control-glass" placeholder="例如：1000">
+                        </div>
+                        <div class="col-6">
+                            <label class="small text-secondary fw-semibold mb-1">贈送金 ($)</label>
+                            <input type="text" name="bonus_balance" id="modalBonusBalance" class="form-control form-control-glass" placeholder="例如：100">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="small text-secondary fw-semibold mb-1">調整目前餘額 ($)</label>
+                        <input type="text" name="balance" id="modalBalance" class="form-control form-control-glass" placeholder="覆蓋當前總實充餘額">
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="small text-secondary fw-semibold mb-1">調整累積消費 ($)</label>
+                            <input type="text" name="total_spent" id="modalSpent" class="form-control form-control-glass" placeholder="覆蓋累積消費金額">
+                        </div>
+                        <div class="col-6">
+                            <label class="small text-secondary fw-semibold mb-1">調整累積實充 ($)</label>
+                            <input type="text" name="total_deposited" id="modalDeposited" class="form-control form-control-glass" placeholder="覆蓋累積實充金額">
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning py-2 small mb-3 bg-warning bg-opacity-10 border-warning border-opacity-25 text-warning" style="font-size: 0.8rem;">
+                        ⚠️ 零負數防護：最終餘額經計算後若小於 0，系統將自動鎖定歸零。
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="small text-secondary fw-semibold mb-1">調帳備註原因</label>
+                        <input type="text" name="note" class="form-control form-control-glass" placeholder="例：活動儲值贈送或客服退款" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-sm btn-warning rounded-pill px-4 text-dark fw-bold">確認更新帳務</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 彈窗 3：獨立 VIP 與身分同步調整 Modal -->
+<div class="modal fade" id="vipModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
+        <div class="modal-content modal-content-glass">
+            <form id="vipForm" method="POST">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-crown text-warning"></i>
+                        <span>手動 VIP 與全後台身分調整</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <div class="text-secondary small mb-3">
+                        目標會員：<span class="text-white fw-bold" id="vipTargetName">--</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="small text-secondary fw-semibold mb-1">VIP 等級 (可輸入數字或 +1 / -1)</label>
+                        <input type="text" id="inputVipOnly" name="vip_level" class="form-control form-control-glass text-end" placeholder="0 或 +1" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="small text-secondary fw-semibold mb-1">連動後台身分角色</label>
+                        <select id="inputRoleSelect" name="role" class="form-select form-control-glass" style="background-color: #171326; color: #fff;">
+                            <option value="member">會員</option>
+                            <option value="talent">陪陪</option>
+                            <option value="cs">客服</option>
+                            <option value="manager">客服主管</option>
+                            <option value="aftersales">售後管理</option>
+                            <option value="cfo">財務長</option>
+                            <option value="admin">店長</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="small text-secondary fw-semibold mb-1">調整原因 / 操作備註 (選填)</label>
+                        <input type="text" name="note" class="form-control form-control-glass" placeholder="例如：手動升級貴賓或權限調整">
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-sm btn-warning rounded-pill px-4 fw-semibold text-dark">確認同步更新</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 彈出小框框通知 Modal -->
+<div class="modal fade" id="notifyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 380px;">
+        <div class="modal-content modal-content-glass text-center p-4">
+            <div class="mb-3">
+                <i class="fa-solid fa-circle-check text-success fs-1" id="notifyIcon"></i>
+            </div>
+            <h5 class="fw-bold text-white mb-2" id="notifyTitle">操作成功</h5>
+            <p class="small text-secondary mb-4" id="notifyMessage">會員帳務與 VIP 身分已成功同步更新！</p>
+            <button type="button" class="btn btn-sm btn-light rounded-pill px-4 fw-bold w-100" data-bs-dismiss="modal">確定</button>
+        </div>
+    </div>
+</div>

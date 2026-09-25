@@ -1,0 +1,219 @@
+<!-- 👤 模組化：個人基本資料區塊 (含 Email 動態驗證模組) -->
+<%
+    const currentUserData = typeof user !== 'undefined' && user ? user : {};
+    const isEmailVerified = currentUserData.email_verified === 1;
+    const mbtiOptions = [
+        'INTJ', 'INTP', 'ENTJ', 'ENTP',
+        'INFJ', 'INFP', 'ENFJ', 'ENFP',
+        'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ',
+        'ISTP', 'ISFP', 'ESTP', 'ESFP'
+    ];
+%>
+
+<div class="glass-card">
+    <div class="section-header">
+        <h5 class="section-title">
+            <i class="fa-solid fa-id-card" style="color: var(--mihu-purple-light);"></i>
+            <span>個人基本資料</span>
+        </h5>
+        <span class="small text-secondary">社群與個人特徵呈現</span>
+    </div>
+
+    <!-- 1. Discord 帳號資訊 (唯讀) -->
+    <div class="row g-3 mb-3">
+        <div class="col-md-6 col-12">
+            <label class="field-label">
+                <i class="fa-brands fa-discord text-primary"></i>Discord ID (唯讀)
+            </label>
+            <input type="text" class="form-control form-control-glass font-monospace" value="<%= currentUserData.id || '' %>" disabled>
+        </div>
+        <div class="col-md-6 col-12">
+            <label class="field-label">
+                <i class="fa-solid fa-at text-info"></i>Discord 使用者名稱 (唯讀)
+            </label>
+            <input type="text" class="form-control form-control-glass" value="<%= currentUserData.username || '' %>" disabled>
+        </div>
+    </div>
+
+    <!-- 2. 自定義暱稱與聯絡管道 -->
+    <div class="row g-3 mb-3">
+        <div class="col-md-4 col-12">
+            <label class="field-label text-warning">
+                <i class="fa-solid fa-signature"></i>自定義暱稱 (顯示用)
+            </label>
+            <input type="text" name="custom_nickname" class="form-control form-control-glass" value="<%= currentUserData.custom_nickname || currentUserData.global_name || '' %>" placeholder="例如：小米">
+        </div>
+
+        <!-- 📱 手機號碼 (選填) -->
+        <div class="col-md-4 col-6">
+            <label class="field-label text-light">
+                <i class="fa-solid fa-mobile-screen-button text-success"></i>手機號碼 <span class="small text-secondary fw-normal">(選填)</span>
+            </label>
+            <input type="tel" name="phone" class="form-control form-control-glass font-monospace" value="<%= currentUserData.phone || '' %>" placeholder="例如：0912345678">
+        </div>
+
+        <!-- ✉️ Email 電子郵件 (含模組化驗證) -->
+        <div class="col-md-4 col-12">
+            <label class="field-label text-light d-flex justify-content-between align-items-center">
+                <span>
+                    <i class="fa-solid fa-envelope text-info me-1"></i>Email <span class="small text-secondary fw-normal">(選填)</span>
+                </span>
+                <% if (isEmailVerified) { %>
+                    <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25" style="font-size: 0.72rem;">
+                        <i class="fa-solid fa-circle-check me-1"></i>已驗證
+                    </span>
+                <% } else { %>
+                    <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25" id="emailVerifyBadge" style="font-size: 0.72rem;">
+                        未驗證
+                    </span>
+                <% } %>
+            </label>
+            
+            <div class="input-group">
+                <input type="email" id="profileEmailInput" name="email" class="form-control form-control-glass" value="<%= currentUserData.email || '' %>" placeholder="例如：user@example.com">
+                <% if (!isEmailVerified) { %>
+                    <button type="button" class="btn btn-outline-info rounded-end px-3" id="sendEmailCodeBtn" onclick="handleSendEmailCode()">
+                        發送驗證碼
+                    </button>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🚀 驗證碼輸入子面板 (點擊發送後展開) -->
+    <div id="emailVerifyPanel" class="p-3 mb-3 rounded-3" style="display: none; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25);">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <i class="fa-solid fa-key text-info"></i>
+            <span class="small fw-bold text-white">請輸入寄至信箱的 6 位數驗證碼：</span>
+        </div>
+        <div class="d-flex gap-2" style="max-width: 360px;">
+            <input type="text" id="emailCodeInput" class="form-control form-control-glass font-monospace text-center fs-6" placeholder="例如: 123456" maxlength="6">
+            <button type="button" class="btn btn-info text-dark fw-bold text-nowrap px-3 rounded-3" onclick="handleVerifyEmailCode()">
+                確認驗證
+            </button>
+        </div>
+    </div>
+
+    <!-- 3. 特徵細節：生日、性別、年齡、MBTI -->
+    <div class="row g-3">
+        <div class="col-md-3 col-6">
+            <label class="field-label">
+                <i class="fa-solid fa-cake-candles text-warning"></i>生日
+            </label>
+            <input type="date" id="inputBirthday" name="birthday" class="form-control form-control-glass" value="<%= currentUserData.birthday || '' %>" onchange="calcAgeFromBirthday(this.value)">
+        </div>
+
+        <div class="col-md-3 col-6">
+            <label class="field-label">
+                <i class="fa-solid fa-venus-mars text-primary"></i>性別
+            </label>
+            <select name="gender" class="form-select form-control-glass" style="background-color: #171326; color: #fff;">
+                <option value="" <%= !currentUserData.gender ? 'selected' : '' %>>未設定</option>
+                <option value="男性" <%= currentUserData.gender === '男性' ? 'selected' : '' %>>男性</option>
+                <option value="女性" <%= currentUserData.gender === '女性' ? 'selected' : '' %>>女性</option>
+                <option value="非二元" <%= currentUserData.gender === '非二元' ? 'selected' : '' %>>非二元</option>
+                <option value="保密" <%= currentUserData.gender === '保密' ? 'selected' : '' %>>保密</option>
+            </select>
+        </div>
+
+        <div class="col-md-3 col-6">
+            <label class="field-label">
+                <i class="fa-solid fa-hourglass-half text-info"></i>年齡
+            </label>
+            <input type="number" id="inputAge" name="age" class="form-control form-control-glass" value="<%= currentUserData.age !== null && currentUserData.age !== undefined ? currentUserData.age : '' %>" placeholder="自動計算或輸入" min="1" max="120">
+        </div>
+
+        <div class="col-md-3 col-6">
+            <label class="field-label">
+                <i class="fa-solid fa-brain" style="color: #ec4899;"></i>MBTI
+            </label>
+            <select name="mbti" class="form-select form-control-glass font-monospace" style="background-color: #171326; color: #fff;">
+                <option value="" <%= !currentUserData.mbti ? 'selected' : '' %>>未設定</option>
+                <option value="保密" <%= currentUserData.mbti === '保密' ? 'selected' : '' %>>保密</option>
+                <% mbtiOptions.forEach(m => { %>
+                    <option value="<%= m %>" <%= currentUserData.mbti === m ? 'selected' : '' %>><%= m %></option>
+                <% }) %>
+            </select>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 1. 發送 Email 驗證碼腳本
+    async function handleSendEmailCode() {
+        const emailInput = document.getElementById('profileEmailInput');
+        const sendBtn = document.getElementById('sendEmailCodeBtn');
+        const email = emailInput ? emailInput.value.trim() : '';
+
+        if (!email || !email.includes('@')) {
+            alert('請先輸入正確的 Email 地址！');
+            return;
+        }
+
+        sendBtn.disabled = true;
+        sendBtn.textContent = '寄送中...';
+
+        try {
+            const res = await fetch('/api/email/send-code', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                alert('✅ ' + data.message);
+                document.getElementById('emailVerifyPanel').style.display = 'block';
+                
+                // 倒數計時器
+                let countdown = 60;
+                const timer = setInterval(() => {
+                    sendBtn.textContent = `${countdown}s 後重試`;
+                    countdown--;
+                    if (countdown < 0) {
+                        clearInterval(timer);
+                        sendBtn.disabled = false;
+                        sendBtn.textContent = '重新發送';
+                    }
+                }, 1000);
+            } else {
+                alert('❌ ' + data.message);
+                sendBtn.disabled = false;
+                sendBtn.textContent = '發送驗證碼';
+            }
+        } catch (e) {
+            alert('❌ 系統錯誤，請稍後重試');
+            sendBtn.disabled = false;
+            sendBtn.textContent = '發送驗證碼';
+        }
+    }
+
+    // 2. 校對驗證碼腳本
+    async function handleVerifyEmailCode() {
+        const email = document.getElementById('profileEmailInput').value.trim();
+        const code = document.getElementById('emailCodeInput').value.trim();
+
+        if (!code || code.length < 6) {
+            alert('請輸入完整的 6 位數驗證碼！');
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/email/verify-code', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, code })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                alert('🎉 ' + data.message);
+                location.reload(); // 重新載入顯示「已驗證」標籤
+            } else {
+                alert('❌ ' + data.message);
+            }
+        } catch (e) {
+            alert('❌ 驗證失敗，請稍後重試');
+        }
+    }
+</script>

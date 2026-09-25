@@ -29,42 +29,6 @@
 
         img { max-width: 100%; height: auto; }
 
-        .mihu-sidebar {
-            width: 280px !important;
-            min-width: 280px !important;
-            max-width: 280px !important;
-            background-color: var(--sidebar-bg);
-            border-right: 1px solid var(--card-border);
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-            padding: 24px 16px;
-            flex-shrink: 0;
-            height: 100vh;
-            position: sticky;
-            top: 0;
-            overflow-x: hidden;
-            overflow-y: auto;
-        }
-        .sidebar-brand-clean {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 8px 10px 18px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            margin-bottom: 12px;
-            width: 100%;
-        }
-        .brand-logo-clean {
-            width: 170px !important;
-            max-width: 170px !important;
-            height: auto !important;
-            object-fit: contain !important;
-            filter: drop-shadow(0 0 16px rgba(168, 85, 247, 0.5));
-            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        .brand-logo-clean:hover { transform: scale(1.05); }
-
         .main-wrapper { 
             flex-grow: 1; 
             display: flex; 
@@ -77,7 +41,6 @@
 
         .content-body { padding: 20px 36px 32px; flex-grow: 1; }
 
-        /* 🚀 圖 2 樣式大標題與說明 */
         .page-header-content {
             display: flex;
             align-items: center;
@@ -193,7 +156,6 @@
     <%- include('partials/navbar', { activePage: 'profile' }) %>
 
     <div class="content-body">
-        <!-- 🚀 圖 2 樣式大標題與說明 -->
         <div class="page-header-content">
             <div>
                 <div class="page-title-text">
@@ -216,144 +178,11 @@
 
                 <form action="/profile" method="POST">
                     
-                    <!-- 區塊 1：個人基本資料 -->
-                    <div class="glass-card">
-                        <div class="section-header">
-                            <h5 class="section-title">
-                                <i class="fa-solid fa-id-card" style="color: var(--mihu-purple-light);"></i>
-                                <span>個人基本資料</span>
-                            </h5>
-                            <span class="small text-secondary">社群與個人特徵呈現</span>
-                        </div>
+                    <!-- 1. 模組化：個人基本資料區塊 -->
+                    <%- include('partials/profile_basic_info', { user: user }) %>
 
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-6 col-12">
-                                <label class="field-label">
-                                    <i class="fa-brands fa-discord text-primary"></i>Discord ID (唯讀)
-                                </label>
-                                <input type="text" class="form-control form-control-glass font-monospace" value="<%= user.id %>" disabled>
-                            </div>
-                            <div class="col-md-6 col-12">
-                                <label class="field-label">
-                                    <i class="fa-solid fa-at text-info"></i>Discord 使用者名稱 (唯讀)
-                                </label>
-                                <input type="text" class="form-control form-control-glass" value="<%= user.username %>" disabled>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="field-label text-warning">
-                                <i class="fa-solid fa-signature"></i>自定義暱稱 (前台與團隊顯示用)
-                            </label>
-                            <input type="text" name="custom_nickname" class="form-control form-control-glass" value="<%= user.custom_nickname || user.global_name || '' %>" placeholder="例如：小米">
-                        </div>
-
-                        <div class="row g-3">
-                            <div class="col-md-3 col-6">
-                                <label class="field-label">
-                                    <i class="fa-solid fa-cake-candles text-warning"></i>生日
-                                </label>
-                                <input type="date" id="inputBirthday" name="birthday" class="form-control form-control-glass" value="<%= user.birthday || '' %>" onchange="calcAgeFromBirthday(this.value)">
-                            </div>
-
-                            <div class="col-md-3 col-6">
-                                <label class="field-label">
-                                    <i class="fa-solid fa-venus-mars text-primary"></i>性別
-                                </label>
-                                <select name="gender" class="form-select form-control-glass" style="background-color: #171326; color: #fff;">
-                                    <option value="" <%= !user.gender ? 'selected' : '' %>>未設定</option>
-                                    <option value="男性" <%= user.gender === '男性' ? 'selected' : '' %>>男性</option>
-                                    <option value="女性" <%= user.gender === '女性' ? 'selected' : '' %>>女性</option>
-                                    <option value="非二元" <%= user.gender === '非二元' ? 'selected' : '' %>>非二元</option>
-                                    <option value="保密" <%= user.gender === '保密' ? 'selected' : '' %>>保密</option>
-                                </select>
-                            </div>
-
-                            <div class="col-md-3 col-6">
-                                <label class="field-label">
-                                    <i class="fa-solid fa-hourglass-half text-info"></i>年齡
-                                </label>
-                                <input type="number" id="inputAge" name="age" class="form-control form-control-glass" value="<%= user.age !== null ? user.age : '' %>" placeholder="自動計算或輸入" min="1" max="120">
-                            </div>
-
-                            <div class="col-md-3 col-6">
-                                <label class="field-label">
-                                    <i class="fa-solid fa-brain" style="color: #ec4899;"></i>MBTI
-                                </label>
-                                <select name="mbti" class="form-select form-control-glass font-monospace" style="background-color: #171326; color: #fff;">
-                                    <option value="" <%= !user.mbti ? 'selected' : '' %>>未設定</option>
-                                    <option value="保密" <%= user.mbti === '保密' ? 'selected' : '' %>>保密</option>
-                                    <% 
-                                        const mbtiList = [
-                                            'INTJ', 'INTP', 'ENTJ', 'ENTP',
-                                            'INFJ', 'INFP', 'ENFJ', 'ENFP',
-                                            'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ',
-                                            'ISTP', 'ISFP', 'ESTP', 'ESFP'
-                                        ];
-                                        mbtiList.forEach(m => {
-                                    %>
-                                        <option value="<%= m %>" <%= user.mbti === m ? 'selected' : '' %>><%= m %></option>
-                                    <% }) %>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 區塊 2：個人資料 (含薪轉 - 敏感個資) -->
-                    <div class="glass-card">
-                        <div class="section-header">
-                            <div>
-                                <h5 class="section-title text-danger">
-                                    <i class="fa-solid fa-shield-halved"></i>
-                                    <span>個人資料 (含薪轉)</span>
-                                </h5>
-                                <div class="small text-secondary mt-1">
-                                    此區塊為敏感隱私檔案，用於款項清算與出納確認
-                                </div>
-                            </div>
-                            <span class="privacy-badge">
-                                <i class="fa-solid fa-lock"></i>
-                                <span>僅限最高營運者可見</span>
-                            </span>
-                        </div>
-
-                        <div class="row g-3">
-                            <div class="col-md-4 col-12">
-                                <label class="field-label">
-                                    <i class="fa-solid fa-user-check text-success"></i>本名
-                                </label>
-                                <input type="text" name="real_name" class="form-control form-control-glass" value="<%= user.real_name || '' %>" placeholder="請填寫戶籍真實姓名">
-                            </div>
-
-                            <div class="col-md-4 col-6">
-                                <label class="field-label">
-                                    <i class="fa-solid fa-building-columns text-warning"></i>銀行名稱
-                                </label>
-                                <input type="text" name="bank_name" class="form-control form-control-glass" value="<%= user.bank_name || '' %>" placeholder="例如：中國信託 / 國泰世華">
-                            </div>
-
-                            <div class="col-md-4 col-6">
-                                <label class="field-label">
-                                    <i class="fa-solid fa-hashtag text-info"></i>機構代碼 (3碼)
-                                </label>
-                                <input type="text" name="bank_code" class="form-control form-control-glass font-monospace" maxlength="3" value="<%= user.bank_code || '' %>" placeholder="例如：822">
-                            </div>
-
-                            <div class="col-md-5 col-12">
-                                <label class="field-label">
-                                    <i class="fa-solid fa-map-location-dot text-primary"></i>分行名稱
-                                </label>
-                                <input type="text" name="bank_branch" class="form-control form-control-glass" value="<%= user.bank_branch || '' %>" placeholder="例如：板橋分行 / 敦南分行">
-                            </div>
-
-                            <div class="col-md-7 col-12">
-                                <label class="field-label">
-                                    <i class="fa-solid fa-money-check-dollar text-warning"></i>銀行帳戶
-                                </label>
-                                <input type="text" name="bank_account" class="form-control form-control-glass font-monospace" value="<%= user.bank_account || '' %>" placeholder="請輸入匯款受款帳號 (純數字)">
-                            </div>
-                        </div>
-                    </div>
+                    <!-- 2. 模組化：個人資料 (含薪轉個資) 區塊 -->
+                    <%- include('partials/profile_bank_info', { user: user }) %>
 
                     <div class="d-flex justify-content-end mb-4">
                         <button type="submit" class="btn btn-primary px-4 py-2 rounded-pill fw-semibold shadow" style="background: linear-gradient(135deg, #9333ea, #7e22ce); border: none;">

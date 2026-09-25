@@ -1,37 +1,66 @@
+const db = require('../database');
+const { syncUsersJsonFromDb } = require('./dataSync');
+
 /**
- * 折扣與實收金額計算工具
- * @param {number} originalPrice 訂單原價 (合計金額)
- * @param {number} discountInput 輸入的折扣數值
- * @returns {{ finalAmount: number, discountAmount: number, discountText: string }}
+ * 💡 計算並自動更新指定使用者的 VIP 等級與點單折扣
  */
-function calculateDiscount(originalPrice, discountInput) {
-    const price = Math.max(0, Number(originalPrice || 0));
-    let discount = Number(discountInput || 0);
+async function getUserVipInfo(userId) {
+    return new Promise((resolve) => {
+        // 1. 取得使用者與消費/預存統計
+        const sql = `
+            SELECT u.*,
+                COALESCE((SELECT SUM(total_amount) FROM orders WHERE boss_id = u.id AND status != 'cancelled'), 0) + COALESCE(u.manual_spent, 0) as total_spent,
+                COALESCE((SELECT SUM(amount) FROM topups WHERE user_id = u.id AND amount > 0), 0) + COALESCE(u.manual_deposited, 0) as total_deposited
+            FROM users u WHERE u.id = ?
+        `;
 
-    // 1. 防呆：不得為負數
-    if (discount < 0) discount = 0;
+        db.get(sql, [userId], (err, user) => {
+            if (err || !user) return resolve({ vip_level: 0, discountRate: 1.0, user: null });
 
-    let finalAmount = price;
-    let discountAmount = 0;
-    let discountText = '';
+            // 2. 撈取全部 VIP 階級門檻
+            db.all('SELECT * FROM vip_tiers ORDER BY level ASC', (vErr, vipTiers) => {
+                const tiers = vipTiers || [];
+                const spent = Number(user.total_spent || 0);
+                const deposited = Number(user.total_deposited || 0);
 
-    if (discount >= 1) {
-        // 2. 1 以上：直減金額 (減法)
-        discountAmount = discount;
-        finalAmount = Math.max(0, price - discountAmount);
-        discountText = `-$${discountAmount.toLocaleString()} NTD`;
-    } else if (discount >= 0.1 && discount < 1) {
-        // 3. 0.1 ~ 0.99：折數 (乘法，例如 0.8 代表 8 折)
-        finalAmount = Math.round(price * discount);
-        discountAmount = price - finalAmount;
-        discountText = `${(discount * 10).toFixed(1)}折 (-$${discountAmount.toLocaleString()})`;
-    }
+                let calculatedVip = 0;
+                let currentDiscountRate = 1.0;
 
-    return {
-        finalAmount,
-        discountAmount,
-        discountText
-    };
+                // 取消費或預存達到最高的 VIP 等級
+                for (const t of tiers) {
+                    const spentPass = t.spent_threshold > 0 && spent >= t.spent_threshold;
+                    const depositPass = t.deposit_threshold > 0 && deposited >= t.deposit_threshold;
+
+                    if (spentPass || depositPass) {
+                        if (Number(t.level) > calculatedVip) {
+                            calculatedVip = Number(t.level);
+                            if (t.discount_rate && Number(t.discount_rate) > 0) {
+                                currentDiscountRate = Number(t.discount_rate);
+                            }
+                        }
+                    }
+                }
+
+                const currentVipInDb = Number(user.vip_level || 0);
+                const actualVip = Math.max(currentVipInDb, calculatedVip);
+
+                // 自動升級寫入 DB
+                if (calculatedVip > currentVipInDb) {
+                    db.run('UPDATE users SET vip_level = ? WHERE id = ?', [calculatedVip, userId], () => {
+                        syncUsersJsonFromDb();
+                    });
+                }
+
+                resolve({
+                    vip_level: actualVip,
+                    discountRate: currentDiscountRate,
+                    totalSpent: spent,
+                    totalDeposited: deposited,
+                    user: { ...user, vip_level: actualVip }
+                });
+            });
+        });
+    });
 }
 
-module.exports = { calculateDiscount };
+module.exports = { getUserVipInfo };

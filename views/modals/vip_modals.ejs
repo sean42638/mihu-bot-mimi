@@ -1,0 +1,118 @@
+<!-- 1. 唯讀查看內容彈窗 -->
+<div class="modal fade" id="viewVipModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
+        <div class="modal-content modal-content-glass">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2">
+                    <span id="viewVipTitleBadge" class="vip-badge-pill">VIP 1</span>
+                    <span class="fs-6 text-secondary fw-normal">特權獎勵詳情</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-3">
+                <div class="p-3 rounded-3 mb-3" style="background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.08);">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-secondary small"><i class="fa-solid fa-coins me-1 text-warning"></i>累計消費門檻</span>
+                        <span class="fw-bold text-warning font-monospace" id="viewSpent">0 T</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-secondary small"><i class="fa-solid fa-piggy-bank me-1 text-info"></i>預存額度門檻</span>
+                        <span class="fw-bold text-info font-monospace" id="viewDeposit">0 T</span>
+                    </div>
+                </div>
+
+                <div class="small text-secondary fw-semibold mb-2">包含特權項目：</div>
+                <ul class="view-reward-list" id="viewRewardsList"></ul>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-sm btn-secondary rounded-pill px-4" data-bs-dismiss="modal">關閉</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 2. 編輯 VIP 等級彈窗 -->
+<div class="modal fade" id="editVipModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 520px;">
+        <div class="modal-content modal-content-glass">
+            <form id="editVipForm" method="POST">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-pen-to-square text-warning"></i>
+                        <span id="editVipModalTitle">編輯 VIP</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="small text-secondary fw-semibold mb-1">累計消費門檻 (T)</label>
+                            <input type="number" id="editSpent" name="spent_threshold" class="form-control form-control-glass text-end" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="small text-secondary fw-semibold mb-1">預存門檻 (T)</label>
+                            <input type="number" id="editDeposit" name="deposit_threshold" class="form-control form-control-glass text-end" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="small text-secondary fw-semibold mb-2 d-flex justify-content-between">
+                            <span>獎勵特權清單</span>
+                            <span class="small" style="font-size: 0.72rem; color: #8b83a8;">可增減項目</span>
+                        </label>
+                        <div id="editRewardsContainer"></div>
+                        <button type="button" class="btn-add-reward mt-2" onclick="addEditRewardRow()">
+                            <i class="fa-solid fa-plus me-1"></i>新增獎勵欄位
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-sm btn-primary rounded-pill px-4" style="background-color: #9333ea; border: none;">儲存變更</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 3. 新增全新 VIP 等級 Modal -->
+<div class="modal fade" id="addVipModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
+        <div class="modal-content modal-content-glass">
+            <form action="/system/vip/add" method="POST">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-crown me-2 text-warning"></i>新增 VIP 等級</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <div class="mb-3">
+                        <label class="small text-secondary fw-semibold mb-1">等級代號 (例如 8)</label>
+                        <input type="number" name="level" class="form-control form-control-glass" placeholder="8" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="small text-secondary fw-semibold mb-1">等級名稱</label>
+                        <input type="text" name="name" class="form-control form-control-glass" placeholder="VIP 8" required>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="small text-secondary fw-semibold mb-1">累計消費門檻 (T)</label>
+                            <input type="number" name="spent_threshold" class="form-control form-control-glass" placeholder="120000" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="small text-secondary fw-semibold mb-1">預存門檻 (T)</label>
+                            <input type="number" name="deposit_threshold" class="form-control form-control-glass" placeholder="100000" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="small text-secondary fw-semibold mb-1">初始首項獎勵</label>
+                        <input type="text" name="initial_reward" class="form-control form-control-glass" placeholder="例如：專屬高階客服" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-sm btn-primary rounded-pill px-4" style="background-color: #9333ea; border: none;">確認建立</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

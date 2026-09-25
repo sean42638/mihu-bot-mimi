@@ -1,0 +1,231 @@
+<!-- 💳 模組化：VIP 尊榮信用卡單張展示與動態切換組件 (零警告終極版) -->
+<%
+    const currentShowcaseUser = typeof cardUser !== 'undefined' && cardUser ? cardUser : {
+        nickname: 'XiaoMi',
+        username: 'Xiaomi_Boss',
+        id: '123456789012346746',
+        balance: 88888
+    };
+
+    const cardHolder = currentShowcaseUser.nickname || currentShowcaseUser.global_name || currentShowcaseUser.username || 'VIP Member';
+    const memberId = currentShowcaseUser.id ? `•••• ${currentShowcaseUser.id.slice(-4)}` : '•••• 6746';
+    const totalBalance = Number(currentShowcaseUser.balance || 0);
+
+    const defaultGradient = 'linear-gradient(135deg, #130d24 0%, #1a1033 40%, #0c1829 80%, #06111f 100%)';
+    const defaultBorder = 'rgba(168, 85, 247, 0.4)';
+    const defaultBadgeBg = 'rgba(168, 85, 247, 0.2)';
+    const defaultBadgeColor = '#d8b4fe';
+    const defaultCrownColor = '#f59e0b';
+%>
+
+<style>
+    /* 選項切換按鈕區 */
+    .vip-selector-wrap {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 24px;
+    }
+    .vip-select-btn {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #94a3b8;
+        padding: 8px 16px;
+        border-radius: 30px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .vip-select-btn:hover {
+        color: #fff;
+        background: rgba(168, 85, 247, 0.2);
+        border-color: rgba(168, 85, 247, 0.4);
+    }
+    .vip-select-btn.active {
+        color: #fff;
+        background: linear-gradient(135deg, rgba(168, 85, 247, 0.4), rgba(236, 72, 153, 0.4));
+        border: 1px solid rgba(168, 85, 247, 0.6);
+        box-shadow: 0 0 15px rgba(168, 85, 247, 0.3);
+    }
+
+    /* 單張卡片展示位 */
+    .single-vip-card-wrap {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        perspective: 1000px;
+    }
+
+    .vip-card-item {
+        position: relative;
+        width: 100%;
+        max-width: 480px;
+        height: 270px;
+        border-radius: 22px;
+        padding: 26px 30px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        overflow: hidden;
+        user-select: none;
+        box-shadow: 0 20px 45px rgba(0, 0, 0, 0.75), inset 0 1px 2px rgba(255, 255, 255, 0.25);
+        transition: transform 0.4s ease, box-shadow 0.4s ease, background 0.5s ease, border-color 0.5s ease;
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+    }
+
+    .vip-card-item:hover {
+        transform: translateY(-6px) rotateX(2deg) rotateY(-2deg);
+        box-shadow: 0 28px 60px rgba(0, 0, 0, 0.85), 0 0 35px rgba(168, 85, 247, 0.25);
+    }
+
+    .vip-card-sim-chip {
+        width: 48px;
+        height: 35px;
+        background: linear-gradient(135deg, #fef08a 0%, #f59e0b 50%, #b45309 100%);
+        border-radius: 8px;
+        position: relative;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    .vip-badge-pill {
+        background: var(--badge-bg);
+        color: var(--badge-color);
+        border: 1px solid var(--card-border);
+        transition: all 0.3s ease;
+    }
+
+    .vip-crown-icon {
+        color: var(--crown-color);
+        transition: all 0.3s ease;
+    }
+
+    .vip-card-watermark {
+        position: absolute;
+        right: -15px;
+        bottom: -20px;
+        opacity: 0.18;
+        pointer-events: none;
+    }
+    .vip-card-watermark img {
+        width: 170px;
+        height: auto;
+        filter: brightness(1.3);
+    }
+</style>
+
+<!-- 🚀 1. VIP 1 ~ 7 等級選擇按鈕群 -->
+<div class="vip-selector-wrap" id="vipShowcaseContainer">
+    <% for(let i = 1; i <= 7; i++) { %>
+        <button type="button" 
+                class="vip-select-btn <%= i === 3 ? 'active' : '' %>" 
+            data-vip-level="<%= i %>">
+            <i class="fa-solid fa-crown me-1" style="font-size: 0.75rem;"></i>VIP <%= i %>
+        </button>
+    <% } %>
+</div>
+
+<!-- 🚀 2. 單張卡片展示區 -->
+<div class="single-vip-card-wrap">
+    <div class="vip-card-item" id="vipShowcaseCard" style="--card-bg: <%= defaultGradient %>; --card-border: <%= defaultBorder %>;">
+        <!-- 上排：IC 晶片與 VIP 標籤 -->
+        <div class="d-flex justify-content-between align-items-center" style="position: relative; z-index: 2;">
+            <div class="d-flex align-items-center gap-2">
+                <div class="vip-card-sim-chip"></div>
+                <i class="fa-solid fa-wifi text-light" style="transform: rotate(90deg); font-size: 1.1rem; opacity: 0.75;"></i>
+            </div>
+            <div class="px-3 py-1 rounded-pill fw-bold small d-flex align-items-center gap-2 vip-badge-pill" id="vipBadgePill"
+                 style="--badge-bg: <%= defaultBadgeBg %>; --badge-color: <%= defaultBadgeColor %>; --card-border: <%= defaultBorder %>;">
+                <i class="fa-solid fa-crown vip-crown-icon" id="vipCrownIcon" style="--crown-color: <%= defaultCrownColor %>;"></i>
+                <span id="vipBadgeText">VIP 3</span>
+            </div>
+        </div>
+
+        <!-- 中排：總餘額 -->
+        <div class="my-auto pt-3" style="position: relative; z-index: 2;">
+            <div class="text-uppercase fw-bold" style="font-size: 0.7rem; letter-spacing: 1.5px; color: #94a3b8;">TOTAL BALANCE</div>
+            <div class="d-flex align-items-baseline gap-2 mt-1">
+                <span class="fs-1 fw-bold text-white font-monospace" style="line-height: 1;">$<%= totalBalance.toLocaleString() %></span>
+                <span class="fw-bold font-monospace small" style="color: #f59e0b;">NTD</span>
+            </div>
+        </div>
+
+        <!-- 下排：持卡人與 ID -->
+        <div class="d-flex justify-content-between align-items-end pt-2 border-top border-white border-opacity-10" style="position: relative; z-index: 2;">
+            <div>
+                <div class="text-uppercase fw-bold" style="font-size: 0.65rem; letter-spacing: 1px; color: #64748b;">CARD HOLDER</div>
+                <div class="fw-bold text-white mt-1 small"><%= cardHolder %></div>
+            </div>
+            <div class="text-end">
+                <div class="text-uppercase fw-bold" style="font-size: 0.65rem; letter-spacing: 1px; color: #64748b;">MEMBER ID</div>
+                <div class="fw-bold text-white font-monospace mt-1 small"><%= memberId %></div>
+            </div>
+        </div>
+
+        <!-- 水印 Logo -->
+        <div class="vip-card-watermark">
+            <img src="/images/logo.png" alt="MiHu Logo" onerror="this.src='/images/logo2.png';">
+        </div>
+    </div>
+</div>
+
+<script>
+    // 純 JavaScript 設定檔 (避開 EJS 標籤誤判)
+    const jsVipThemes = {
+        1: { name: 'VIP 1 黑鐵鈦灰', gradient: 'linear-gradient(135deg, #1e293b 0%, #0f172a 50%, #020617 100%)', border: 'rgba(148, 163, 184, 0.4)', badgeBg: 'rgba(148, 163, 184, 0.2)', badgeColor: '#cbd5e1', crownColor: '#94a3b8' },
+        2: { name: 'VIP 2 青鋼翡翠', gradient: 'linear-gradient(135deg, #064e3b 0%, #022c22 50%, #031716 100%)', border: 'rgba(52, 211, 153, 0.4)', badgeBg: 'rgba(52, 211, 153, 0.2)', badgeColor: '#6ee7b7', crownColor: '#34d399' },
+        3: { name: 'VIP 3 極光霓虹紫', gradient: 'linear-gradient(135deg, #130d24 0%, #1a1033 40%, #0c1829 80%, #06111f 100%)', border: 'rgba(168, 85, 247, 0.4)', badgeBg: 'rgba(168, 85, 247, 0.2)', badgeColor: '#d8b4fe', crownColor: '#f59e0b' },
+        4: { name: 'VIP 4 璀璨鉑金', gradient: 'linear-gradient(135deg, #334155 0%, #1e293b 40%, #475569 80%, #0f172a 100%)', border: 'rgba(226, 232, 240, 0.6)', badgeBg: 'rgba(255, 255, 255, 0.25)', badgeColor: '#ffffff', crownColor: '#e2e8f0' },
+        5: { name: 'VIP 5 耀眼流金', gradient: 'linear-gradient(135deg, #451a03 0%, #78350f 40%, #291003 80%, #0f0501 100%)', border: 'rgba(245, 158, 11, 0.6)', badgeBg: 'rgba(245, 158, 11, 0.25)', badgeColor: '#fef08a', crownColor: '#f59e0b' },
+        6: { name: 'VIP 6 赤紅幻影', gradient: 'linear-gradient(135deg, #450a0a 0%, #7f1d1d 40%, #1c0505 80%, #090101 100%)', border: 'rgba(248, 113, 113, 0.6)', badgeBg: 'rgba(239, 68, 68, 0.25)', badgeColor: '#fca5a5', crownColor: '#ef4444' },
+        7: { name: 'VIP 7 星鑽神話', gradient: 'linear-gradient(135deg, #3b0764 0%, #581c87 30%, #1e1b4b 70%, #030712 100%)', border: 'rgba(236, 72, 153, 0.7)', badgeBg: 'linear-gradient(90deg, rgba(236, 72, 153, 0.3), rgba(168, 85, 247, 0.3))', badgeColor: '#f472b6', crownColor: '#f43f5e' }
+    };
+
+    function switchVipCardShowcase(level) {
+        const theme = jsVipThemes[level];
+        if (!theme) return;
+
+        // 1. 切換按鈕高亮
+        document.querySelectorAll('.vip-select-btn').forEach((btn, idx) => {
+            if (idx + 1 === level) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        // 2. 更新卡片背景與邊框 CSS 變數
+        const cardEl = document.getElementById('vipShowcaseCard');
+        if (cardEl) {
+            cardEl.style.setProperty('--card-bg', theme.gradient);
+            cardEl.style.setProperty('--card-border', theme.border);
+        }
+
+        // 3. 更新 VIP 標籤與圖示顏色
+        const badgeEl = document.getElementById('vipBadgePill');
+        if (badgeEl) {
+            badgeEl.style.setProperty('--badge-bg', theme.badgeBg);
+            badgeEl.style.setProperty('--badge-color', theme.badgeColor);
+            badgeEl.style.setProperty('--card-border', theme.border);
+        }
+
+        const crownEl = document.getElementById('vipCrownIcon');
+        if (crownEl) {
+            crownEl.style.setProperty('--crown-color', theme.crownColor);
+        }
+
+        const textEl = document.getElementById('vipBadgeText');
+        if (textEl) {
+            textEl.textContent = `VIP ${level}`;
+        }
+    }
+
+    document.querySelectorAll('.vip-select-btn').forEach((button) => {
+        button.addEventListener('click', () => {
+            switchVipCardShowcase(Number(button.dataset.vipLevel));
+        });
+    });
+</script>

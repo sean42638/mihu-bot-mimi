@@ -1,0 +1,59 @@
+<!-- 🔒 模組化：機密薪轉個資區塊 (全防錯相容版) -->
+<%
+    const bankUser = (typeof user !== 'undefined' && user) ? user : ((typeof currentUserData !== 'undefined' && currentUserData) ? currentUserData : {});
+%>
+
+<div class="glass-card">
+    <div class="section-header">
+        <div>
+            <h5 class="section-title text-danger">
+                <i class="fa-solid fa-shield-halved"></i>
+                <span>個人資料 (含薪轉)</span>
+            </h5>
+            <div class="small text-secondary mt-1">
+                此區塊為敏感隱私檔案，用於款項清算與出納確認
+            </div>
+        </div>
+        <span class="privacy-badge">
+            <i class="fa-solid fa-lock"></i>
+            <span>僅限最高營運者可見</span>
+        </span>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-4 col-12">
+            <label class="field-label">
+                <i class="fa-solid fa-user-check text-success"></i>本名
+            </label>
+            <input type="text" name="real_name" class="form-control form-control-glass" value="<%= bankUser.real_name || '' %>" placeholder="請填寫戶籍真實姓名">
+        </div>
+
+        <div class="col-md-4 col-6">
+            <label class="field-label">
+                <i class="fa-solid fa-building-columns text-warning"></i>銀行名稱
+            </label>
+            <input type="text" name="bank_name" class="form-control form-control-glass" value="<%= bankUser.bank_name || '' %>" placeholder="例如：中國信託 / 國泰世華">
+        </div>
+
+        <div class="col-md-4 col-6">
+            <label class="field-label">
+                <i class="fa-solid fa-hashtag text-info"></i>機構代碼 (3碼)
+            </label>
+            <input type="text" name="bank_code" class="form-control form-control-glass font-monospace" maxlength="3" value="<%= bankUser.bank_code || '' %>" placeholder="例如：822">
+        </div>
+
+        <div class="col-md-5 col-12">
+            <label class="field-label">
+                <i class="fa-solid fa-map-location-dot text-primary"></i>分行名稱
+            </label>
+            <input type="text" name="bank_branch" class="form-control form-control-glass" value="<%= bankUser.bank_branch || '' %>" placeholder="例如：板橋分行 / 敦南分行">
+        </div>
+
+        <div class="col-md-7 col-12">
+            <label class="field-label">
+                <i class="fa-solid fa-money-check-dollar text-warning"></i>銀行帳戶
+            </label>
+            <input type="text" name="bank_account" class="form-control form-control-glass font-monospace" value="<%= bankUser.bank_account || '' %>" placeholder="請輸入匯款受款帳號 (純數字)">
+        </div>
+    </div>
+</div>
