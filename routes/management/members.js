@@ -5,7 +5,7 @@ const { ensureAuth } = require('../../middleware/auth');
 const { sortByRoleWeight } = require('../../utils/roleHelper');
 const { adjustUserWallet } = require('../../utils/walletHelper');
 
-// 1.1 渲染「會員管理」頁面
+// 1.1 渲染「會員管理」頁面 (優先取 user_wallets 數據)
 router.get('/', ensureAuth, (req, res) => {
     const membersSql = `
         SELECT u.*,
@@ -29,7 +29,6 @@ router.get('/', ensureAuth, (req, res) => {
             const tiers = vipTiers || [];
             
             const processedMembers = (rawMembers || []).map(m => {
-                // 🚀 關鍵：手動金額若有設定，直接作為最高優先權總金額！
                 const manualSpent = m.wallet_manual_spent !== null && m.wallet_manual_spent !== undefined ? Number(m.wallet_manual_spent) : null;
                 const manualDeposited = m.wallet_manual_deposited !== null && m.wallet_manual_deposited !== undefined ? Number(m.wallet_manual_deposited) : null;
 
@@ -72,7 +71,7 @@ router.get('/', ensureAuth, (req, res) => {
                     balance: Number(m.balance || 0),
                     bonus_balance: Number(m.bonus_balance || 0),
                     manual_spent: manualSpent !== null ? manualSpent : 0,
-                    manual_deposited: manualDeposited !== null ? manualDeposited : 0,
+                    manual_deposited: deposited, // 🚀 精準顯示最新累積實充
                     total_spent: spent,
                     total_deposited: deposited,
                     gap_spent: gapSpent,
@@ -122,7 +121,7 @@ router.get('/sync-all', ensureAuth, async (req, res) => {
     res.redirect('/management/members?success=1');
 });
 
-// 1.4 手動更新會員帳務金額 API
+// 1.4 手動更新會員帳務金額 API (精準處理空字串與 0)
 router.post('/update-balance/:id', ensureAuth, async (req, res) => {
     const targetUserId = req.params.id;
     const { add_amount, bonus_change, bonus_balance, balance, total_spent, total_deposited, note } = req.body;

@@ -45,53 +45,51 @@ async function adjustUserWallet({
 
             let singleTopupAmount = 0; // 本次正數充值金額
 
-            // 🚀 1. 檢查是否有「手動輸入覆蓋累積實充」(框框有輸入字串才算)
-            const isDepositedSet = overrideDeposited !== null && overrideDeposited !== undefined && String(overrideDeposited).trim() !== '';
+            // 解析數值
+            const parsedAdd = (addAmount !== null && addAmount !== undefined && String(addAmount).trim() !== '') ? Number(addAmount) : null;
+            const parsedBonus = (bonusChange !== null && bonusChange !== undefined && String(bonusChange).trim() !== '') ? Number(bonusChange) : null;
+            const parsedBalance = (overrideBalance !== null && overrideBalance !== undefined && String(overrideBalance).trim() !== '') ? Number(overrideBalance) : null;
+            const parsedSpent = (overrideSpent !== null && overrideSpent !== undefined && String(overrideSpent).trim() !== '') ? Number(overrideSpent) : null;
+            const parsedDeposited = (overrideDeposited !== null && overrideDeposited !== undefined && String(overrideDeposited).trim() !== '') ? Number(overrideDeposited) : null;
 
-            // 🚀 2. 檢查是否有「手動輸入覆蓋累積消費」(框框有輸入字串才算)
-            const isSpentSet = overrideSpent !== null && overrideSpent !== undefined && String(overrideSpent).trim() !== '';
-            if (isSpentSet) {
-                newSpent = Number(overrideSpent);
+            // 🚀 1. 處理累積消費 (overrideSpent)
+            if (parsedSpent !== null && !isNaN(parsedSpent)) {
+                newSpent = parsedSpent;
             }
 
-            // 🚀 3. 處理本次充值加減與餘額/累積實充連動
-            const isBalanceSet = overrideBalance !== null && overrideBalance !== undefined && String(overrideBalance).trim() !== '';
-
-            if (isBalanceSet) {
-                // 直接覆蓋目前餘額
-                newBalance = Number(overrideBalance);
-            } else if (addAmount !== null && addAmount !== undefined && String(addAmount).trim() !== '' && !isNaN(Number(addAmount))) {
-                const parsedAdd = Number(addAmount);
-                newBalance = currBalance + parsedAdd; // 正數增加餘額，負數扣款
-
-                // 🌟【關鍵連動】：充值正數且沒有手動輸入覆蓋累積實充時，100% 累加進累積實充！
+            // 🚀 2. 處理「本次充值 / 扣款 (addAmount)」與「目前餘額」
+            if (parsedBalance !== null && !isNaN(parsedBalance)) {
+                newBalance = parsedBalance;
+            } else if (parsedAdd !== null && !isNaN(parsedAdd)) {
+                newBalance = currBalance + parsedAdd;
                 if (parsedAdd > 0) {
                     singleTopupAmount = parsedAdd;
-                    if (!isDepositedSet) {
-                        newDeposited = currDeposited + parsedAdd;
-                    }
                 }
             }
 
-            // 🚀 4. 如果管理員有「主動手動輸入」累積實充（包含輸入 0），手動指定優先！
-            if (isDepositedSet) {
-                newDeposited = Number(overrideDeposited);
+            // 🚀 3. 關鍵連動：累積實充 (newDeposited) 計算
+            // 規則 A：若有輸入「本次充值」(正數)，且沒有顯式指定一個「大於 0 的手動覆蓋值」，累積實充 100% 自動累加！
+            if (singleTopupAmount > 0 && (parsedDeposited === null || isNaN(parsedDeposited) || parsedDeposited === 0)) {
+                newDeposited = currDeposited + singleTopupAmount;
+            } 
+            // 規則 B：若單獨手動指定「調整累積實充」(包含輸入指定金額或歸零 0，且本次無充值)，以手動覆蓋值為準！
+            else if (parsedDeposited !== null && !isNaN(parsedDeposited)) {
+                newDeposited = parsedDeposited;
             }
 
-            // 🚀 5. 處理贈送金 (計算至目前餘額)
-            if (bonusChange !== null && bonusChange !== undefined && String(bonusChange).trim() !== '' && !isNaN(Number(bonusChange))) {
-                const parsedBonus = Number(bonusChange);
+            // 🚀 4. 處理贈送金 (計算至目前餘額)
+            if (parsedBonus !== null && !isNaN(parsedBonus)) {
                 newBonus = currBonus + parsedBonus;
                 newBalance = newBalance + parsedBonus;
             }
 
-            // 6. 零負數防護驗證
+            // 5. 零負數防護驗證
             if (newBalance < 0) return reject(new Error(`計算後實充餘額小於 0 (最終為 $${newBalance})，數目不得為負數！`));
             if (newBonus < 0) return reject(new Error(`計算後贈送金小於 0 (最終為 $${newBonus})，數目不得為負數！`));
             if (newSpent < 0) return reject(new Error('累積消費不得設定為負數！'));
             if (newDeposited < 0) return reject(new Error('累積實充不得設定為負數！'));
 
-            // 7. UPSERT 寫入獨立資金表 user_wallets，並同步備份至 users 表
+            // 6. UPSERT 寫入獨立資金表 user_wallets，並同步備份至 users 表
             const upsertWalletSql = `
                 INSERT INTO user_wallets (user_id, balance, bonus_balance, manual_spent, manual_deposited, updated_at)
                 VALUES (?, ?, ?, ?, ?, DATETIME('now', 'localtime'))
@@ -110,7 +108,7 @@ async function adjustUserWallet({
                 db.run(`UPDATE users SET balance = ?, bonus_balance = ?, manual_spent = ?, manual_deposited = ? WHERE id = ?`,
                     [newBalance, newBonus, newSpent, newDeposited, userId], () => {});
 
-                // 寫入 topups 充值流水紀錄
+                // 寫入 topups 流水紀錄
                 if (singleTopupAmount > 0) {
                     db.run(`
                         INSERT INTO topups (user_id, amount, bonus, channel_type, note, operator_id, created_at)
@@ -118,7 +116,7 @@ async function adjustUserWallet({
                     `, [userId, singleTopupAmount, bonusChange || 0, reason, operatorId], () => {});
                 }
 
-                // 8. 🚀 核心連動：即刻調用 VIP Helper (帶入單次充值金額)
+                // 7. 🚀 核心連動：即刻調用 VIP Helper 重算 (帶入單次充值額度)
                 try {
                     await checkAndUpdateVipLevel(userId, singleTopupAmount);
                 } catch (vErr) {

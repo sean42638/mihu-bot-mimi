@@ -92,7 +92,7 @@
                         <div class="col-6">
                             <label class="small text-secondary fw-semibold mb-1">本次充值金額 ($)</label>
                             <input type="number" step="any" name="add_amount" id="modalAddAmount" class="form-control form-control-glass" placeholder="例如：1000 或 -500">
-                            <div class="text-secondary" style="font-size: 0.72rem; margin-top: 2px;">正數將自動計入累積實充</div>
+                            <div class="text-secondary" style="font-size: 0.72rem; margin-top: 2px;">正數充值將自動算入累積實充</div>
                         </div>
                         <div class="col-6">
                             <label class="small text-secondary fw-semibold mb-1">贈送金 ($)</label>
@@ -110,12 +110,12 @@
                     <div class="row g-2 mb-3">
                         <div class="col-6">
                             <label class="small text-secondary fw-semibold mb-1">調整累積消費 ($)</label>
-                            <input type="number" step="any" name="total_spent" id="modalSpent" class="form-control form-control-glass" placeholder="不覆蓋請留空 (可填 0)">
+                            <input type="number" step="any" name="total_spent" id="modalSpent" class="form-control form-control-glass" placeholder="不調整請留空">
                             <div class="text-secondary" style="font-size: 0.72rem; margin-top: 2px;">覆蓋總累積消費額</div>
                         </div>
                         <div class="col-6">
                             <label class="small text-secondary fw-semibold mb-1">調整累積實充 ($)</label>
-                            <input type="number" step="any" name="total_deposited" id="modalDeposited" class="form-control form-control-glass" placeholder="不覆蓋請留空 (可填 0)">
+                            <input type="number" step="any" name="total_deposited" id="modalDeposited" class="form-control form-control-glass" placeholder="不調整請留空">
                             <div class="text-secondary" style="font-size: 0.72rem; margin-top: 2px;">覆蓋總累積充值金額</div>
                         </div>
                     </div>
@@ -137,6 +137,40 @@
         </div>
     </div>
 </div>
+
+<script>
+    window.currentMemberBalance = 0;
+    window.currentMemberBonus = 0;
+
+    window.openAdjustBalanceModal = function(memberData) {
+        if (!memberData) return;
+
+        window.currentMemberBalance = Number(memberData.balance || 0);
+        window.currentMemberBonus = Number(memberData.bonus_balance || memberData.bonus || 0);
+
+        const form = document.getElementById('adjustBalanceForm');
+        if (form) form.action = `/management/members/update-balance/${memberData.id}`;
+
+        const nameEl = document.getElementById('balanceTargetName');
+        if (nameEl) nameEl.textContent = memberData.custom_nickname || memberData.global_name || memberData.username;
+
+        document.getElementById('hiddenCurrentBalance').value = window.currentMemberBalance;
+        document.getElementById('hiddenCurrentBonus').value = window.currentMemberBonus;
+
+        // 🚀 強制清空所有輸入框
+        document.getElementById('modalAddAmount').value = '';
+        document.getElementById('modalBonusBalance').value = '';
+        document.getElementById('modalBalance').value = ''; 
+        document.getElementById('modalSpent').value = '';
+        document.getElementById('modalDeposited').value = '';
+
+        const modalEl = document.getElementById('adjustBalanceModal');
+        if (modalEl) {
+            const instance = bootstrap.Modal.getOrCreateInstance(modalEl);
+            instance.show();
+        }
+    };
+</script>
 
 <!-- 彈窗 3：獨立 VIP 與身分同步調整 Modal -->
 <div class="modal fade" id="vipModal" tabindex="-1" aria-hidden="true">
