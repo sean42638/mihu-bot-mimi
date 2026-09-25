@@ -207,7 +207,7 @@
     window.currentMemberBalance = 0;
     window.currentMemberBonus = 0;
 
-    // 🚀 關鍵：Modal 開啟時 100% 清空所有輸入框，不預填舊值，避免 0 被誤覆蓋！
+    // 🚀 關鍵：Modal 開啟時 100% 清空所有輸入框，絕不預填舊值，避免 0 被誤覆蓋！
     window.openAdjustBalanceModal = function(memberData) {
         if (!memberData) return;
 
@@ -223,12 +223,12 @@
         document.getElementById('hiddenCurrentBalance').value = window.currentMemberBalance;
         document.getElementById('hiddenCurrentBonus').value = window.currentMemberBonus;
 
-        // 🚀 強制清空所有輸入框，不讓舊數字干擾本次充值
+        // 🚀 強制清空所有輸入框，不讓舊數字幹擾本次充值
         document.getElementById('modalAddAmount').value = '';
         document.getElementById('modalBonusBalance').value = '';
         document.getElementById('modalBalance').value = ''; 
         document.getElementById('modalSpent').value = '';
-        document.getElementById('modalDeposited').value = ''; // 空白不預填！
+        document.getElementById('modalDeposited').value = ''; // 100% 空白不預填！
 
         const modalEl = document.getElementById('adjustBalanceModal');
         if (modalEl) {

@@ -46,13 +46,6 @@
             padding: 28px;
             box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45);
         }
-
-        .balance-divider {
-            border-right: 1px solid rgba(255, 255, 255, 0.08);
-        }
-        @media (max-width: 768px) {
-            .balance-divider { border-right: none; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 16px; }
-        }
     </style>
 </head>
 <body>
@@ -64,7 +57,7 @@
         <%- include('partials/navbar', { activePage: 'wallet' }) %>
 
         <div class="content-body">
-            <!-- 上半部：3D 電競信用卡與餘額數據 -->
+            <!-- 上半部：3D 電競信用卡 -->
             <div class="glass-panel-card mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div>
@@ -77,13 +70,10 @@
                 </div>
 
                 <!-- 💳 1. 模組化 3D 信用卡區 (點擊觸發 Modal) -->
-                <div class="d-flex justify-content-center my-3" style="cursor: pointer;" onclick="openWalletDetailModal()">
+                <div class="d-flex justify-content-center mt-3" style="cursor: pointer;" onclick="openWalletDetailModal()">
                     <%- include('partials/wallet_card', { user: user }) %>
                 </div>
 
-                <hr class="border-secondary border-opacity-25 my-4">
-
-                <!-- 💰 2. 下方實充餘額 / 贈送餘額 / 累積實充區 -->
                 <% 
                     const currentBalance = Number(user.balance || 0);
                     const bonusBalance = Number(user.bonus_balance || 0);
@@ -103,28 +93,13 @@
                         accumulatedSpent: accumulatedSpent
                     };
                 %>
-                <!-- 隱藏式 JSON 資料 -->
+                <!-- 隱藏式 JSON 資料 (保留傳遞給 Modal 檢視) -->
                 <script type="application/json" id="walletDataJson">
                     <%- JSON.stringify(walletObj) %>
                 </script>
-
-                <div class="row text-center py-2">
-                    <div class="col-4 balance-divider">
-                        <div class="text-secondary small mb-2 fw-semibold"><i class="fa-solid fa-coins text-warning me-1"></i>目前可用餘額</div>
-                        <div class="fs-4 fw-bold text-warning font-monospace">$<%= currentBalance.toLocaleString() %></div>
-                    </div>
-                    <div class="col-4 balance-divider">
-                        <div class="text-secondary small mb-2 fw-semibold"><i class="fa-solid fa-money-bill-wave text-info me-1"></i>總累積實充</div>
-                        <div class="fs-4 fw-bold text-info font-monospace">$<%= accumulatedDeposited.toLocaleString() %></div>
-                    </div>
-                    <div class="col-4">
-                        <div class="text-secondary small mb-2 fw-semibold"><i class="fa-solid fa-gift text-success me-1"></i>贈送餘額</div>
-                        <div class="fs-4 fw-bold text-success font-monospace">$<%= bonusBalance.toLocaleString() %></div>
-                    </div>
-                </div>
             </div>
 
-            <!-- 👑 3. 獨立模組化：VIP 自動判定較高進度與流光進度條 -->
+            <!-- 👑 2. 獨立模組化：VIP 流光進度條 (內已包含累積消費與累積實充方塊) -->
             <div class="mb-4">
                 <%- include('partials/vip_progress_card', { 
                     user: user, 
@@ -134,7 +109,7 @@
                 }) %>
             </div>
 
-            <!-- 📜 4. 獨立模組化：消費歷史與帳戶流水頁籤區 -->
+            <!-- 📜 3. 獨立模組化：消費歷史與帳戶流水頁籤區 -->
             <%- include('partials/wallet_history', { orders: orders, transactions: transactions, topups: topups, user: user }) %>
         </div>
     </div>

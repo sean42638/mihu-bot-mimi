@@ -2,7 +2,7 @@ const db = require('../database');
 const { syncUsersJsonFromDb } = require('./dataSync');
 
 /**
- * 💡 計算並自動更新指定使用者的 VIP 等級與點單折扣
+ * 💡 1. 計算並自動更新指定使用者的 VIP 等級與點單折扣 (完整保留原代碼)
  */
 async function getUserVipInfo(userId) {
     return new Promise((resolve) => {
@@ -63,4 +63,49 @@ async function getUserVipInfo(userId) {
     });
 }
 
-module.exports = { getUserVipInfo };
+/**
+ * 🚀 2. 新增：計算折扣金額與說明文字 (供 add_time.js 與派單模組使用)
+ * @param {number} originalPrice - 原始總金額
+ * @param {number} discountValue - 折扣數值 (例如: 0.9 代表9折，或 50 代表折50元)
+ * @returns {{ finalAmount: number, discountAmount: number, discountText: string }}
+ */
+function calculateDiscount(originalPrice, discountValue) {
+    const price = Number(originalPrice) || 0;
+    const discount = Number(discountValue) || 0;
+
+    if (price <= 0 || discount <= 0) {
+        return {
+            finalAmount: price,
+            discountAmount: 0,
+            discountText: '無折扣'
+        };
+    }
+
+    let finalAmount = price;
+    let discountAmount = 0;
+    let discountText = '無折扣';
+
+    // 如果折扣輸入小於 1，代表是折數 (例如 0.9 代表 9 折，折 10%)
+    if (discount < 1) {
+        finalAmount = Math.round(price * discount);
+        discountAmount = price - finalAmount;
+        discountText = `${(discount * 10).toFixed(1).replace(/\.0$/, '')} 折 (-$${discountAmount.toLocaleString()})`;
+    } else {
+        // 大於等於 1，代表直接折抵固定金額 (例如 50 代表直接扣除 50 元)
+        discountAmount = Math.min(price, discount);
+        finalAmount = Math.max(0, price - discountAmount);
+        discountText = `直減 -$${discountAmount.toLocaleString()} 元`;
+    }
+
+    return {
+        finalAmount,
+        discountAmount,
+        discountText
+    };
+}
+
+// 🎯 導出完整模組 (同時包含 getUserVipInfo 與 calculateDiscount)
+module.exports = {
+    getUserVipInfo,
+    calculateDiscount
+};

@@ -2,7 +2,7 @@ const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, Permi
 const db = require('../database');
 const { createMihuEmbed, BRAND_COLORS } = require('../utils/embedBuilder');
 const { syncOrdersJsonFromDb, syncUsersJsonFromDb } = require('../utils/dataSync');
-const { getUserWallet, deductWallet } = require('../utils/walletHelper');
+const { getUserWallet, adjustUserWallet } = require('../utils/walletHelper');
 
 // 🚀 本地安全折扣計算工具 (防範外部 Helper 匯出格式不符問題)
 function calculateDiscount(rawPrice, inputDiscount) {
@@ -92,7 +92,7 @@ module.exports = {
                 const bossId = order.boss_id;
                 let walletNoticeText = '';
 
-                // 🚀 2. 錢包金額多退少補檢查與執行
+                // 🚀 2. 錢包金額多退少補檢查與執行 (完全整合最新全後台統一帳務引擎)
                 try {
                     if (priceDiff > 0) {
                         // 情況 A：價格變貴，需要補扣款
@@ -109,24 +109,25 @@ module.exports = {
                             });
                         }
 
-                        // 執行補扣款 (優先扣除贈送金)
-                        const deductRes = await deductWallet(bossId, priceDiff, `選人改價補扣 - 訂單號: ${orderNo}`);
-                        if (!deductRes.success) {
-                            return interaction.editReply({ content: `❌ 錢包補扣款失敗：${deductRes.error}` });
-                        }
+                        // 執行補扣款 (調用全後台統一資金處理核心)
+                        await adjustUserWallet({
+                            userId: bossId,
+                            addAmount: -priceDiff, // 帶入負數金額進行補扣
+                            reason: `選人改價補扣 - 訂單號: ${orderNo}`,
+                            operatorId: interaction.user.id
+                        });
 
-                        walletNoticeText = `\n💳 **錢包補扣**：\`$${priceDiff.toLocaleString()}\` NTD (扣除贈送金 $${deductRes.deductBonus} / 實充 $${deductRes.deductReal})`;
+                        walletNoticeText = `\n💳 **錢包補扣**：\`$${priceDiff.toLocaleString()}\` NTD (已成功自闆闆錢包扣除)`;
 
                     } else if (priceDiff < 0) {
-                        // 情況 B：價格變便宜，將差額退回闆闆實充錢包 (balance)
+                        // 情況 B：價格變便宜，將差額退回闆闆錢包
                         const refundDiff = Math.abs(priceDiff);
 
-                        await new Promise((resolve, reject) => {
-                            db.run(
-                                'UPDATE users SET balance = balance + ? WHERE id = ?',
-                                [refundDiff, bossId],
-                                (refundErr) => refundErr ? reject(refundErr) : resolve()
-                            );
+                        await adjustUserWallet({
+                            userId: bossId,
+                            addAmount: refundDiff, // 帶入正數金額進行退款
+                            reason: `選人降價退款 - 訂單號: ${orderNo}`,
+                            operatorId: interaction.user.id
                         });
 
                         // 寫入錢包交易流水紀錄 (wallet_transactions)

@@ -273,21 +273,24 @@
             document.getElementById('detailUsername').textContent = `@${data.username || ''}`;
             document.getElementById('detailId').textContent = `ID: ${data.id || ''}`;
             document.getElementById('detailVip').textContent = `VIP ${data.vip !== undefined ? data.vip : 0}`;
-            document.getElementById('detailTotalBalance').textContent = `$${Number(data.totalBalance || 0).toLocaleString()} NTD`;
-            document.getElementById('detailSpent').textContent = `$${Number(data.spent || 0).toLocaleString()} NTD`;
-            document.getElementById('detailDeposited').textContent = `$${Number(data.deposited || 0).toLocaleString()} NTD`;
+            
+            // 🚀 關鍵修復：精準對齊後端傳來的 manual_spent 與 manual_deposited
+            document.getElementById('detailTotalBalance').textContent = `$${Number(data.total_balance || data.totalBalance || 0).toLocaleString()} NTD`;
+            document.getElementById('detailSpent').textContent = `$${Number(data.manual_spent || 0).toLocaleString()} NTD`;
+            document.getElementById('detailDeposited').textContent = `$${Number(data.manual_deposited || 0).toLocaleString()} NTD`;
+            
             document.getElementById('detailVipGap').textContent = data.vipGap || '已達頂級';
             document.getElementById('detailBirthday').textContent = data.birthday || '未填寫';
             document.getElementById('detailCreatedAt').textContent = String(data.createdAt || '').slice(0, 16);
             if (memberDetailModal) memberDetailModal.show();
         }
 
-        // 🚀 關鍵修復：帳務 Modal 開啟時，絕不預填 balance 輸入框！
+        // 🚀 關鍵修復：帳務 Modal 開啟時，絕不預填 value，並將提示 Placeholder 綁定至 manual 變數！
         function showBalanceEdit(data) {
             if (!data) return;
             
             window.currentMemberBalance = Number(data.balance || 0);
-            window.currentMemberBonus = Number(data.bonus || 0);
+            window.currentMemberBonus = Number(data.bonus_balance || data.bonus || 0);
 
             const form = document.getElementById('adjustBalanceForm');
             if (form) form.action = `/management/members/update-balance/${data.id}`;
@@ -304,9 +307,15 @@
             // 🚨 清空欄位！防填入舊資料導致覆蓋
             document.getElementById('modalAddAmount').value = '';
             document.getElementById('modalBonusBalance').value = '';
-            document.getElementById('modalBalance').value = ''; // 留空！不預先填入 balance
-            document.getElementById('modalSpent').value = data.spent !== undefined ? data.spent : '';
-            document.getElementById('modalDeposited').value = data.deposited !== undefined ? data.deposited : '';
+            document.getElementById('modalBalance').value = ''; 
+            
+            const modalSpentInput = document.getElementById('modalSpent');
+            modalSpentInput.value = '';
+            modalSpentInput.placeholder = `不修改請留空 (目前: $${data.manual_spent || 0})`;
+
+            const modalDepositedInput = document.getElementById('modalDeposited');
+            modalDepositedInput.value = '';
+            modalDepositedInput.placeholder = `不修改請留空 (目前: $${data.manual_deposited || 0})`;
 
             if (adjustBalanceModal) adjustBalanceModal.show();
         }
@@ -355,7 +364,7 @@
 
                 let errorMsg = '';
                 if (finalBalance < 0) {
-                    errorMsg = `當前實充為 $${currBalance}，扣除後最終餘額為 $${finalBalance}，數目不得為負數！`;
+                    errorMsg = `當前餘額為 $${currBalance}，扣除後最終餘額為 $${finalBalance}，數目不得為負數！`;
                 } else if (finalBonus < 0) {
                     errorMsg = `當前贈送金為 $${currBonus}，扣除後最終贈送金為 $${finalBonus}，數目不得為負數！`;
                 } else if (totalSpentVal !== '' && Number(totalSpentVal) < 0) {

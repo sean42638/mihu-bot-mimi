@@ -1,6 +1,7 @@
 const { EmbedBuilder } = require('discord.js');
 const db = require('../database'); // 🚀 引入資料庫模組以寫入訂單與更新錢包
-const { getUserWallet, deductWallet } = require('../utils/walletHelper'); // 🚀 引入獨立錢包工具
+const { getUserWallet } = require('../utils/walletHelper'); // 🚀 引入獨立錢包工具
+const { checkAndUpdateVipLevel } = require('../utils/vipHelper'); // 🚀 引入 VIP 即時重算
 
 module.exports = {
     async handleDispatchModal(interaction) {
@@ -64,6 +65,7 @@ module.exports = {
                 bossWallet = {
                     balance: Number(bossUser.balance || 0),
                     bonus_balance: Number(bossUser.bonus_balance || 0),
+                    manual_spent: Number(bossUser.manual_spent || 0),
                     total_balance: Number(bossUser.balance || 0) + Number(bossUser.bonus_balance || 0)
                 };
             }
@@ -93,17 +95,29 @@ module.exports = {
 
             const newBonus = bossWallet.bonus_balance - deductBonus;
             const newReal = bossWallet.balance - deductReal;
+            const newSpent = (Number(bossWallet.manual_spent) || 0) + finalPrice; // 🌟 同步累加累積消費
 
-            // 寫入錢包扣款更新
+            // 寫入錢包扣款更新 (連同 user_wallets 獨立表與 users 主表)
             await new Promise((resolve, reject) => {
-                db.run(
-                    'UPDATE users SET balance = ?, bonus_balance = ? WHERE id = ?',
-                    [newReal, newBonus, bossId],
-                    (err) => err ? reject(err) : resolve()
-                );
+                const upsertSql = `
+                    INSERT INTO user_wallets (user_id, balance, bonus_balance, manual_spent, updated_at)
+                    VALUES (?, ?, ?, ?, DATETIME('now', 'localtime'))
+                    ON CONFLICT(user_id) DO UPDATE SET
+                        balance = excluded.balance,
+                        bonus_balance = excluded.bonus_balance,
+                        manual_spent = excluded.manual_spent,
+                        updated_at = DATETIME('now', 'localtime')
+                `;
+                db.run(upsertSql, [bossId, newReal, newBonus, newSpent], (uErr) => {
+                    db.run(
+                        'UPDATE users SET balance = ?, bonus_balance = ?, manual_spent = ? WHERE id = ?',
+                        [newReal, newBonus, newSpent, bossId],
+                        (err) => err ? reject(err) : resolve()
+                    );
+                });
             });
 
-            // 寫入錢包流水紀錄 (wallet_transactions)
+            // 寫入錢包流水紀錄 (wallet_transactions 防錯)
             db.run(`
                 INSERT INTO wallet_transactions (user_id, type, amount, description, created_at)
                 VALUES (?, 'order_deduct', ?, ?, DATETIME('now', 'localtime'))
@@ -153,6 +167,13 @@ module.exports = {
                     }
                 });
             });
+
+            // 👑 派單扣款消費後，觸發即時 VIP 階級判定
+            try {
+                if (typeof checkAndUpdateVipLevel === 'function') {
+                    checkAndUpdateVipLevel(bossId, 0);
+                }
+            } catch (vErr) {}
 
             // 5. 發布至群組頻道的外層訊息
             const contentText = `${session.tag}\n/)/)\n( . .) ｡ o O (   +:｡.｡ ✦**新 單 快 報**✦ ｡.｡:+\n( づ♡`;

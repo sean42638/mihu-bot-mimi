@@ -33,7 +33,7 @@ function syncTalentsJsonFromDb() {
     });
 }
 
-// 🚀 新增：獨立訂單數據（orders.json）同步函式
+// 🚀 獨立訂單數據（orders.json）同步函式
 function syncOrdersJsonFromDb() {
     db.all('SELECT * FROM orders ORDER BY created_at DESC', (err, rows) => {
         if (!err && rows) {
@@ -98,11 +98,47 @@ function saveCommissionData(data) {
     } catch (e) { return false; }
 }
 
+// 🚀 從 SQLite 資料庫寫回 data/commands.json 檔
 function syncCommandsJsonFromDb() {
     db.all('SELECT * FROM bot_commands ORDER BY id ASC', (err, rows) => {
         if (!err && rows) {
-            try { fs.writeFileSync(commandsFilePath, JSON.stringify(rows, null, 2), 'utf8'); } catch (e) {}
+            try {
+                fs.writeFileSync(commandsFilePath, JSON.stringify(rows, null, 2), 'utf8');
+                console.log('💾 [DataSync] 已即時同步最新機器人指令至 data/commands.json');
+            } catch (e) {
+                console.error('❌ 寫入 data/commands.json 失敗:', e);
+            }
         }
+    });
+}
+// 🚀 從 JSON 同步至資料庫時使用 INSERT OR IGNORE 防範 ID 衝突
+function syncCommandsToDb(commandsData) {
+    if (!Array.isArray(commandsData)) return;
+
+    db.serialize(() => {
+        const stmt = db.prepare(`
+            INSERT OR IGNORE INTO bot_commands (id, name, command_key, min_role, description, status)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `);
+
+        commandsData.forEach(cmd => {
+            stmt.run([
+                cmd.id,
+                cmd.name,
+                cmd.command_key,
+                cmd.min_role || 'member',
+                cmd.description || '',
+                cmd.status || 'enabled'
+            ]);
+        });
+
+        stmt.finalize((err) => {
+            if (err) {
+                console.error('❌ 同步指令至資料庫失敗:', err.message);
+            } else {
+                console.log('✅ 已成功安全同步 9 大指令至 SQLite bot_commands 資料表！');
+            }
+        });
     });
 }
 
@@ -132,6 +168,7 @@ module.exports = {
     getCommissionData,
     saveCommissionData,
     syncCommandsJsonFromDb,
+    syncCommandsToDb,
     syncTopupsJsonFromDb,
     syncPayoutsJsonFromDb
 };

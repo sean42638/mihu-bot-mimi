@@ -43,12 +43,12 @@ router.post('/profile', ensureAuth, checkPerm('profile'), (req, res) => {
 });
 
 // =========================================================================
-// 3. 我的錢包模組 (Wallet) 🚀 獨立模組化 + 總餘額 = 實充 + 贈送
+// 3. 我的錢包模組 (Wallet) 🚀 完全對接獨立資金庫，排除名稱歧義
 // =========================================================================
 router.get('/wallet', ensureAuth, checkPerm('my_wallet'), (req, res) => {
     const userId = req.user.id;
     
-    // 🚀 核心修復：完全對接 user_wallets 獨立資金表
+    // 🚀 1. 核心整合：使用 LEFT JOIN 讀取 user_wallets，確保名稱精準對齊
     const userWalletSql = `
         SELECT u.*,
             COALESCE(w.balance, u.balance, 0) as balance,
@@ -63,17 +63,19 @@ router.get('/wallet', ensureAuth, checkPerm('my_wallet'), (req, res) => {
     db.get(userWalletSql, [userId], (err, currentUser) => {
         if (err || !currentUser) return res.redirect('/dashboard?error=讀取使用者資料失敗');
 
+        // 💰 目前可用餘額 (balance) 與 贈送餘額 (bonus_balance)
         const currentBalance = Number(currentUser.balance || 0);
         const bonusBalance = Number(currentUser.bonus_balance || 0);
         const totalBalance = currentBalance + bonusBalance;
 
+        // 💰 總累積消費 (manual_spent) 與 總累積實充 (manual_deposited)
         const spent = Number(currentUser.manual_spent || 0);
         const deposited = Number(currentUser.manual_deposited || 0);
 
         db.all('SELECT * FROM vip_tiers ORDER BY CAST(level AS INTEGER) ASC', (vErr, vipTiers) => {
             const tiers = vipTiers || [];
 
-            // 計算動態 VIP
+            // 👑 計算動態 VIP (雙軌制比對)
             let calculatedVip = 0;
             for (const t of tiers) {
                 const reqSpent = Number(t.spent_threshold ?? t.min_spent ?? 0);
@@ -97,7 +99,7 @@ router.get('/wallet', ensureAuth, checkPerm('my_wallet'), (req, res) => {
 
             const actualVip = calculatedVip;
 
-            // VIP 進度條計算
+            // 🌟 VIP 進度條計算
             const nextTier = tiers.find(t => Number(t.level) === actualVip + 1);
             let progressPercent = 0;
             let vipGapText = '尚無更高 VIP 門檻設定';
@@ -122,7 +124,7 @@ router.get('/wallet', ensureAuth, checkPerm('my_wallet'), (req, res) => {
                 vipGapText = '🎉 您已達到最高尊榮 VIP 等級！';
             }
 
-            // 撈取點單歷史與流水
+            // 📜 撈取點單歷史與流水
             const ordersSql = `
                 SELECT o.*, 
                        t.username as talent_username, t.global_name as talent_global_name, t.custom_nickname as talent_nickname
@@ -137,6 +139,7 @@ router.get('/wallet', ensureAuth, checkPerm('my_wallet'), (req, res) => {
                 db.all(txSql, [userId], (txErr, transactions) => {
                     db.all('SELECT * FROM topups WHERE user_id = ? ORDER BY created_at DESC', [userId], (tErr, topups) => {
 
+                        // 🚀 將對齊後的變數回傳給 frontend
                         res.render('wallet', {
                             user: { 
                                 ...currentUser, 
@@ -145,11 +148,11 @@ router.get('/wallet', ensureAuth, checkPerm('my_wallet'), (req, res) => {
                                 balance: currentBalance,
                                 bonus_balance: bonusBalance,
                                 manual_spent: spent,
-                                manual_deposited: deposited // 👈 正確帶入統一累積實充
+                                manual_deposited: deposited // 👈 絕對對齊：累積實充
                             },
                             stats: {
                                 total_spent: spent,
-                                total_deposited: deposited // 👈 正確傳遞統一累積實充
+                                total_deposited: deposited // 👈 絕對對齊：累積實充
                             },
                             progressPercent: progressPercent.toFixed(1),
                             vipGapText: vipGapText,
@@ -167,7 +170,7 @@ router.get('/wallet', ensureAuth, checkPerm('my_wallet'), (req, res) => {
 });
 
 // =========================================================================
-// 4. 我的收入 (Income)
+// 4. 我的收入 (Income) - 保持不變
 // =========================================================================
 router.get('/income', ensureAuth, checkPerm('my_income'), (req, res) => {
     const userId = req.user.id;
@@ -252,7 +255,7 @@ router.get('/income', ensureAuth, checkPerm('my_income'), (req, res) => {
 });
 
 // =========================================================================
-// 5. 我的訂單 (My Orders)
+// 5. 我的訂單 (My Orders) - 保持不變
 // =========================================================================
 router.get('/my-orders', ensureAuth, (req, res) => {
     const currentUserId = req.user.id;

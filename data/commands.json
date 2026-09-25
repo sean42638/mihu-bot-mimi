@@ -1,6 +1,30 @@
 [
   {
     "id": 1,
+    "name": "會員充值調帳",
+    "command_key": "topup",
+    "min_role": "admin",
+    "description": "【管理員專用】彈窗輸入實充金額、贈送金與備註原因，自動寫入帳務與重算 VIP",
+    "status": "enabled"
+  },
+  {
+    "id": 2,
+    "name": "發布派單卡片",
+    "command_key": "dispatch",
+    "min_role": "cs",
+    "description": "計算折扣金額，跳出彈窗填寫內容並自動進行闆闆錢包扣款與頻道發報",
+    "status": "enabled"
+  },
+  {
+    "id": 3,
+    "name": "發布好評卡片",
+    "command_key": "review",
+    "min_role": "admin",
+    "description": "【管理員專用】發布闆闆給予陪陪的好評卡片 (支援匿名與星級評價)",
+    "status": "enabled"
+  },
+  {
+    "id": 4,
     "name": "玩家自主註冊",
     "command_key": "register",
     "min_role": "member",
@@ -8,7 +32,7 @@
     "status": "enabled"
   },
   {
-    "id": 2,
+    "id": 5,
     "name": "管理員代註冊",
     "command_key": "register-for",
     "min_role": "cs",
@@ -16,19 +40,51 @@
     "status": "enabled"
   },
   {
-    "id": 3,
-    "name": "熱重載指令與模組",
+    "id": 6,
+    "name": "用戶帳號綁定",
+    "command_key": "bind",
+    "min_role": "member",
+    "description": "引導 Discord 用戶完成網站與 Discord 身分無縫對接",
+    "status": "enabled"
+  },
+  {
+    "id": 7,
+    "name": "管理員代綁定",
+    "command_key": "bind-for",
+    "min_role": "cs",
+    "description": "管理員手動協助指定會員進行 Discord 與網站 ID 關聯",
+    "status": "enabled"
+  },
+  {
+    "id": 8,
+    "name": "發布系統公告",
+    "command_key": "announcement",
+    "min_role": "admin",
+    "description": "發布工作室最新活動與頻道公告，同步於後台 Dashboard 顯示",
+    "status": "enabled"
+  },
+  {
+    "id": 9,
+    "name": "互動陪陪挑選",
+    "command_key": "select",
+    "min_role": "member",
+    "description": "彈出互動式下拉選單，供闆闆進行特定項目陪陪篩選與點單",
+    "status": "enabled"
+  },
+  {
+    "id": 10,
+    "name": "熱重載指令模組",
     "command_key": "reload",
     "min_role": "manager",
     "description": "即時重新載入機器人斜線指令與內部設定，無需重啟伺服器",
     "status": "enabled"
   },
   {
-    "id": 4,
-    "name": "發布派單卡片",
-    "command_key": "dispatch",
+    "id": 11,
+    "name": "指定陪玩單發布",
+    "command_key": "assign",
     "min_role": "cs",
-    "description": "發布工作室派單訊息至指定頻道，卡片顯示標頭 ## ✧新單快報✧ 並於底部廣播 Tag",
+    "description": "【客服專用】於派單大廳發布指定陪玩卡片至闆闆頻道，並於頻道推播感謝訊息",
     "status": "enabled"
   }
 ]

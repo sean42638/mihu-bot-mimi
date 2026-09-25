@@ -7,266 +7,91 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root {
-            --bg-color: #0b0914;
-            --sidebar-bg: #131021;
-            --card-bg: rgba(23, 19, 38, 0.85);
-            --card-border: rgba(168, 85, 247, 0.2);
-            --mihu-purple: #9333ea;
-            --mihu-purple-light: #c084fc;
-            --mihu-yellow: #fde047;
-            --text-light: #f3f4f6;
+        html, body {
+            background-color: #0b0914 !important;
+            color: #f3f4f6 !important;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-light);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        .app-layout {
             display: flex;
-            min-height: 100vh;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
         }
 
         .main-wrapper {
-            flex-grow: 1;
+            flex: 1;
             display: flex;
             flex-direction: column;
-            overflow-y: auto;
-            max-height: 100vh;
-        }
-
-        .content-body { 
-            padding: 16px 36px 32px; 
-            flex-grow: 1; 
-        }
-
-        .glass-table-card {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 18px;
+            height: 100vh;
             overflow: hidden;
-            box-shadow: 0 14px 36px rgba(0, 0, 0, 0.4);
-            backdrop-filter: blur(15px);
+            min-width: 0;
         }
 
-        .table-responsive { margin: 0; }
-        .mihu-table {
-            width: 100%;
-            margin-bottom: 0;
-            color: #f3f4f6;
-            border-collapse: separate;
-            border-spacing: 0;
-        }
-        .mihu-table th {
-            background: rgba(0, 0, 0, 0.42);
-            color: #94a3b8;
-            font-weight: 700;
-            font-size: 0.84rem;
-            text-transform: uppercase;
-            letter-spacing: 0.6px;
-            padding: 16px 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            white-space: nowrap;
-        }
-        .mihu-table td {
-            padding: 16px 20px;
-            vertical-align: middle;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            font-size: 0.92rem;
-            white-space: nowrap;
-        }
-        .mihu-table tbody tr {
-            transition: background 0.15s ease;
-        }
-        .mihu-table tbody tr:hover {
-            background: rgba(168, 85, 247, 0.08);
-        }
-
-        .role-badge-pill {
-            background: rgba(168, 85, 247, 0.15);
-            border: 1px solid rgba(168, 85, 247, 0.3);
-            color: #c084fc;
-            font-weight: 700;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 0.78rem;
-        }
-
-        /* 🚀 修正 Modal 玻璃極客深色視覺與文字白底 */
-        .modal-content-glass {
-            background: rgba(20, 16, 35, 0.97) !important;
-            border: 1px solid rgba(168, 85, 247, 0.35) !important;
-            border-radius: 20px;
-            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(168, 85, 247, 0.25) !important;
-            backdrop-filter: blur(25px);
-            color: #ffffff !important;
-        }
-
-        .form-control-glass {
-            background-color: rgba(255, 255, 255, 0.05) !important;
-            border: 1px solid rgba(255, 255, 255, 0.14) !important;
-            color: #ffffff !important;
-            border-radius: 12px;
-            padding: 10px 14px;
-            font-size: 0.92rem;
-        }
-        .form-control-glass:focus {
-            background-color: #171326 !important;
-            color: #ffffff !important;
-            border-color: #c084fc !important;
-            box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.3) !important;
-            outline: none !important;
-        }
-
-        .mascot-modal-img {
-            width: 150px;
-            height: auto;
-            margin-bottom: 16px;
-            filter: drop-shadow(0 0 20px rgba(168, 85, 247, 0.65));
-            animation: mascot-bob 3s ease-in-out infinite;
-        }
-        @keyframes mascot-bob {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-4px); }
+        .content-body {
+            padding: 28px 36px;
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
         }
     </style>
 </head>
 <body>
 
-<%- include('partials/sidebar', { activePage: 'bot-settings' }) %>
+<div class="app-layout">
+    <%- include('partials/sidebar', { activePage: 'bot-settings' }) %>
 
-<div class="main-wrapper">
-    <%- include('partials/navbar', { activePage: 'bot-settings' }) %>
+    <div class="main-wrapper">
+        <%- include('partials/navbar', { activePage: 'bot-settings' }) %>
 
-    <div class="content-body">
-        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-            <div>
-                <div class="page-title-text" style="font-size: 1.5rem; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
-                    <i class="fa-solid fa-robot text-info"></i>
-                    <span>Discord 機器人設定</span>
+        <div class="content-body">
+            <!-- 頂部標題列 -->
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                <div>
+                    <div class="h3 fw-bold text-white mb-1 d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-robot text-info"></i>
+                        <span>Discord 機器人設定</span>
+                    </div>
+                    <p class="text-secondary small mb-0">管理 Discord 斜線指令權限門檻、開關狀態與核心播報參數</p>
                 </div>
-                <p class="text-secondary small mb-0">管理 Discord 斜線指令權限門檻、開關狀態與核心播報參數</p>
+
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-outline-info rounded-pill px-3 py-2 small fw-semibold" onclick="location.reload()">
+                        <i class="fa-solid fa-rotate me-1"></i>即時同步斜線指令
+                    </button>
+                    <button class="btn btn-primary rounded-pill px-3 py-2 small fw-semibold" style="background: linear-gradient(135deg, #a855f7, #ec4899); border: none;">
+                        <i class="fa-solid fa-plus me-1"></i>新增指令
+                    </button>
+                </div>
             </div>
 
-            <div class="d-flex gap-2">
-                <button type="button" class="btn btn-sm px-3 py-2 rounded-pill text-white fw-semibold" id="btnSyncCommands" style="background: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8;">
-                    <i class="fa-solid fa-arrows-rotate me-1"></i>即時同步斜線指令
-                </button>
-                <button type="button" class="btn btn-sm px-3 py-2 rounded-pill text-white fw-semibold" data-bs-toggle="modal" data-bs-target="#addCommandModal" style="background: linear-gradient(135deg, #9333ea, #7e22ce); border: none;">
-                    <i class="fa-solid fa-plus me-1"></i>新增指令
-                </button>
-            </div>
-        </div>
+            <%
+                // 預設完整的 9 大核心指令資料庫降級預設值 (若後端未傳入時備用)
+                const defaultCommands = [
+                    { name: '會員充值調帳', command: '/topup (/充值)', minRole: 'admin', desc: '【管理員專用】彈窗輸入實充金額、贈送金與備註原因，自動寫入帳務與重算 VIP' },
+                    { name: '發布派單卡片', command: '/dispatch (/派單)', minRole: 'cs', desc: '發布工作室派單訊息至指定頻道，卡片顯示標題與底部廣播 Tag' },
+                    { name: '玩家自主註冊', command: '/register', minRole: 'member', desc: '玩家於 Discord 自行綁定與註冊米胡電競會員帳號' },
+                    { name: '管理員代註冊', command: '/register-for', minRole: 'cs', desc: '管理員或客服協助特定 Discord 用戶強制建立帳號與資料綁定' },
+                    { name: '用戶帳號綁定', command: '/bind', minRole: 'member', desc: '引導 Discord 用戶完成網站與 Discord 身分無縫對接' },
+                    { name: '管理員代綁定', command: '/bind-for', minRole: 'cs', desc: '管理員手動協助指定會員進行 Discord 與網站 ID 關聯' },
+                    { name: '發布系統公告', command: '/announcement', minRole: 'admin', desc: '發布工作室最新活動與頻道公告，同步於後台 Dashboard 顯示' },
+                    { name: '互動陪陪挑選', command: '/select', minRole: 'member', desc: '彈出互動式下拉選單，供闆闆進行特定項目陪陪篩選與點單' },
+                    { name: '熱重載指令模組', command: '/reload', minRole: 'manager', desc: '即時重新載入機器人斜線指令與內部參數設定，無需重啟伺服器' }
+                ];
 
-        <% if (typeof success !== 'undefined' && success) { %>
-            <div class="alert alert-success py-2 px-3 small mb-4 border-0 bg-success bg-opacity-25 text-success">
-                ✅ 設定已成功寫入並同步！
-            </div>
-        <% } %>
+                const commandList = (typeof commands !== 'undefined' && commands && commands.length > 0) ? commands : defaultCommands;
+            %>
 
-        <div class="glass-table-card">
-            <div class="table-responsive">
-                <table class="mihu-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 160px;">指令名稱</th>
-                            <th style="width: 150px;">斜線指令 (/key)</th>
-                            <th style="width: 140px;">最低執行身分</th>
-                            <th>指令功能描述</th>
-                            <th style="width: 100px;">狀態</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <% if (commands && commands.length > 0) { %>
-                            <% commands.forEach(c => { %>
-                                <tr>
-                                    <td class="fw-bold text-white"><%= c.name %></td>
-                                    <td><span class="font-monospace text-warning">/<%= c.command_key %></span></td>
-                                    <td><span class="role-badge-pill"><%= c.min_role %></span></td>
-                                    <td class="text-secondary small"><%= c.description || '無描述' %></td>
-                                    <td>
-                                        <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 rounded-pill px-2.5 py-1">啟用中</span>
-                                    </td>
-                                </tr>
-                            <% }) %>
-                        <% } else { %>
-                            <tr>
-                                <td colspan="5" class="text-center py-5 text-secondary">目前尚無機器人指令設定</td>
-                            </tr>
-                        <% } %>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal 1：新增指令 -->
-<div class="modal fade" id="addCommandModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 460px;">
-        <div class="modal-content modal-content-glass">
-            <form action="/system/bot-settings/add" method="POST">
-                <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-terminal me-2 text-info"></i>新增斜線指令</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body py-3">
-                    <div class="mb-3">
-                        <label class="small text-secondary fw-semibold mb-1">指令名稱 (中文)</label>
-                        <input type="text" name="name" class="form-control form-control-glass" placeholder="例如：查詢價目表" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="small text-secondary fw-semibold mb-1">指令代號 (例如 price)</label>
-                        <input type="text" name="command_key" class="form-control form-control-glass" placeholder="price" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="small text-secondary fw-semibold mb-1">最低可執行權限</label>
-                        <select name="min_role" class="form-select form-control-glass" style="background-color: #171326; color: #fff;">
-                            <option value="member">member (全體會員)</option>
-                            <option value="talent">talent (陪陪/陪玩師)</option>
-                            <option value="cs">cs (派單客服)</option>
-                            <option value="manager">manager (主管/店長)</option>
-                            <option value="admin">admin (最高權限)</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="small text-secondary fw-semibold mb-1">指令說明描述</label>
-                        <input type="text" name="description" class="form-control form-control-glass" placeholder="顯示於 Discord 斜線選單上的說明">
-                    </div>
-                </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">取消</button>
-                    <button type="submit" class="btn btn-sm btn-info rounded-pill px-4 text-white fw-semibold" style="background: linear-gradient(135deg, #0284c7, #0369a1); border: none;">確認建立</button>
-                </div>
-            </form>
+            <!-- 🚀 模組化：引進 10 則動態滾動表格組件 -->
+            <%- include('partials/bot_commands_table', { commands: commandList }) %>
         </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // 斜線指令即時熱重載按鈕
-        const btnSync = document.getElementById('btnSyncCommands');
-        if (btnSync) {
-            btnSync.addEventListener('click', async () => {
-                btnSync.disabled = true;
-                btnSync.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>同步中...';
-
-                try {
-                    const res = await fetch('/management/bot-settings/sync-commands', { method: 'POST' });
-                    const data = await res.json();
-                    alert(data.message || '斜線指令同步完成！');
-                } catch (e) {
-                    alert('同步發起失敗，請檢查後台連線。');
-                } finally {
-                    btnSync.disabled = false;
-                    btnSync.innerHTML = '<i class="fa-solid fa-arrows-rotate me-1"></i>即時同步斜線指令';
-                }
-            });
-        }
-    });
-</script>
-<%- include('partials/feature_modal') %>
 </body>
 </html>

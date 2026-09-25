@@ -1,82 +1,119 @@
-<!-- 👑 模組化：VIP 尊榮進度與流光進度條組件 -->
 <%
     const currentVip = Number(user.vip_level || 0);
-    const progressPct = parseFloat(progressPercent || 0);
-    const gapText = vipGapText || '載入進度中...';
-    
-    // 計算目前的消費與預存數值 (從 stats 或 user 取得)
-    const totalSpent = Number(stats?.total_spent || user.total_spent || 0);
-    const totalDeposited = Number(stats?.total_deposited || user.total_deposited || 0);
+    const spent = Number(user.manual_spent !== undefined ? user.manual_spent : (stats ? stats.total_spent : 0));
+    const deposited = Number(user.manual_deposited !== undefined ? user.manual_deposited : (stats ? stats.total_deposited : 0));
+    const pct = parseFloat(progressPercent || 0);
 %>
 
 <style>
     .vip-progress-card {
-        background: rgba(19, 16, 33, 0.85);
-        border: 1px solid rgba(168, 85, 247, 0.25);
+        background: linear-gradient(135deg, rgba(23, 19, 38, 0.9), rgba(15, 11, 28, 0.95)) !important;
+        border: 1px solid rgba(168, 85, 247, 0.25) !important;
         border-radius: 20px;
-        padding: 24px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        padding: 22px 28px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1);
         position: relative;
         overflow: hidden;
+        transition: transform 0.25s ease, border-color 0.25s ease;
+    }
+    .vip-progress-card:hover {
+        border-color: rgba(192, 132, 252, 0.45) !important;
+        transform: translateY(-2px);
     }
 
-    /* 漸層流光動畫條 */
+    /* 頂部 VIP 徽章 */
+    .vip-tag-pill {
+        background: linear-gradient(135deg, #a855f7, #ec4899);
+        color: #ffffff;
+        font-weight: 800;
+        font-size: 0.78rem;
+        padding: 3px 10px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(168, 85, 247, 0.4);
+        letter-spacing: 0.5px;
+    }
+
+    /* 霓虹主進度條槽 */
     .vip-progress-track {
-        width: 100%;
-        height: 14px;
-        background: rgba(255, 255, 255, 0.06);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 30px;
+        height: 12px;
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
         overflow: hidden;
         position: relative;
-        box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
     }
 
+    /* 流光動態進度填充條 (由 CSS 變數 --progress-pct 控制寬度) */
     .vip-progress-fill {
         height: 100%;
-        border-radius: 30px;
-        width: var(--vip-progress-width, 0%); /* 🚀 使用 CSS 變數，完全消除編輯器警報 */
-        background: linear-gradient(90deg, #a855f7 0%, #ec4899 50%, #f59e0b 100%);
+        border-radius: 10px;
+        width: var(--progress-pct, 0%);
+        background: linear-gradient(90deg, #8b5cf6, #d946ef, #f43f5e);
         background-size: 200% 100%;
-        animation: vipShimmer 2.5s infinite linear;
-        transition: width 1s ease-in-out;
-        box-shadow: 0 0 12px rgba(168, 85, 247, 0.6);
+        animation: gradientShimmer 3s linear infinite;
+        box-shadow: 0 0 12px rgba(217, 70, 239, 0.6);
+        transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    @keyframes vipShimmer {
+    @keyframes gradientShimmer {
         0% { background-position: 0% 50%; }
         50% { background-position: 100% 50%; }
         100% { background-position: 0% 50%; }
     }
+
+    /* 數據統計指標方塊 */
+    .stat-badge-box {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        border-radius: 12px;
+        padding: 8px 14px;
+    }
 </style>
 
 <div class="vip-progress-card">
-    <div class="d-flex justify-content-between align-items-center mb-2">
+    <!-- 1. 標題與當前進度 % 數 -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
         <div class="d-flex align-items-center gap-2">
             <i class="fa-solid fa-crown text-warning fs-5"></i>
             <span class="fw-bold text-white fs-6">VIP 尊榮解鎖進度</span>
-            <span class="badge bg-warning text-dark font-monospace fw-bold ms-1" style="font-size: 0.72rem;">
-                VIP <%= currentVip %>
+            <span class="vip-tag-pill">VIP <%= currentVip %></span>
+        </div>
+
+        <div class="d-flex align-items-baseline gap-1">
+            <span class="small text-secondary fw-semibold">最高達成進度</span>
+            <span class="fs-4 fw-extrabold font-monospace text-warning ms-1" style="text-shadow: 0 0 10px rgba(253, 224, 71, 0.3);"><%= pct %>%</span>
+        </div>
+    </div>
+
+    <!-- 2. 主進度條 (透過 CSS Variable 傳遞數據) -->
+    <div class="vip-progress-track mb-3">
+        <div class="vip-progress-fill" style="--progress-pct: <%= pct %>%;"></div>
+    </div>
+
+    <!-- 3. 雙軌資訊與升級差距（消費與預存雙數據對比） -->
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <!-- 左側：距離下一階差距說明 -->
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 py-1" style="font-size: 0.75rem;">
+                <i class="fa-solid fa-bolt me-1"></i>升級目標
+            </span>
+            <span class="small text-light font-monospace fw-semibold" style="font-size: 0.85rem;">
+                <%= vipGapText %>
             </span>
         </div>
-        <div class="font-monospace fw-bold text-warning fs-6">
-            <%= progressPct %>%
-        </div>
-    </div>
 
-    <!-- 🚀 流光動畫進度條 (經由 CSS 變數傳值，無紅色警告) -->
-    <div class="vip-progress-track my-3">
-        <div class="vip-progress-fill" style="--vip-progress-width: <%= progressPct %>%;"></div>
-    </div>
-
-    <!-- 進度說明與雙指標試算比較 -->
-    <div class="d-flex justify-content-between align-items-center text-secondary small">
-        <div class="d-flex align-items-center gap-1">
-            <i class="fa-solid fa-bolt text-info me-1" style="font-size: 0.75rem;"></i>
-            <span><%= gapText %></span>
-        </div>
-        <div class="font-monospace small opacity-75 d-none d-sm-block">
-            (累積消費: $<%= totalSpent.toLocaleString() %> / 預存: $<%= totalDeposited.toLocaleString() %>)
+        <!-- 右側：當前累積消費與預存數值 -->
+        <div class="d-flex align-items-center gap-3">
+            <div class="stat-badge-box d-flex align-items-center gap-2">
+                <i class="fa-solid fa-bag-shopping text-warning small"></i>
+                <span class="text-secondary small">累積消費:</span>
+                <span class="text-warning fw-bold font-monospace small">$<%= spent.toLocaleString() %></span>
+            </div>
+            <div class="stat-badge-box d-flex align-items-center gap-2">
+                <i class="fa-solid fa-piggy-bank text-info small"></i>
+                <span class="text-secondary small">累積實充:</span>
+                <span class="text-info fw-bold font-monospace small">$<%= deposited.toLocaleString() %></span>
+            </div>
         </div>
     </div>
 </div>

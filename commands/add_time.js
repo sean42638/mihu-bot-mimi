@@ -1,8 +1,9 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const db = require('../database');
 const { createMihuEmbed, BRAND_COLORS } = require('../utils/embedBuilder');
-const { calculateDiscount } = require('../utils/discountHelper');
+const { calculateDiscount, getUserVipInfo } = require('../utils/discountHelper');
 const { syncOrdersJsonFromDb } = require('../utils/dataSync');
+
 
 function checkDiscordAdminPermission(member, userId) {
     if (userId === "604610298581876746") return true;

@@ -1,0 +1,146 @@
+<style>
+    .command-table-card {
+        background: rgba(19, 16, 33, 0.85) !important;
+        border: 1px solid rgba(168, 85, 247, 0.25) !important;
+        border-radius: 20px;
+        box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45);
+        backdrop-filter: blur(15px);
+        overflow: hidden;
+    }
+
+    /* 10 則動態滾動容器 */
+    .command-table-scroll-body {
+        max-height: 580px;
+        overflow-y: auto;
+    }
+    .command-table-scroll-body::-webkit-scrollbar {
+        width: 6px;
+    }
+    .command-table-scroll-body::-webkit-scrollbar-thumb {
+        background: rgba(168, 85, 247, 0.4);
+        border-radius: 10px;
+    }
+
+    /* 表格與字體色彩優化 */
+    .custom-bot-table {
+        width: 100%;
+        margin-bottom: 0;
+        color: #f3f4f6 !important;
+        background-color: transparent !important;
+        border-collapse: collapse;
+    }
+    .custom-bot-table th {
+        background-color: rgba(11, 9, 20, 0.95) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+        color: #9ca3af !important;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        padding: 16px 20px;
+        font-weight: 600;
+    }
+    .custom-bot-table td {
+        background-color: transparent !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+        color: #f3f4f6 !important;
+        padding: 18px 20px;
+        vertical-align: middle;
+        font-size: 0.9rem;
+    }
+    .custom-bot-table tr:hover td {
+        background-color: rgba(255, 255, 255, 0.03) !important;
+    }
+
+    /* 身分 Badge */
+    .role-badge {
+        font-size: 0.78rem;
+        padding: 4px 12px;
+        border-radius: 12px;
+        background: rgba(168, 85, 247, 0.15);
+        color: #c084fc !important;
+        border: 1px solid rgba(168, 85, 247, 0.3);
+        font-weight: 600;
+        display: inline-block;
+    }
+
+    /* 斜線指令高亮標籤 (自動補上 / 斜線) */
+    .cmd-tag {
+        font-family: 'Consolas', 'Fira Code', Monaco, monospace;
+        color: #fde047 !important;
+        background: rgba(253, 224, 71, 0.12);
+        padding: 4px 10px;
+        border-radius: 6px;
+        border: 1px solid rgba(253, 224, 71, 0.3);
+        font-weight: 700;
+        font-size: 0.9rem;
+        display: inline-block;
+    }
+
+    /* 說明內文字拉亮 */
+    .cmd-desc-text {
+        color: #d1d5db !important;
+        font-size: 0.88rem;
+        line-height: 1.5;
+    }
+
+    /* 🎯 關鍵修復：狀態膠囊標籤 (對齊 + 純白高亮文字) */
+    .status-pill-enabled {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        background: rgba(16, 185, 129, 0.25) !important;
+        color: #ffffff !important; /* 強制文字為純白色 */
+        border: 1px solid rgba(16, 185, 129, 0.5) !important;
+        padding: 6px 16px;
+        border-radius: 50px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+    }
+</style>
+
+<div class="command-table-card">
+    <div class="command-table-scroll-body">
+        <table class="custom-bot-table">
+            <thead>
+                <tr>
+                    <th style="width: 18%;">指令名稱</th>
+                    <th style="width: 22%;">斜線指令 (/KEY)</th>
+                    <th style="width: 15%;">最低執行身分</th>
+                    <th style="width: 33%;">指令功能描述</th>
+                    <th style="width: 12%; text-align: center;">狀態</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% if (commands && commands.length > 0) { %>
+                    <% commands.forEach((cmd) => { 
+                        const cmdName = cmd.name || '未命名指令';
+                        let rawKey = cmd.command || cmd.command_key || 'unknown';
+                        if (!rawKey.startsWith('/')) rawKey = '/' + rawKey;
+
+                        const minRole = cmd.minRole || cmd.min_role || 'member';
+                        const desc = cmd.desc || cmd.description || '尚無指令說明';
+                    %>
+                        <tr>
+                            <td class="fw-bold text-white" style="font-size: 0.95rem;"><%= cmdName %></td>
+                            <td><span class="cmd-tag"><%= rawKey %></span></td>
+                            <td><span class="role-badge"><%= minRole %></span></td>
+                            <td class="cmd-desc-text"><%= desc %></td>
+                            <td style="text-align: center;">
+                                <span class="status-pill-enabled">
+                                    <i class="fa-solid fa-circle-check" style="color: #34d399; font-size: 0.85rem;"></i>
+                                    啟用中
+                                </span>
+                            </td>
+                        </tr>
+                    <% }); %>
+                <% } else { %>
+                    <tr>
+                        <td colspan="5" class="text-center text-secondary py-5">目前尚無註冊的指令資料</td>
+                    </tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+</div>

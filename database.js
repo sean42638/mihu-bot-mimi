@@ -426,7 +426,7 @@ db.serialize(() => {
         )
     `);
 
-    // 9. Discord 機器人指令設定表 (自動與 data/commands.json 同步)
+    // 9. Discord 機器人指令設定表 (修正 ON CONFLICT，防止 UNIQUE constraint failed: bot_commands.id)
     db.run(`
         CREATE TABLE IF NOT EXISTS bot_commands (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -444,9 +444,10 @@ db.serialize(() => {
                 const raw = fs.readFileSync(commandsJsonPath, 'utf8');
                 const jsonCommands = JSON.parse(raw || '[]');
                 if (jsonCommands.length > 0) {
+                    // 🚀 關鍵修復：不帶入 id 讓 SQLite 自增，或是使用 INSERT OR IGNORE 防止主鍵衝突
                     const stmt = db.prepare(`
-                        INSERT INTO bot_commands (id, name, command_key, min_role, description, status)
-                        VALUES (?, ?, ?, ?, ?, ?)
+                        INSERT INTO bot_commands (name, command_key, min_role, description, status)
+                        VALUES (?, ?, ?, ?, ?)
                         ON CONFLICT(command_key) DO UPDATE SET
                             name = excluded.name,
                             min_role = excluded.min_role,
@@ -456,7 +457,6 @@ db.serialize(() => {
 
                     jsonCommands.forEach(c => {
                         stmt.run(
-                            c.id || null,
                             c.name,
                             c.command_key,
                             c.min_role || 'member',

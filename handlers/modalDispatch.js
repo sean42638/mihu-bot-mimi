@@ -1,13 +1,95 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const db = require('../database'); // 🚀 引入資料庫以同步寫入
 const { syncOrdersJsonFromDb } = require('../utils/dataSync');
+const { adjustUserWallet } = require('../utils/walletHelper'); // 🚀 引入統一資金處理引擎
 
-module.exports = {
-    name: 'interactionCreate',
-    async execute(interaction) {
-        // 🚀 僅監聽由 /dispatch 發起的 Modal 提交事件
-        if (!interaction.isModalSubmit() || !interaction.customId.startsWith('modal_disp_')) return;
+// 🚀 通用 Modal 處理進入點
+async function handleModalDispatch(interaction) {
+    if (!interaction.isModalSubmit()) return;
 
+    // =========================================================================
+    // A. 🪙 充值 / 調帳 Modal 提交處理 (topup_modal_)
+    // =========================================================================
+    if (interaction.customId.startsWith('topup_modal_')) {
+        // 1. 0.1秒內第一時間向 Discord 宣告 Defer，防止 3 秒逾時跳紅字警告！
+        try {
+            if (!interaction.deferred && !interaction.replied) {
+                await interaction.deferReply({ flags: 64 }); // ephemeral: true
+            }
+        } catch (deferErr) {
+            console.error('❌ Defer 失敗:', deferErr);
+            return;
+        }
+
+        const targetUserId = interaction.customId.replace('topup_modal_', '');
+
+        const realAmountRaw = interaction.fields.getTextInputValue('real_amount').trim();
+        const bonusAmountRaw = interaction.fields.getTextInputValue('bonus_amount').trim();
+        const note = interaction.fields.getTextInputValue('note').trim();
+
+        const realAmount = Number(realAmountRaw);
+        const bonusAmount = Number(bonusAmountRaw);
+
+        // ⛔ 防呆檢查：驗證數字與負數
+        if (isNaN(realAmount) || isNaN(bonusAmount)) {
+            return interaction.editReply({ content: '🚫 **輸入錯誤**：實充金額與贈送金額必須為有效數字！' }).catch(() => {});
+        }
+
+        if (realAmount < 0 || bonusAmount < 0) {
+            return interaction.editReply({ content: '🚫 **數目不得為負數**：實充與贈送金額不可輸入負數！' }).catch(() => {});
+        }
+
+        try {
+            // 🚀 核心：調用全後台統一資金引擎 (自動累加 manual_deposited 與重算 VIP)
+            const result = await adjustUserWallet({
+                userId: targetUserId,
+                addAmount: realAmount,
+                bonusChange: bonusAmount,
+                reason: note,
+                operatorId: interaction.user.id
+            });
+
+            // 撈取 Discord 目標使用者物件做 Embed 呈現
+            const targetUser = await interaction.client.users.fetch(targetUserId).catch(() => null);
+            const userMention = targetUser ? `${targetUser}` : `<@${targetUserId}>`;
+            const avatarUrl = targetUser ? targetUser.displayAvatarURL({ dynamic: true }) : null;
+
+            const embed = new EmbedBuilder()
+                .setTitle('🪙 會員資金充值與調帳成功')
+                .setColor(0x9333ea)
+                .addFields(
+                    { name: '👤 目標會員', value: `${userMention} (\`${targetUserId}\`)`, inline: false },
+                    { name: '💵 本次實充金額', value: `$${realAmount.toLocaleString()} NTD`, inline: true },
+                    { name: '🎁 本次贈送金', value: `$${bonusAmount.toLocaleString()} NTD`, inline: true },
+                    { name: '📝 充值備註原因', value: note, inline: false },
+                    { name: '💰 最新可用總餘額', value: `$${result.newBalance.toLocaleString()} NTD`, inline: true },
+                    { name: '💎 最新總累積實充', value: `$${result.newDeposited.toLocaleString()} NTD`, inline: true }
+                )
+                .setFooter({ text: `操作管理員：${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
+                .setTimestamp();
+
+            if (avatarUrl) embed.setThumbnail(avatarUrl);
+
+            await interaction.editReply({ embeds: [embed] });
+
+        } catch (error) {
+            console.error('❌ Modal 充值處理失敗:', error);
+            
+            const errorEmbed = new EmbedBuilder()
+                .setTitle('❌ 帳務充值失敗')
+                .setColor(0xef4444)
+                .setDescription(error.message || '處理資金異動時發生未知錯誤！')
+                .setTimestamp();
+
+            await interaction.editReply({ embeds: [errorEmbed] });
+        }
+        return;
+    }
+
+    // =========================================================================
+    // B. 📋 /dispatch 派單 Modal 提交處理 (modal_disp_)
+    // =========================================================================
+    if (interaction.customId.startsWith('modal_disp_')) {
         const sessionId = interaction.customId.replace('modal_disp_', '');
         const sessionData = global.dispatchSessions ? global.dispatchSessions.get(sessionId) : null;
 
@@ -22,11 +104,10 @@ module.exports = {
             const extra = interaction.fields.getTextInputValue('dispatch_extra') || '無';
             const note = interaction.fields.getTextInputValue('dispatch_note') || '無';
 
-            // 🚀 補強：確保 duration 與 unit 一定有預設值，防止未定義隱患
             const duration = sessionData.dur || 1;
             const unit = sessionData.unit || '小時';
             const totalPrice = sessionData.pri || 0;
-            const unitPrice = duration > 0 ? (totalPrice / duration) : totalPrice; // 計算單價防錯
+            const unitPrice = duration > 0 ? (totalPrice / duration) : totalPrice;
 
             let finalPrice = totalPrice;
             if (sessionData.disc > 0) {
@@ -37,7 +118,7 @@ module.exports = {
                 }
             }
 
-            // 2. 生成亂數單號 (例如: MH-20260925-8821)
+            // 2. 生成亂數單號
             const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
             const randomNum = Math.floor(1000 + Math.random() * 9000);
             const orderNo = `MH-${dateStr}-${randomNum}`;
@@ -46,7 +127,7 @@ module.exports = {
             const csUser = interaction.user;
             const csName = interaction.member?.nickname || csUser.globalName || csUser.username;
 
-            // 🚀 寫入 SQLite 資料庫 (防範 orders 欄位約束失敗)
+            // 3. 寫入 SQLite 資料庫
             await new Promise((resolve, reject) => {
                 const insertSql = `
                     INSERT INTO orders (
@@ -83,19 +164,18 @@ module.exports = {
             // 同步 JSON 資料檔
             syncOrdersJsonFromDb();
 
-            // 3. 處理身分組 Tag 格式
+            // 4. 處理身分組 Tag 格式
             const rawTag = (sessionData.tag || '').trim();
             const roleTag = (rawTag.startsWith('<@&') || rawTag.startsWith('<@')) 
                 ? rawTag 
                 : `<@&${rawTag}>`;
 
-            // 4. 外層標題訊息：將 Tag 放置於兔子顏文字的最下方
             const contentText = `/)/)\n( . .) ｡ o O (   +:｡.｡ ✦**新 單 快 報**✦ ｡.｡:+\n( づ♡\n${roleTag}`;
 
-            // 5. Embed 派單卡片：卡片內標題僅留點綴 ⋆⋅☆⋅⋆
+            // 5. Embed 派單卡片
             const dispatchEmbed = new EmbedBuilder()
-                .setColor('#f59e0b') // 橘黃色金屬電競光邊
-                .setTitle('⋆⋅☆⋅⋆') // 僅留精緻點綴
+                .setColor('#f59e0b')
+                .setTitle('⋆⋅☆⋅⋆')
                 .addFields(
                     { name: '📌 訂單編號', value: `\`${orderNo}\``, inline: false },
                     { name: '🎮 項目', value: `**${game}**`, inline: true },
@@ -138,4 +218,11 @@ module.exports = {
             }
         }
     }
+}
+
+module.exports = {
+    name: 'interactionCreate',
+    execute: handleModalDispatch,
+    handleModalDispatch,
+    handleDispatchModal: handleModalDispatch
 };

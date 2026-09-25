@@ -45,7 +45,7 @@ router.get('/', ensureAuth, (req, res) => {
                     }
                 }
 
-                const nextTier = tiers.find(t => Number(t.level) > currentVip);
+                const nextTier = tiers.find(t => Number(t.level) === currentVip + 1);
 
                 let gapSpent = 0;
                 let gapDeposit = 0;
@@ -60,19 +60,25 @@ router.get('/', ensureAuth, (req, res) => {
                     gapText = `距離 ${nextTier.name}: 消差 $${gapSpent.toLocaleString()} / 存差 $${gapDeposit.toLocaleString()}`;
                 }
 
+                // 🚀 關鍵修復：把新舊版本的變數名一次全包，避免前端 EJS 讀不到變數變成 $0
                 return {
                     ...m,
                     vip_level: currentVip,
                     total_balance: Number(m.total_balance || 0),
+                    totalBalance: Number(m.total_balance || 0), // 相容前端舊版變數
                     balance: Number(m.balance || 0),
                     bonus_balance: Number(m.bonus_balance || 0),
+                    bonus: Number(m.bonus_balance || 0),        // 相容前端舊版變數
                     manual_spent: spent,
                     manual_deposited: deposited,
                     total_spent: spent,
                     total_deposited: deposited,
+                    spent: spent,                               // 相容前端舊版變數
+                    deposited: deposited,                       // 相容前端舊版變數
                     gap_spent: gapSpent,
                     gap_deposit: gapDeposit,
-                    vip_gap_text: gapText
+                    vip_gap_text: gapText,
+                    vipGap: gapText                             // 相容前端舊版變數
                 };
             });
 
@@ -117,7 +123,7 @@ router.get('/sync-all', ensureAuth, async (req, res) => {
     res.redirect('/management/members?success=1');
 });
 
-// 1.4 手動更新會員帳務金額 API (整合資金資料庫)
+// 1.4 手動更新會員帳務金額 API (整合資金資料庫與防呆空字串)
 router.post('/update-balance/:id', ensureAuth, async (req, res) => {
     const targetUserId = req.params.id;
     const { add_amount, bonus_change, bonus_balance, balance, total_spent, total_deposited, note } = req.body;
