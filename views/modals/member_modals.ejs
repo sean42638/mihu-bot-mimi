@@ -73,12 +73,11 @@
     </div>
 </div>
 
-<!-- 彈窗 2：會員帳務調整 Modal (乾淨標題文字規範) -->
+<!-- 彈窗 2：會員帳務調整 Modal -->
 <div class="modal fade" id="adjustBalanceModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
         <div class="modal-content modal-content-glass">
             <form id="adjustBalanceForm" method="POST">
-                <!-- 隱藏欄位：傳送原始數值作為運算基底 -->
                 <input type="hidden" name="current_balance" id="hiddenCurrentBalance" value="0">
                 <input type="hidden" name="current_bonus" id="hiddenCurrentBonus" value="0">
 
@@ -93,7 +92,7 @@
                         <div class="col-6">
                             <label class="small text-secondary fw-semibold mb-1">本次充值金額 ($)</label>
                             <input type="number" step="any" name="add_amount" id="modalAddAmount" class="form-control form-control-glass" placeholder="例如：1000 或 -500">
-                            <div class="text-secondary" style="font-size: 0.72rem; margin-top: 2px;">可進行正負加減運算</div>
+                            <div class="text-secondary" style="font-size: 0.72rem; margin-top: 2px;">正數將自動計入累積實充</div>
                         </div>
                         <div class="col-6">
                             <label class="small text-secondary fw-semibold mb-1">贈送金 ($)</label>
@@ -111,13 +110,13 @@
                     <div class="row g-2 mb-3">
                         <div class="col-6">
                             <label class="small text-secondary fw-semibold mb-1">調整累積消費 ($)</label>
-                            <input type="number" step="any" name="total_spent" id="modalSpent" class="form-control form-control-glass" placeholder="直接輸入數值">
-                            <div class="text-secondary" style="font-size: 0.72rem; margin-top: 2px;">直接更改會員總累積消費額</div>
+                            <input type="number" step="any" name="total_spent" id="modalSpent" class="form-control form-control-glass" placeholder="不覆蓋請留空 (可填 0)">
+                            <div class="text-secondary" style="font-size: 0.72rem; margin-top: 2px;">覆蓋總累積消費額</div>
                         </div>
                         <div class="col-6">
                             <label class="small text-secondary fw-semibold mb-1">調整累積實充 ($)</label>
-                            <input type="number" step="any" name="total_deposited" id="modalDeposited" class="form-control form-control-glass" placeholder="直接輸入數值">
-                            <div class="text-secondary" style="font-size: 0.72rem; margin-top: 2px;">直接更改會員總累積充值金額</div>
+                            <input type="number" step="any" name="total_deposited" id="modalDeposited" class="form-control form-control-glass" placeholder="不覆蓋請留空 (可填 0)">
+                            <div class="text-secondary" style="font-size: 0.72rem; margin-top: 2px;">覆蓋總累積充值金額</div>
                         </div>
                     </div>
 
@@ -208,7 +207,7 @@
     window.currentMemberBalance = 0;
     window.currentMemberBonus = 0;
 
-    // 🚀 全域提供開啟帳務 Modal 函數
+    // 🚀 全域提供開啟帳務 Modal 函數 (徹底修復：預設全清空！絕不預填舊累積金額)
     window.openAdjustBalanceModal = function(memberData) {
         if (!memberData) return;
 
@@ -225,14 +224,12 @@
         document.getElementById('hiddenCurrentBalance').value = window.currentMemberBalance;
         document.getElementById('hiddenCurrentBonus').value = window.currentMemberBonus;
 
-        // 清空充值與覆蓋餘額輸入框
+        // 🚀 關鍵修復：完全清空輸入框！
         document.getElementById('modalAddAmount').value = '';
         document.getElementById('modalBonusBalance').value = '';
         document.getElementById('modalBalance').value = ''; 
-
-        // 🚀 帶入當前的累積消費與累積實充 (相容 manual_spent 與 spent)
-        document.getElementById('modalSpent').value = memberData.manual_spent !== undefined ? memberData.manual_spent : (memberData.spent !== undefined ? memberData.spent : 0);
-        document.getElementById('modalDeposited').value = memberData.manual_deposited !== undefined ? memberData.manual_deposited : (memberData.deposited !== undefined ? memberData.deposited : 0);
+        document.getElementById('modalSpent').value = '';
+        document.getElementById('modalDeposited').value = ''; // 強制為空，不帶入任何舊值
 
         const modalEl = document.getElementById('adjustBalanceModal');
         if (modalEl) {

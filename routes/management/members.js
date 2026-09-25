@@ -5,17 +5,16 @@ const { ensureAuth } = require('../../middleware/auth');
 const { sortByRoleWeight } = require('../../utils/roleHelper');
 const { adjustUserWallet } = require('../../utils/walletHelper');
 
-// 1.1 渲染「會員管理」頁面 (完整讀取 user_wallets 獨立資金表與連動 VIP)
+// 1.1 渲染「會員管理」頁面
 router.get('/', ensureAuth, (req, res) => {
     const membersSql = `
         SELECT u.*,
             COALESCE(w.balance, u.balance, 0) as balance,
             COALESCE(w.bonus_balance, u.bonus_balance, 0) as bonus_balance,
-            COALESCE(w.manual_spent, u.manual_spent, 0) as manual_spent,
-            COALESCE(w.manual_deposited, u.manual_deposited, 0) as manual_deposited,
-            (COALESCE(w.balance, u.balance, 0) + COALESCE(w.bonus_balance, u.bonus_balance, 0)) as total_balance,
-            COALESCE((SELECT SUM(total_amount) FROM orders WHERE boss_id = u.id AND status != 'cancelled'), 0) + COALESCE(w.manual_spent, u.manual_spent, 0) as total_spent,
-            COALESCE((SELECT SUM(amount) FROM topups WHERE user_id = u.id AND amount > 0), 0) + COALESCE(w.manual_deposited, u.manual_deposited, 0) as total_deposited
+            w.manual_spent as wallet_manual_spent,
+            w.manual_deposited as wallet_manual_deposited,
+            COALESCE((SELECT SUM(total_amount) FROM orders WHERE boss_id = u.id AND status = 'completed'), 0) as sys_spent,
+            COALESCE((SELECT SUM(amount) FROM topups WHERE user_id = u.id AND amount > 0), 0) as sys_deposited
         FROM users u 
         LEFT JOIN user_wallets w ON u.id = w.user_id
     `;
@@ -26,18 +25,28 @@ router.get('/', ensureAuth, (req, res) => {
             return res.status(500).send('資料庫讀取錯誤');
         }
 
-        db.all('SELECT * FROM vip_tiers ORDER BY level ASC', [], (vErr, vipTiers) => {
+        db.all('SELECT * FROM vip_tiers ORDER BY CAST(level AS INTEGER) ASC', [], (vErr, vipTiers) => {
             const tiers = vipTiers || [];
             
             const processedMembers = (rawMembers || []).map(m => {
-                const spent = Number(m.total_spent || 0);
-                const deposited = Number(m.total_deposited || 0);
+                // 🚀 關鍵：手動金額若有設定，直接作為最高優先權總金額！
+                const manualSpent = m.wallet_manual_spent !== null && m.wallet_manual_spent !== undefined ? Number(m.wallet_manual_spent) : null;
+                const manualDeposited = m.wallet_manual_deposited !== null && m.wallet_manual_deposited !== undefined ? Number(m.wallet_manual_deposited) : null;
 
-                // 🚀 即時根據最新 (訂單 + 手動消費) 與 (儲值 + 手動實充) 計算 VIP 等級
+                const spent = manualSpent !== null ? manualSpent : Number(m.sys_spent || 0);
+                const deposited = manualDeposited !== null ? manualDeposited : Number(m.sys_deposited || 0);
+
                 let currentVip = Number(m.vip_level || 0);
                 for (const tier of tiers) {
-                    if (spent >= Number(tier.spent_threshold || 0) || deposited >= Number(tier.deposit_threshold || 0)) {
-                        currentVip = Math.max(currentVip, Number(tier.level));
+                    const reqSpent = Number(tier.spent_threshold ?? tier.min_spent ?? tier.spent ?? 0);
+                    const reqDeposit = Number(tier.deposit_threshold ?? tier.min_deposit ?? tier.deposit ?? 0);
+                    const tierLevel = Number(tier.level ?? tier.vip_level ?? 0);
+
+                    const passSpent = reqSpent > 0 && spent >= reqSpent;
+                    const passDeposit = reqDeposit > 0 && deposited >= reqDeposit;
+
+                    if (passSpent || passDeposit) {
+                        currentVip = Math.max(currentVip, tierLevel);
                     }
                 }
 
@@ -48,8 +57,8 @@ router.get('/', ensureAuth, (req, res) => {
                 let gapText = '已達頂級';
 
                 if (nextTier) {
-                    const reqSpent = Number(nextTier.spent_threshold || 0);
-                    const reqDeposit = Number(nextTier.deposit_threshold || 0);
+                    const reqSpent = Number(nextTier.spent_threshold ?? nextTier.min_spent ?? 0);
+                    const reqDeposit = Number(nextTier.deposit_threshold ?? nextTier.min_deposit ?? 0);
 
                     gapSpent = Math.max(0, reqSpent - spent);
                     gapDeposit = Math.max(0, reqDeposit - deposited);
@@ -59,11 +68,13 @@ router.get('/', ensureAuth, (req, res) => {
                 return {
                     ...m,
                     vip_level: currentVip,
-                    total_balance: Number(m.total_balance || 0),
+                    total_balance: Number(m.balance || 0) + Number(m.bonus_balance || 0),
                     balance: Number(m.balance || 0),
                     bonus_balance: Number(m.bonus_balance || 0),
-                    manual_spent: Number(m.manual_spent || 0),
-                    manual_deposited: Number(m.manual_deposited || 0),
+                    manual_spent: manualSpent !== null ? manualSpent : 0,
+                    manual_deposited: manualDeposited !== null ? manualDeposited : 0,
+                    total_spent: spent,
+                    total_deposited: deposited,
                     gap_spent: gapSpent,
                     gap_deposit: gapDeposit,
                     vip_gap_text: gapText
@@ -111,20 +122,19 @@ router.get('/sync-all', ensureAuth, async (req, res) => {
     res.redirect('/management/members?success=1');
 });
 
-// 1.4 手動更新會員帳務金額 API (修正欄位對接)
+// 1.4 手動更新會員帳務金額 API
 router.post('/update-balance/:id', ensureAuth, async (req, res) => {
     const targetUserId = req.params.id;
-    // 🚀 從 req.body 撈取前端表單送出的欄位名稱
     const { add_amount, bonus_change, bonus_balance, balance, total_spent, total_deposited, note } = req.body;
 
     try {
         await adjustUserWallet({
             userId: targetUserId,
-            addAmount: add_amount !== undefined && add_amount !== '' ? add_amount : null,
-            bonusChange: bonus_change !== undefined && bonus_change !== '' ? bonus_change : (bonus_balance !== undefined && bonus_balance !== '' ? bonus_balance : null),
-            overrideBalance: balance !== undefined && balance !== '' ? balance : null,
-            overrideSpent: total_spent !== undefined && total_spent !== '' ? total_spent : null,         // 🚀 精準對接 total_spent
-            overrideDeposited: total_deposited !== undefined && total_deposited !== '' ? total_deposited : null, // 🚀 精準對接 total_deposited
+            addAmount: (add_amount !== undefined && String(add_amount).trim() !== '') ? add_amount : null,
+            bonusChange: (bonus_change !== undefined && String(bonus_change).trim() !== '') ? bonus_change : ((bonus_balance !== undefined && String(bonus_balance).trim() !== '') ? bonus_balance : null),
+            overrideBalance: (balance !== undefined && String(balance).trim() !== '') ? balance : null,
+            overrideSpent: (total_spent !== undefined && String(total_spent).trim() !== '') ? total_spent : null,
+            overrideDeposited: (total_deposited !== undefined && String(total_deposited).trim() !== '') ? total_deposited : null,
             reason: note || '管理員手動調整帳務',
             operatorId: req.user ? req.user.id : null
         });
