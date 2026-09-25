@@ -66,6 +66,48 @@ module.exports = async function handleButtonInteraction(interaction) {
             await interaction.showModal(modal);
         });
         return true;
+    } // 👈 關鍵修正：將 timer_stop_ 的括號在此閉合！
+
+    // 3. 點擊【確認完成訂單】按鈕
+    if (customId.startsWith('order_confirm_')) {
+        // 🚀 第一時間通知 Discord 收到回應，防止 3 秒「未及時回應」警告
+        try {
+            if (!interaction.deferred && !interaction.replied) {
+                await interaction.deferUpdate();
+            }
+        } catch (deferErr) {}
+
+        const orderNo = customId.replace('order_confirm_', '');
+        
+        db.run('UPDATE orders SET status = "completed", end_time = DATETIME("now", "localtime") WHERE order_no = ?', [orderNo], async (upErr) => {
+            if (upErr) {
+                console.error('❌ 更新訂單狀態失敗:', upErr);
+                return interaction.followUp({ content: '❌ 更新訂單狀態失敗，請稍後再試！', flags: 64 }).catch(() => {});
+            }
+            
+            syncOrdersJsonFromDb();
+
+            try {
+                const oldEmbed = interaction.message.embeds[0];
+                let updatedEmbed;
+
+                if (oldEmbed) {
+                    updatedEmbed = EmbedBuilder.from(oldEmbed)
+                        .setColor('#10b981')
+                        .addFields({ name: '🎉 訂單狀態', value: '`已確認完成`', inline: false });
+                }
+
+                // 編輯原始訊息，移除按鈕並更新狀態卡片
+                await interaction.editReply({
+                    content: `✅ **訂單 \`${orderNo}\` 已確認完成服務！**`,
+                    embeds: updatedEmbed ? [updatedEmbed] : [oldEmbed],
+                    components: []
+                });
+            } catch (editErr) {
+                console.error('❌ 編輯確認完成卡片失敗:', editErr);
+            }
+        });
+        return true;
     }
 
     return false;

@@ -60,8 +60,9 @@ module.exports = {
         // 定時 10 分鐘後清理過期 Session
         setTimeout(() => global.dispatchSessions.delete(sessionId), 10 * 60 * 1000);
 
+        // 🚀 對齊 Handler 字串判斷前綴
         const modal = new ModalBuilder()
-            .setCustomId(`modal_disp_${sessionId}`)
+            .setCustomId(`modal_dispatch_${sessionId}`)
             .setTitle('✦ 米胡電競 · 填寫派單內容 ✦');
 
         // 1. 項目

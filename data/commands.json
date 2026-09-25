@@ -86,5 +86,13 @@
     "min_role": "cs",
     "description": "【客服專用】於派單大廳發布指定陪玩卡片至闆闆頻道，並於頻道推播感謝訊息",
     "status": "enabled"
+  },
+  {
+    "id": 12,
+    "name": "系統延遲檢測",
+    "command_key": "ping",
+    "min_role": "user",
+    "description": "檢測機器人當前的網路延遲與 Discord API 連線狀態",
+    "status": "enabled"
   }
 ]

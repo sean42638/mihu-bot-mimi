@@ -7,9 +7,10 @@ const path = require('path');
 const handleButtonInteraction = require('./handlers/buttonHandler');
 const { handleDispatchModal } = require('./handlers/dispatchModalHandler'); // A. 派單
 const { handleTalentMsgModal } = require('./handlers/talentMsgModalHandler'); // B. 結束計時
-const { handleTopupModal } = require('./handlers/topupModalHandler');         // C. 充值
+const { handleTopupModal } = require('./handlers/topupModalHandler');       // C. 充值
 const { handleReviewModal } = require('./handlers/reviewModalHandler');       // D. 好評
 const { handleAssignModal } = require('./handlers/assignModalHandler');       // E. 指定陪玩
+const { handleCreateOrderModal } = require('./handlers/createOrderModalHandler'); // F. 建立訂單
 
 const botToken = process.env.DISCORD_BOT_TOKEN || process.env.DISCORD_TOKEN;
 const client = new Client({
@@ -65,14 +66,18 @@ client.on('interactionCreate', async (interaction) => {
             if (handled) return;
         } catch (bErr) {
             console.error('❌ 處理按鈕互動發生錯誤:', bErr);
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({ content: '⚠️ 處理按鈕時發生錯誤：' + bErr.message, flags: 64 }).catch(() => {});
+            }
         }
+        return;
     }
 
-    // 2. 處理 Modal 彈窗提交事件 (完美五大分發)
+    // 2. 處理 Modal 彈窗提交事件 (完美六大分發)
     if (interaction.isModalSubmit()) {
         try {
-            // A. /派單 Modal (modal_disp_)
-            if (interaction.customId.startsWith('modal_disp_')) {
+            // A. /派單 Modal (修正前綴為 modal_dispatch_)
+            if (interaction.customId.startsWith('modal_dispatch_') || interaction.customId.startsWith('modal_disp_')) {
                 return await handleDispatchModal(interaction);
             }
 
@@ -96,12 +101,18 @@ client.on('interactionCreate', async (interaction) => {
                 return await handleAssignModal(interaction);
             }
 
+            // F. /建立訂單 Modal (modal_create_order_)
+            if (interaction.customId.startsWith('modal_create_order_')) {
+                return await handleCreateOrderModal(interaction);
+            }
+
         } catch (mErr) {
             console.error('❌ 處理 Modal 彈窗發生錯誤:', mErr);
             if (interaction.deferred && !interaction.replied) {
                 await interaction.editReply({ content: '⚠️ 處理提交時發生錯誤：' + mErr.message }).catch(() => {});
             }
         }
+        return;
     }
 
     // 3. 處理斜線指令事件 (分發至 commands/*.js)
@@ -113,7 +124,23 @@ client.on('interactionCreate', async (interaction) => {
         await command.execute(interaction, client, registerSlashCommands);
     } catch (error) {
         console.error(`❌ 執行指令 ${interaction.commandName} 發生錯誤:`, error);
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({ content: '⚠️ 執行指令時發生錯誤！', flags: 64 }).catch(() => {});
+        }
     }
+});
+
+// 🛡️ 全域 Unhandled Error 防崩潰護盾
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('⚠️ [捕獲未處理的 Rejection]:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+    console.error('💥 [捕獲未處置的 Exception]:', err);
+});
+
+client.on('error', (error) => {
+    console.error('❌ [Discord Client 錯誤]:', error);
 });
 
 if (botToken) client.login(botToken);
