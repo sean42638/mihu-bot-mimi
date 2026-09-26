@@ -2,7 +2,7 @@ const { EmbedBuilder } = require('discord.js');
 const db = require('../database');
 const { syncOrdersJsonFromDb } = require('../utils/dataSync');
 const { adjustUserWallet } = require('../utils/walletHelper');
-const { calculateCommissionByCategory } = require('../utils/commissionHelper');
+const { calculateCommissionByCategory, getStudioIdForUser, resolveServiceId } = require('../utils/commissionHelper');
 const { checkChannelPermissions } = require('../utils/permissionHelper');
 const { createMihuEmbed, BRAND_COLORS } = require('../utils/embedBuilder');
 
@@ -23,6 +23,9 @@ async function handleDispatchModal(interaction) {
     if (!sessionData) {
         return interaction.editReply({ content: '❌ 派單 Session 已過期，請重新執行 `/dispatch` 指令。' }).catch(() => {});
     }
+    if ((sessionData.commandInitiatorId || sessionData.csId) !== interaction.user.id) {
+        return interaction.editReply({ content: '🚫 此派單 Modal 不屬於目前的指令發起者。' }).catch(() => {});
+    }
 
     try {
         const bossId = sessionData.bId;
@@ -31,6 +34,7 @@ async function handleDispatchModal(interaction) {
         const duration = sessionData.dur || 1;
         const totalPrice = sessionData.pri || 0;
         const csUserId = sessionData.csId || interaction.user.id; // 自動抓指令發送者 ID
+        const game = interaction.fields.getTextInputValue('dispatch_game').trim();
 
         // 1. 計算折後金額
         let finalPrice = totalPrice;
@@ -45,8 +49,12 @@ async function handleDispatchModal(interaction) {
             }
         }
 
-        // 2. 自動連動抽傭計算 (背景紀錄與資料庫儲存)
-        const { commissionRatePercent, platformCommission, talentNetEarning } = await calculateCommissionByCategory(category, finalPrice);
+        // 2. 依客服所屬工作室與服務項目取得當下成數
+        const studioId = await getStudioIdForUser(csUserId);
+        const serviceId = await resolveServiceId(studioId, game, category);
+        const { commissionRatePercent, talentShareRate, platformCommission, talentNetEarning } = await calculateCommissionByCategory(
+            category, finalPrice, totalPrice, null, { studioId, serviceId }
+        );
 
         // 3. 驗證闆闆會員與錢包餘額
         const walletRow = await new Promise((resolve) => {
@@ -87,7 +95,6 @@ async function handleDispatchModal(interaction) {
             operatorId: interaction.user.id
         });
 
-        const game = interaction.fields.getTextInputValue('dispatch_game');
         const contentTier = interaction.fields.getTextInputValue('dispatch_content');
         const extra = interaction.fields.getTextInputValue('dispatch_extra') || '無';
         const note = interaction.fields.getTextInputValue('dispatch_note') || '無';
@@ -102,41 +109,26 @@ async function handleDispatchModal(interaction) {
         const csUser = interaction.user;
         const csName = sessionData.csName || interaction.member?.nickname || csUser.globalName || csUser.username;
 
-        // 5. 寫入 orders 資料庫 (同時寫入 platform_commission 與 talent_earning)
+        // 5. 寫入訂單與建立當下的佣金快照
         await new Promise((resolve, reject) => {
             const insertSql = `
                 INSERT INTO orders (
                     order_no, boss_id, cs_id, cs_name, category, 
                     game, content_tier, duration, unit, unit_price,
                     total_amount, discount, extra, note, status, 
+                    studio_id, service_id, commission_rate_snapshot,
                     platform_commission, talent_earning, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, DATETIME('now', 'localtime'))
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, DATETIME('now', 'localtime'))
             `;
             db.run(insertSql, [
                 orderNo, bossId, csUserId, csName, category,
                 game, contentTier, duration, unit, unitPrice,
                 finalPrice, discountAmount, extra, note,
+                studioId, serviceId, talentShareRate,
                 platformCommission, talentNetEarning
             ], function(err) {
-                if (err) {
-                    const fallbackSql = `
-                        INSERT INTO orders (
-                            order_no, boss_id, cs_id, cs_name, category, 
-                            game, content_tier, duration, unit, unit_price,
-                            total_amount, discount, extra, note, status, created_at
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', DATETIME('now', 'localtime'))
-                    `;
-                    db.run(fallbackSql, [
-                        orderNo, bossId, csUserId, csName, category,
-                        game, contentTier, duration, unit, unitPrice,
-                        finalPrice, discountAmount, extra, note
-                    ], function(fbErr) {
-                        if (fbErr) reject(fbErr);
-                        else resolve(this.lastID);
-                    });
-                } else {
-                    resolve(this.lastID);
-                }
+                if (err) reject(err);
+                else resolve(this.lastID);
             });
         });
 

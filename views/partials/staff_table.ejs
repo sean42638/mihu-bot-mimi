@@ -190,7 +190,14 @@
                     };
                     const statusObj = statusMap[s.status] || { name: '空閒中', class: 'status-idle', icon: 'fa-circle-check' };
 
-                    const hasPersonalRate = (s.commission_rate !== null && s.commission_rate !== undefined && s.commission_rate !== '' && Number(s.commission_rate) > 0);
+                    const rawPersonalRate = s.talent_commission_rate;
+                    const numericPersonalRate = rawPersonalRate !== null && rawPersonalRate !== undefined && rawPersonalRate !== ''
+                        ? Number(rawPersonalRate)
+                        : null;
+                    const personalRate = numericPersonalRate !== null && numericPersonalRate > 1 && numericPersonalRate <= 100
+                        ? numericPersonalRate / 100
+                        : numericPersonalRate;
+                    const hasPersonalRate = Number.isFinite(personalRate) && personalRate > 0 && personalRate <= 1;
 
                     const staffDataJson = JSON.stringify({
                         id: s.id,
@@ -201,7 +208,7 @@
                         roleName: roleObj.name,
                         status: s.status || 'idle',
                         statusName: statusObj.name,
-                        commissionRate: hasPersonalRate ? Number(s.commission_rate) : null,
+                        commissionRate: hasPersonalRate ? personalRate : null,
                         staffChannelId: s.staff_channel_id || '',
                         totalOrders: s.total_orders || 0,
                         totalRevenue: s.total_revenue || 0,
@@ -244,7 +251,7 @@
 
                         <td>
                             <% if (hasPersonalRate) { %>
-                                <span class="rate-pill"><%= (Number(s.commission_rate) * 100).toFixed(0) %>%</span>
+                                <span class="rate-pill"><%= (personalRate * 100).toFixed(0) %>%</span>
                                 <span class="small text-secondary ms-1">個人特例</span>
                             <% } else { %>
                                 <span class="rate-pill-default">工作室預設</span>

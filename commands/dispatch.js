@@ -4,9 +4,8 @@ const crypto = require('crypto');
 // 🚀 全域短 Session 快取池 (供 Modal 讀取斜線指令參數)
 global.dispatchSessions = global.dispatchSessions || new Map();
 
-function checkDiscordAdminPermission(member, userId) {
-    if (userId === "604610298581876746") return true;
-    return member && member.permissions && member.permissions.has(PermissionFlagsBits.Administrator);
+function checkDiscordAdminPermission(interaction) {
+    return Boolean(interaction.memberPermissions && interaction.memberPermissions.has(PermissionFlagsBits.Administrator));
 }
 
 module.exports = {
@@ -16,7 +15,7 @@ module.exports = {
         .setDescription('發布工作室派單訊息至指定頻道 (跳窗填寫詳細內容)')
         .addChannelOption(o => o.setName('channel').setNameLocalizations({ 'zh-TW': '發佈頻道' }).setDescription('派單頻道').addChannelTypes(ChannelType.GuildText).setRequired(true))
         .addStringOption(o => o.setName('category').setNameLocalizations({ 'zh-TW': '類別' }).setDescription('訂單類別').setRequired(true).addChoices(
-            { name: '陪玩單', value: '陪玩單' }, { name: '禮物單', value: '禮物單' }, { name: '有獎', value: '有獎' }, { name: '冠名', value: '冠名' }, { name: '獎金', value: '獎金' }
+            { name: '陪玩單', value: '陪玩單' }, { name: '禮物單', value: '禮物單' }, { name: '有獎單', value: '有獎單' }, { name: '冠名單', value: '冠名單' }, { name: '獎金', value: '獎金' }
         ))
         .addStringOption(o => o.setName('tag').setNameLocalizations({ 'zh-TW': 'tag' }).setDescription('欲 Tag 的身分組').setRequired(true))
         .addUserOption(o => o.setName('boss').setNameLocalizations({ 'zh-TW': '老闆id' }).setDescription('下單老闆').setRequired(true))
@@ -28,7 +27,7 @@ module.exports = {
         .addNumberOption(o => o.setName('discount').setNameLocalizations({ 'zh-TW': '折扣' }).setDescription('>=1 為直減金額，0.1~0.99 為折數 (選填)').setRequired(false)),
     
     async execute(interaction) {
-        if (!checkDiscordAdminPermission(interaction.member, interaction.user.id)) {
+        if (!checkDiscordAdminPermission(interaction)) {
             return interaction.reply({ content: '🚫 您沒有執行派單的權限。', flags: 64 });
         }
 
@@ -52,6 +51,7 @@ module.exports = {
             unit: unit,
             pri: totalPrice,
             disc: discount,
+            commandInitiatorId: interaction.user.id,
             csId: interaction.user.id, // 🚀 記錄發起 /派單 的客服 ID
             csName: interaction.member?.nickname || interaction.user.globalName || interaction.user.username,
             csAvatar: interaction.user.avatar

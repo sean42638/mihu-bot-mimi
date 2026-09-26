@@ -3,9 +3,8 @@ const db = require('../database');
 const fs = require('fs');
 const path = require('path');
 
-function checkDiscordAdminPermission(member, userId) {
-    if (userId === "604610298581876746") return true;
-    return member && member.permissions && member.permissions.has(PermissionFlagsBits.Administrator);
+function checkDiscordAdminPermission(interaction) {
+    return Boolean(interaction.memberPermissions && interaction.memberPermissions.has(PermissionFlagsBits.Administrator));
 }
 
 function syncUsersJsonFromDb() {
@@ -25,7 +24,7 @@ module.exports = {
         .addUserOption(option => option.setName('target').setNameLocalizations({ 'zh-TW': '目標成員' }).setDescription('欲協助註冊的 Discord 成員').setRequired(true)),
     async execute(interaction) {
         try { await interaction.deferReply({ flags: MessageFlags.Ephemeral }); } catch (e) { return; }
-        if (!checkDiscordAdminPermission(interaction.member, interaction.user.id)) {
+        if (!checkDiscordAdminPermission(interaction)) {
             return interaction.editReply({ content: '🚫 只有 Discord 客服與管理者身分能使用此指令。' });
         }
         const targetUser = interaction.options.getUser('target');

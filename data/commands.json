@@ -3,7 +3,7 @@
     "id": 1,
     "name": "會員充值調帳",
     "command_key": "topup",
-    "min_role": "admin",
+    "min_role": "管理者",
     "description": "【管理員專用】彈窗輸入實充金額、贈送金與備註原因，自動寫入帳務與重算 VIP",
     "status": "enabled"
   },
@@ -11,7 +11,7 @@
     "id": 2,
     "name": "發布派單卡片",
     "command_key": "dispatch",
-    "min_role": "cs",
+    "min_role": "管理者",
     "description": "計算折扣金額，跳出彈窗填寫內容並自動進行闆闆錢包扣款與頻道發報",
     "status": "enabled"
   },
@@ -19,7 +19,7 @@
     "id": 3,
     "name": "發布好評卡片",
     "command_key": "review",
-    "min_role": "admin",
+    "min_role": "管理者",
     "description": "【管理員專用】發布闆闆給予陪陪的好評卡片 (支援匿名與星級評價)",
     "status": "enabled"
   },
@@ -27,7 +27,7 @@
     "id": 4,
     "name": "玩家自主註冊",
     "command_key": "register",
-    "min_role": "member",
+    "min_role": "會員",
     "description": "玩家於 Discord 自行綁定與註冊米胡電競會員帳號",
     "status": "enabled"
   },
@@ -35,7 +35,7 @@
     "id": 5,
     "name": "管理員代註冊",
     "command_key": "register-for",
-    "min_role": "cs",
+    "min_role": "管理者",
     "description": "管理員或客服協助特定 Discord 用戶強制建立帳號與資料綁定",
     "status": "enabled"
   },
@@ -43,7 +43,7 @@
     "id": 6,
     "name": "用戶帳號綁定",
     "command_key": "bind",
-    "min_role": "member",
+    "min_role": "會員",
     "description": "引導 Discord 用戶完成網站與 Discord 身分無縫對接",
     "status": "enabled"
   },
@@ -51,7 +51,7 @@
     "id": 7,
     "name": "管理員代綁定",
     "command_key": "bind-for",
-    "min_role": "cs",
+    "min_role": "管理者",
     "description": "管理員手動協助指定會員進行 Discord 與網站 ID 關聯",
     "status": "enabled"
   },
@@ -59,7 +59,7 @@
     "id": 8,
     "name": "發布系統公告",
     "command_key": "announcement",
-    "min_role": "admin",
+    "min_role": "管理者",
     "description": "發布工作室最新活動與頻道公告，同步於後台 Dashboard 顯示",
     "status": "enabled"
   },
@@ -67,7 +67,7 @@
     "id": 9,
     "name": "互動陪陪挑選",
     "command_key": "select",
-    "min_role": "member",
+    "min_role": "管理者",
     "description": "彈出互動式下拉選單，供闆闆進行特定項目陪陪篩選與點單",
     "status": "enabled"
   },
@@ -75,7 +75,7 @@
     "id": 10,
     "name": "熱重載指令模組",
     "command_key": "reload",
-    "min_role": "manager",
+    "min_role": "管理者",
     "description": "即時重新載入機器人斜線指令與內部設定，無需重啟伺服器",
     "status": "enabled"
   },
@@ -83,7 +83,7 @@
     "id": 11,
     "name": "指定陪玩單發布",
     "command_key": "assign",
-    "min_role": "cs",
+    "min_role": "管理者",
     "description": "【客服專用】於派單大廳發布指定陪玩卡片至闆闆頻道，並於頻道推播感謝訊息",
     "status": "enabled"
   },
@@ -91,8 +91,56 @@
     "id": 12,
     "name": "系統延遲檢測",
     "command_key": "ping",
-    "min_role": "user",
+    "min_role": "管理者",
     "description": "檢測機器人當前的網路延遲與 Discord API 連線狀態",
+    "status": "enabled"
+  },
+  {
+    "id": 13,
+    "name": "會員查帳",
+    "command_key": "check_balance",
+    "min_role": "管理者",
+    "description": "查詢目標會員的錢包餘額、VIP 等級與升等距離",
+    "status": "enabled"
+  },
+  {
+    "id": 14,
+    "name": "放棄訂單",
+    "command_key": "abandon_order",
+    "min_role": "管理者",
+    "description": "取消訂單並退款給會員，通知相關陪玩員",
+    "status": "enabled"
+  },
+  {
+    "id": 15,
+    "name": "訂單加時",
+    "command_key": "add_time",
+    "min_role": "管理者",
+    "description": "為現有訂單追加服務時長並調整金額",
+    "status": "enabled"
+  },
+  {
+    "id": 16,
+    "name": "手動建立訂單",
+    "command_key": "create_order",
+    "min_role": "管理者",
+    "description": "手動建立訂單並推播至陪玩員工單",
+    "status": "enabled"
+  },
+  {
+    "id": 17,
+    "name": "修改訂單",
+    "command_key": "edit_order",
+    "min_role": "管理者",
+    "description": "修改既有訂單的類別、項目、金額與指派對象",
+    "status": "enabled"
+  },
+  {
+    "id": 18,
+    "name": "後台連結",
+    "command_key": "website",
+    "min_role": "管理者",
+    "description": "取得米胡電競後台管理系統連結",
     "status": "enabled"
   }
 ]

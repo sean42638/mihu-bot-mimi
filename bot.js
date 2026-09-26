@@ -1,7 +1,13 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, REST, Routes, Collection } = require('discord.js');
+const { Client, GatewayIntentBits, REST, Collection, Events } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
+const { registerGuildCommands } = require('./utils/discordCommandRegistry');
+const {
+    hasDiscordAdministrator,
+    isCommandAllowedInGuild,
+    requiresAdministrator
+} = require('./config/discordCommandPolicy');
 
 // 🚀 載入獨立模組 Handlers
 const handleButtonInteraction = require('./handlers/buttonHandler');
@@ -35,24 +41,31 @@ for (const file of commandFiles) {
 }
 
 async function registerSlashCommands() {
-    if (!botToken || !process.env.DISCORD_CLIENT_ID) return false;
+    if (!botToken || !process.env.DISCORD_CLIENT_ID) {
+        client.commandRegistration = { status: 'failed', error: 'Missing Discord application credentials' };
+        return false;
+    }
     try {
         const rest = new REST({ version: '10' }).setToken(botToken);
-        const commandDataList = client.commands.map(cmd => cmd.data.toJSON());
-
-        if (process.env.GUILD_DEV_ID) {
-            await rest.put(Routes.applicationGuildCommands(process.env.DISCORD_CLIENT_ID, process.env.GUILD_DEV_ID), { body: commandDataList });
+        const registration = await registerGuildCommands(rest, process.env.DISCORD_CLIENT_ID, client.commands);
+        client.commandRegistration = {
+            ...registration,
+            status: registration.success ? 'registered' : 'partial',
+            syncedAt: new Date().toISOString()
+        };
+        console.log('✅ [Command Handler] Guild Slash command registration result:', registration.guildResults);
+        if (!registration.success) {
+            console.error('❌ Slash command registration was partial:', registration.failedGuilds, registration.globalError);
         }
-        await rest.put(Routes.applicationCommands(process.env.DISCORD_CLIENT_ID), { body: commandDataList });
-        console.log('✅ [Command Handler] 全域 Discord 斜線指令已成功動態同步！');
-        return true;
+        return registration.success;
     } catch (error) {
+        client.commandRegistration = { status: 'failed', error: error.message };
         console.error('❌ 斜線指令熱重載失敗:', error);
         return false;
     }
 }
 
-client.once('ready', () => {
+client.once(Events.ClientReady, () => {
     console.log(`🤖 米胡電競 Discord 機器人全新重構上線：${client.user.tag}`);
     registerSlashCommands();
 });
@@ -119,6 +132,20 @@ client.on('interactionCreate', async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
     const command = client.commands.get(interaction.commandName);
     if (!command) return;
+
+    if (!isCommandAllowedInGuild(interaction.commandName, interaction.guildId)) {
+        return interaction.reply({
+            content: '此指令不適用於目前的 Discord 伺服器。',
+            flags: 64
+        }).catch(() => {});
+    }
+
+    if (requiresAdministrator(interaction.commandName) && !hasDiscordAdministrator(interaction)) {
+        return interaction.reply({
+            content: '你沒有 Discord 管理者權限，無法執行此指令。',
+            flags: 64
+        }).catch(() => {});
+    }
 
     try {
         await command.execute(interaction, client, registerSlashCommands);

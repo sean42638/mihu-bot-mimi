@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database');
-const { syncUsersJsonFromDb, syncTalentsJsonFromDb, getCommissionData } = require('../utils/dataSync');
+const { syncUsersJsonFromDb, syncTalentsJsonFromDb } = require('../utils/dataSync');
 const { requireAuth: ensureAuth, requirePerm: checkPerm } = require('../middleware/auth');
-const { calculateCommissionByCategory } = require('../utils/commissionHelper'); // 🚀 引入連動 Helper
+const { calculateCommissionByCategory, normalizeTalentShareRate } = require('../utils/commissionHelper');
 
 // =========================================================================
 // 1. 首頁 (Dashboard)
@@ -131,11 +131,11 @@ router.get('/wallet', ensureAuth, checkPerm('my_wallet'), (req, res) => {
                        t.username as talent_username, t.global_name as talent_global_name, t.custom_nickname as talent_nickname
                 FROM orders o
                 LEFT JOIN users t ON (o.talent_id = t.id OR o.staff_id = t.id)
-                WHERE o.boss_id = ?
+                WHERE o.boss_id = ? AND o.studio_id = ?
                 ORDER BY o.created_at DESC
             `;
 
-            db.all(ordersSql, [userId], (oErr, orders) => {
+            db.all(ordersSql, [userId, Number(currentUser.studio_id) || 1], (oErr, orders) => {
                 const txSql = `SELECT * FROM wallet_transactions WHERE user_id = ? ORDER BY created_at DESC`;
                 db.all(txSql, [userId], (txErr, transactions) => {
                     db.all('SELECT * FROM topups WHERE user_id = ? ORDER BY created_at DESC', [userId], (tErr, topups) => {
@@ -178,12 +178,22 @@ router.get('/income', ensureAuth, checkPerm('my_income'), async (req, res) => {
 
     db.get('SELECT * FROM users WHERE id = ?', [userId], async (err, currentUser) => {
         db.get('SELECT commission_rate FROM talents WHERE user_id = ?', [userId], async (tErr, talentRow) => {
-            const globalCommissions = getCommissionData() || {};
+            const studioId = Number(currentUser && currentUser.studio_id) || 1;
+            const commissionRows = await new Promise((resolve) => {
+                db.all('SELECT category, talent_share_rate FROM studio_commissions WHERE studio_id = ?', [studioId], (cErr, rows) => resolve(rows || []));
+            });
+            const globalCommissions = { '陪玩單': 0.80, '禮物單': 0.85, '有獎單': 0.90, '冠名單': 0.85, '獎金': 1.00 };
+            commissionRows.forEach(row => {
+                const canonicalCategory = row.category === '有獎' ? '有獎單' : (row.category === '冠名' ? '冠名單' : row.category);
+                const hasCanonicalRow = commissionRows.some(candidate => candidate.category === canonicalCategory);
+                if (row.category !== canonicalCategory && hasCanonicalRow) return;
+                globalCommissions[canonicalCategory] = Number(row.talent_share_rate);
+                if (canonicalCategory === '有獎單') globalCommissions['有獎'] = Number(row.talent_share_rate);
+                if (canonicalCategory === '冠名單') globalCommissions['冠名'] = Number(row.talent_share_rate);
+            });
             
-            // 💡 判斷是否有個人獨立特例 (若為 NULL 或 0 代表跟隨工作室全域類別)
-            const personalRate = (talentRow && talentRow.commission_rate !== null && talentRow.commission_rate !== undefined && Number(talentRow.commission_rate) > 0) 
-                ? Number(talentRow.commission_rate) 
-                : null;
+            const normalizedPersonalRate = normalizeTalentShareRate(talentRow && talentRow.commission_rate);
+            const personalRate = normalizedPersonalRate > 0 ? normalizedPersonalRate : null;
 
             if (!talentRow && currentUser) {
                 db.run('INSERT OR IGNORE INTO talents (user_id, nickname, commission_rate, status) VALUES (?, ?, NULL, "idle")', 
@@ -211,6 +221,8 @@ router.get('/income', ensureAuth, checkPerm('my_income'), async (req, res) => {
 
                 // 🚀 模組化計算 single order 收益 (以原價算陪陪收益)
                 async function computeOrderTalentEarning(o) {
+                    if (o.talent_earning !== null && o.talent_earning !== undefined) return Number(o.talent_earning);
+
                     const finalPrice = Number(o.total_amount || 0);
                     // 計算原價 (unit_price * duration)，若欄位缺失則回退以 finalPrice + discount 或 finalPrice 算
                     const unitPrice = Number(o.unit_price || 0);
@@ -220,8 +232,14 @@ router.get('/income', ensureAuth, checkPerm('my_income'), async (req, res) => {
                     let originalPrice = (unitPrice > 0) ? (unitPrice * duration) : (finalPrice + discount);
                     if (originalPrice <= 0) originalPrice = finalPrice;
 
+                    const snapshotRate = normalizeTalentShareRate(o.commission_rate_snapshot);
+                    if (snapshotRate !== null) return Math.round(originalPrice * snapshotRate);
+
                     const cat = o.category || '陪玩單';
-                    const { talentNetEarning } = await calculateCommissionByCategory(cat, finalPrice, originalPrice, personalRate);
+                    const { talentNetEarning } = await calculateCommissionByCategory(
+                        cat, finalPrice, originalPrice, personalRate,
+                        { studioId: Number(o.studio_id) || studioId, serviceId: o.service_id, serviceName: o.game }
+                    );
                     return talentNetEarning;
                 }
 
@@ -291,11 +309,11 @@ router.get('/my-orders', ensureAuth, (req, res) => {
         LEFT JOIN users b ON o.boss_id = b.id
         LEFT JOIN users t ON (o.talent_id = t.id OR o.staff_id = t.id)
         LEFT JOIN users cs ON o.cs_id = cs.id
-        WHERE o.boss_id = ? 
+        WHERE o.boss_id = ? AND o.studio_id = ?
         ORDER BY o.created_at DESC
     `;
 
-    db.all(myOrdersSql, [currentUserId], (err, orders) => {
+    db.all(myOrdersSql, [currentUserId, Number(req.user.studio_id) || 1], (err, orders) => {
         if (err) {
             console.error('❌ 讀取個人訂單失敗:', err);
             return res.status(500).send('讀取個人訂單失敗');

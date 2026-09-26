@@ -3,7 +3,6 @@ const router = express.Router();
 const db = require('../../database');
 const { ensureAuth } = require('../../middleware/auth');
 const { sortByRoleWeight } = require('../../utils/roleHelper');
-const { calculateCommissionByCategory } = require('../../utils/commissionHelper');
 
 // 渲染「薪轉管理」獨立主頁面 (對應 /management/payroll)
 router.get('/', ensureAuth, (req, res) => {
@@ -15,34 +14,48 @@ router.get('/', ensureAuth, (req, res) => {
         return res.redirect('/dashboard?error=' + encodeURIComponent('🚫 您的身分無權存取薪轉管理頁面。'));
     }
 
-    // 🚀 動態連動 commission_settings 資料表，以工作室類別抽傭優先計算陪陪實得
+    const allStudios = req.user.id === '604610298581876746' || req.user.role === 'admin';
+    const studioFilter = allStudios ? '' : 'AND u.studio_id = ?';
+    const studioParams = allStudios ? [] : [Number(req.user.studio_id) || 1];
+
+    // 優先累計訂單建立時保存的陪玩收益與成數快照。
     const payrollSql = `
         SELECT u.*,
             COALESCE((
                 SELECT SUM(
                     ROUND(
-                        o.total_amount * COALESCE(
-                            (SELECT (1.0 - cs.rate) FROM commission_settings cs WHERE cs.category = o.category),
-                            CASE o.category 
-                                WHEN '陪玩單' THEN 0.80
-                                WHEN '禮物單' THEN 0.90
-                                WHEN '有獎'   THEN 0.95
-                                WHEN '冠名'   THEN 0.85
-                                WHEN '獎金'   THEN 0.90
-                                ELSE 0.80
-                            END
+                        COALESCE(o.talent_earning,
+                            COALESCE(NULLIF(o.unit_price, 0) * COALESCE(o.duration, 1), o.total_amount + COALESCE(o.discount, 0), o.total_amount)
+                            * COALESCE(
+                                o.commission_rate_snapshot,
+                                (SELECT s.talent_share_rate FROM studio_services s WHERE s.id = o.service_id AND s.studio_id = o.studio_id),
+                                (SELECT sc.talent_share_rate FROM studio_commissions sc WHERE sc.studio_id = o.studio_id AND sc.category = o.category),
+                                (SELECT 1.0 - cs.rate FROM commission_settings cs WHERE cs.category = o.category),
+                                CASE o.category
+                                    WHEN '陪玩單' THEN 0.80
+                                    WHEN '禮物單' THEN 0.85
+                                    WHEN '有獎' THEN 0.90
+                                    WHEN '有獎單' THEN 0.90
+                                    WHEN '冠名' THEN 0.85
+                                    WHEN '冠名單' THEN 0.85
+                                    WHEN '獎金' THEN 1.00
+                                    WHEN '活動單' THEN 0.90
+                                    ELSE 0.80
+                                END
+                            )
                         )
                     )
                 ) 
                 FROM orders o 
                 WHERE (o.staff_id = u.id OR o.talent_id = u.id) 
+                  AND o.studio_id = u.studio_id
                   AND o.status = 'completed'
             ), 0) as accumulated_payout
         FROM users u
-        WHERE u.role != 'member' OR u.role IS NULL
+        WHERE (u.role != 'member' OR u.role IS NULL) ${studioFilter}
     `;
 
-    db.all(payrollSql, [], (err, staffPayrollList) => {
+    db.all(payrollSql, studioParams, (err, staffPayrollList) => {
         if (err) {
             console.error('❌ 載入薪轉清單失敗:', err);
             staffPayrollList = [];
@@ -73,34 +86,48 @@ router.get('/export', ensureAuth, (req, res) => {
         return res.status(403).send('🚫 無權匯出薪轉資料');
     }
 
-    // 🚀 匯出端同步套用動態類別抽傭連動
+    const allStudios = req.user.id === '604610298581876746' || req.user.role === 'admin';
+    const studioFilter = allStudios ? '' : 'AND u.studio_id = ?';
+    const studioParams = allStudios ? [] : [Number(req.user.studio_id) || 1];
+
+    // CSV also uses the stored order earning/snapshot before current fallbacks.
     const payrollSql = `
         SELECT u.username, u.custom_nickname, u.global_name, u.real_name, u.bank_name, u.bank_code, u.bank_branch, u.bank_account,
             COALESCE((
                 SELECT SUM(
                     ROUND(
-                        o.total_amount * COALESCE(
-                            (SELECT (1.0 - cs.rate) FROM commission_settings cs WHERE cs.category = o.category),
-                            CASE o.category 
-                                WHEN '陪玩單' THEN 0.80
-                                WHEN '禮物單' THEN 0.90
-                                WHEN '有獎'   THEN 0.95
-                                WHEN '冠名'   THEN 0.85
-                                WHEN '獎金'   THEN 0.90
-                                ELSE 0.80
-                            END
+                        COALESCE(o.talent_earning,
+                            COALESCE(NULLIF(o.unit_price, 0) * COALESCE(o.duration, 1), o.total_amount + COALESCE(o.discount, 0), o.total_amount)
+                            * COALESCE(
+                                o.commission_rate_snapshot,
+                                (SELECT s.talent_share_rate FROM studio_services s WHERE s.id = o.service_id AND s.studio_id = o.studio_id),
+                                (SELECT sc.talent_share_rate FROM studio_commissions sc WHERE sc.studio_id = o.studio_id AND sc.category = o.category),
+                                (SELECT 1.0 - cs.rate FROM commission_settings cs WHERE cs.category = o.category),
+                                CASE o.category
+                                    WHEN '陪玩單' THEN 0.80
+                                    WHEN '禮物單' THEN 0.85
+                                    WHEN '有獎' THEN 0.90
+                                    WHEN '有獎單' THEN 0.90
+                                    WHEN '冠名' THEN 0.85
+                                    WHEN '冠名單' THEN 0.85
+                                    WHEN '獎金' THEN 1.00
+                                    WHEN '活動單' THEN 0.90
+                                    ELSE 0.80
+                                END
+                            )
                         )
                     )
                 ) 
                 FROM orders o 
                 WHERE (o.staff_id = u.id OR o.talent_id = u.id) 
+                  AND o.studio_id = u.studio_id
                   AND o.status = 'completed'
             ), 0) as accumulated_payout
         FROM users u
-        WHERE u.role != 'member' OR u.role IS NULL
+        WHERE (u.role != 'member' OR u.role IS NULL) ${studioFilter}
     `;
 
-    db.all(payrollSql, [], (err, rows) => {
+    db.all(payrollSql, studioParams, (err, rows) => {
         if (err) {
             console.error('❌ 匯出薪轉 CSV 出錯:', err);
             return res.status(500).send('匯出薪轉資料失敗');

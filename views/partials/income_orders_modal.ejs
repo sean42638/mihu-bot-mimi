@@ -79,19 +79,32 @@
                                     const isCompleted = (o.status === 'completed');
 
                                     // 🚀 工作室全域分潤成數 (1 - 工作室抽成%)
-                                    const defaultNetRates = { '陪玩單': 0.80, '禮物單': 0.85, '有獎': 0.90, '冠名': 0.85, '獎金': 1.00 };
-                                    let catNetRate = defaultNetRates[cat] || 0.80;
+                                    const defaultNetRates = { '陪玩單': 0.80, '禮物單': 0.85, '有獎單': 0.90, '有獎': 0.90, '冠名單': 0.85, '冠名': 0.85, '獎金': 1.00 };
+                                    let catNetRate = defaultNetRates[cat] !== undefined ? defaultNetRates[cat] : 0.80;
 
-                                    if (typeof globalCommissions !== 'undefined' && globalCommissions && globalCommissions[cat] !== undefined) {
-                                        const rawCut = Number(globalCommissions[cat]);
-                                        catNetRate = rawCut < 1 ? (1 - rawCut) : rawCut;
+                                    const legacyCat = cat === '有獎單' ? '有獎' : (cat === '冠名單' ? '冠名' : cat);
+                                    const categoryRate = globalCommissions && (globalCommissions[cat] ?? globalCommissions[legacyCat]);
+                                    if (typeof globalCommissions !== 'undefined' && globalCommissions && categoryRate !== undefined) {
+                                        const rawRate = Number(categoryRate);
+                                        const normalizedRate = rawRate > 1 && rawRate <= 100 ? rawRate / 100 : rawRate;
+                                        if (Number.isFinite(normalizedRate) && normalizedRate >= 0 && normalizedRate <= 1) catNetRate = normalizedRate;
                                     }
 
                                     const validPersonal = (typeof personalRate !== 'undefined' && personalRate !== null && personalRate > 0) ? Number(personalRate) : null;
                                     const thisOrderRate = (validPersonal !== null) ? validPersonal : catNetRate;
 
                                     // 🚀 個人實得收入依「原價 (originalPrice)」計算，不承擔折扣！
-                                    const myIncome = isCompleted ? Math.round(originalPrice * thisOrderRate) : 0;
+                                    const hasStoredEarning = o.talent_earning !== null && o.talent_earning !== undefined;
+                                    const storedRate = (o.commission_rate_snapshot !== null && o.commission_rate_snapshot !== undefined)
+                                        ? Number(o.commission_rate_snapshot)
+                                        : null;
+                                    const myIncome = isCompleted
+                                        ? (hasStoredEarning
+                                            ? Number(o.talent_earning)
+                                            : (storedRate !== null && Number.isFinite(storedRate)
+                                                ? Math.round(originalPrice * storedRate)
+                                                : Math.round(originalPrice * thisOrderRate)))
+                                        : 0;
 
                                     const bossAvatar = o.boss_avatar 
                                         ? `https://cdn.discordapp.com/avatars/${o.boss_id}/${o.boss_avatar}.png` 

@@ -1,0 +1,90 @@
+const { Routes } = require('discord.js');
+const {
+    applyCommandDefaultPermissions,
+    getCommandGuildKeys,
+    getCommandGuilds,
+    getMissingGuildVariables
+} = require('../config/discordCommandPolicy');
+
+async function registerGuildCommands(rest, applicationId, commandCollection, env = process.env) {
+    if (!applicationId) throw new Error('DISCORD_CLIENT_ID is required to register commands');
+
+    const missingVariables = getMissingGuildVariables(env);
+    if (missingVariables.length > 0) {
+        throw new Error(`Missing Discord Guild configuration: ${missingVariables.join(', ')}`);
+    }
+
+    const guilds = getCommandGuilds(env);
+    const guildIds = Object.values(guilds);
+    if (new Set(guildIds).size !== guildIds.length) {
+        throw new Error('Discord command Guild IDs must be unique across MAIN, STAFF, and DEV');
+    }
+
+    const commands = Array.from(commandCollection.values());
+    commands.forEach(applyCommandDefaultPermissions);
+
+    const guildResults = {};
+    for (const [guildKey, guildId] of Object.entries(guilds)) {
+        const guildCommands = commands
+            .filter(command => getCommandGuildKeys(command.data.name).includes(guildKey))
+            .map(command => command.data.toJSON());
+
+        try {
+            await rest.put(Routes.applicationGuildCommands(applicationId, guildId), { body: guildCommands });
+            guildResults[guildKey] = { status: 'registered', commandCount: guildCommands.length };
+        } catch (error) {
+            guildResults[guildKey] = {
+                status: 'failed',
+                commandCount: guildCommands.length,
+                errorCode: error.code || null,
+                errorMessage: error.message || 'Unknown Discord API error'
+            };
+            console.error(`❌ Slash command registration failed for ${guildKey} Guild:`, error.code || error.message);
+        }
+    }
+
+    let globalCommandsCleared = false;
+    let globalError = null;
+    try {
+        await rest.put(Routes.applicationCommands(applicationId), { body: [] });
+        globalCommandsCleared = true;
+    } catch (error) {
+        globalError = { code: error.code || null, message: error.message || 'Unknown Discord API error' };
+        console.error('❌ Failed to clear Global Slash Commands:', error.code || error.message);
+    }
+
+    const failedGuilds = Object.entries(guildResults)
+        .filter(([, result]) => result.status === 'failed')
+        .map(([guildKey, result]) => ({ guildKey, ...result }));
+
+    return {
+        guildResults,
+        failedGuilds,
+        globalCommandsCleared,
+        globalError,
+        success: failedGuilds.length === 0 && globalCommandsCleared
+    };
+}
+
+async function clearGuildCommands(rest, applicationId, env = process.env) {
+    if (!applicationId) throw new Error('DISCORD_CLIENT_ID is required to clear commands');
+
+    const missingVariables = getMissingGuildVariables(env);
+    if (missingVariables.length > 0) {
+        throw new Error(`Missing Discord Guild configuration: ${missingVariables.join(', ')}`);
+    }
+
+    const guilds = getCommandGuilds(env);
+    const guildIds = Object.values(guilds);
+    if (new Set(guildIds).size !== guildIds.length) {
+        throw new Error('Discord command Guild IDs must be unique across MAIN, STAFF, and DEV');
+    }
+
+    await rest.put(Routes.applicationCommands(applicationId), { body: [] });
+    for (const guildId of guildIds) {
+        await rest.put(Routes.applicationGuildCommands(applicationId, guildId), { body: [] });
+    }
+    return guildIds.length;
+}
+
+module.exports = { clearGuildCommands, registerGuildCommands };

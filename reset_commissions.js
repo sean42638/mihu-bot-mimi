@@ -1,5 +1,5 @@
 const db = require('./database');
-const { calculateCommissionByCategory } = require('./utils/commissionHelper');
+const { calculateCommissionByCategory, resolveServiceId } = require('./utils/commissionHelper');
 const { syncTalentsJsonFromDb, syncOrdersJsonFromDb } = require('./utils/dataSync');
 
 async function resetAllCommissions() {
@@ -20,25 +20,32 @@ async function resetAllCommissions() {
     // 同步 talents.json 檔案
     syncTalentsJsonFromDb();
 
-    // 2. 重新校正歷史訂單 (orders) 的 platform_commission 與 talent_earning
-    console.log('🔄 開始校正歷史訂單之平台抽成與陪陪實得金額...');
+    // 2. 只補算尚未有快照的舊訂單，保留所有已結算快照。
+    console.log('🔄 開始補算尚未建立佣金快照的舊訂單...');
     
     const orders = await new Promise((resolve) => {
-        db.all('SELECT id, category, total_amount FROM orders', (err, rows) => resolve(rows || []));
+        db.all('SELECT * FROM orders WHERE commission_rate_snapshot IS NULL', (err, rows) => resolve(rows || []));
     });
 
     let updatedCount = 0;
     for (const order of orders) {
         const category = order.category || '陪玩單';
-        const totalAmount = Number(order.total_amount || 0);
+        const finalAmount = Number(order.total_amount || 0);
+        const unitPrice = Number(order.unit_price || 0);
+        const duration = Number(order.duration || 1);
+        const discount = Number(order.discount || 0);
+        const originalAmount = unitPrice > 0 ? unitPrice * duration : finalAmount + discount;
+        const studioId = Number(order.studio_id) || 1;
+        const serviceId = order.service_id || await resolveServiceId(studioId, order.game, category);
 
-        // 依工作室類別全域設定重新計算
-        const { platformCommission, talentNetEarning } = await calculateCommissionByCategory(category, totalAmount);
+        const { talentShareRate, platformCommission, talentNetEarning } = await calculateCommissionByCategory(
+            category, finalAmount, originalAmount, null, { studioId, serviceId }
+        );
 
         await new Promise((resolve) => {
             db.run(
-                'UPDATE orders SET platform_commission = ?, talent_earning = ? WHERE id = ?',
-                [platformCommission, talentNetEarning, order.id],
+                'UPDATE orders SET commission_rate_snapshot = ?, platform_commission = ?, talent_earning = ? WHERE id = ? AND commission_rate_snapshot IS NULL',
+                [talentShareRate, platformCommission, talentNetEarning, order.id],
                 () => resolve()
             );
         });
@@ -48,8 +55,8 @@ async function resetAllCommissions() {
     // 同步 orders.json 檔案
     syncOrdersJsonFromDb();
 
-    console.log(`✅ 已完成校正 ${updatedCount} 筆訂單的抽傭與收益紀錄！`);
-    console.log('🎉 所有員工分潤與歷史紀錄已完全恢復為「依工作室全域預設」！');
+    console.log('✅ 已為 ' + updatedCount + ' 筆缺少快照的舊訂單補上佣金與收益紀錄！');
+    console.log('🎉 已保留所有原有歷史訂單快照。');
     process.exit(0);
 }
 

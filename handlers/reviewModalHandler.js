@@ -12,6 +12,9 @@ async function handleReviewModal(interaction) {
     if (!sessionData) {
         return interaction.editReply({ content: '❌ 好評發布 Session 已過期，請重新執行 `/好評` 指令。' });
     }
+    if (sessionData.commandInitiatorId && sessionData.commandInitiatorId !== interaction.user.id) {
+        return interaction.editReply({ content: '🚫 此好評 Modal 不屬於目前的指令發起者。' });
+    }
 
     const comment = interaction.fields.getTextInputValue('review_comment').trim();
 

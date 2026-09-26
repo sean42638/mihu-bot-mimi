@@ -15,9 +15,6 @@ const userRouter = require('./routes/user');
 const systemRouter = require('./routes/system');
 const managementRouter = require('./routes/management');
 
-// 🚀 載入 Modal 派單處理器
-const { handleDispatchModal } = require('./handlers/dispatchModalHandler');
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -65,11 +62,14 @@ app.use((req, res, next) => {
                 perms = ['home', 'home_wallet_card', 'home_info', 'personal', 'profile', 'my_wallet', 'my_orders'];
             }
 
-            res.locals.userPerms = perms;
-            res.locals.currentUser = currentUser;
-            res.locals.user = currentUser; // 雙向兼容 res.locals.user
-            res.locals.hasPerm = (node) => isSuperAdmin || perms.includes(node);
-            next();
+            db.get('SELECT id FROM studios WHERE id = ? AND owner_user_id = ?', [Number(currentUser.studio_id) || 1, currentUser.id], (studioErr, ownedStudio) => {
+                res.locals.userPerms = perms;
+                res.locals.currentUser = currentUser;
+                res.locals.user = currentUser; // 雙向兼容 res.locals.user
+                res.locals.hasPerm = (node) => isSuperAdmin || perms.includes(node);
+                res.locals.canManageStudioCommission = isSuperAdmin || perms.includes('sys_commission') || Boolean(ownedStudio);
+                next();
+            });
         });
     } else {
         res.locals.userPerms = [];
@@ -79,17 +79,6 @@ app.use((req, res, next) => {
         next();
     }
 });
-
-// 🤖 Discord 機器人 Modal 事件監聽 (監聽派單 Modal 提交)
-if (client) {
-    client.on('interactionCreate', async (interaction) => {
-        if (interaction.isModalSubmit()) {
-            if (interaction.customId.startsWith('modal_disp_')) {
-                await handleDispatchModal(interaction);
-            }
-        }
-    });
-}
 
 // 🔀 掛載模組化路由
 app.use('/', authRouter);

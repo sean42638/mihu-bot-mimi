@@ -1,11 +1,56 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database');
+const { client, registerSlashCommands } = require('../bot');
 const { 
     saveVipJsonFromDb, getRolesData, saveRolesData, 
-    getCommissionData, saveCommissionData, syncCommandsJsonFromDb 
+    syncCommandsJsonFromDb
 } = require('../utils/dataSync');
 const { requireAuth: ensureAuth, requirePerm: checkPerm } = require('../middleware/auth');
+const { normalizeTalentShareRate } = require('../utils/commissionHelper');
+const { GUILD_LABELS, getCommandGuildKeys, getCommandGuildLabels, getMinimumExecutionRole } = require('../config/discordCommandPolicy');
+
+const commissionCategories = ['陪玩單', '禮物單', '有獎單', '冠名單', '獎金'];
+const legacyCategoryAliases = { '有獎單': '有獎', '冠名單': '冠名' };
+const canonicalCategoryAliases = { '有獎': '有獎單', '冠名': '冠名單' };
+
+function isCommissionAdministrator(req, res) {
+    const userPerms = Array.isArray(res.locals.userPerms) ? res.locals.userPerms : [];
+    return req.user && (req.user.id === '604610298581876746' || req.user.role === 'admin' || userPerms.includes('sys_commission'));
+}
+
+function requireStudioCommissionAccess(req, res, next) {
+    if (!req.user) return res.redirect('/login');
+
+    const requestedId = Number((req.body && req.body.studio_id) || req.query.studio_id || 1);
+    if (requestedId !== 1) return res.status(400).send('米胡電競是系統唯一工作室');
+
+    db.get('SELECT id, name, owner_user_id FROM studios WHERE id = ?', [requestedId], (err, studio) => {
+        if (err || !studio) return res.status(404).send('找不到工作室');
+
+        const canManage = isCommissionAdministrator(req, res) || studio.owner_user_id === req.user.id;
+        if (!canManage) return res.status(403).send('無權管理此工作室的抽佣設定');
+
+        req.commissionStudioId = requestedId;
+        req.commissionStudio = studio;
+        next();
+    });
+}
+
+function queryAll(sql, params = []) {
+    return new Promise((resolve, reject) => {
+        db.all(sql, params, (err, rows) => err ? reject(err) : resolve(rows || []));
+    });
+}
+
+function runSql(sql, params = []) {
+    return new Promise((resolve, reject) => {
+        db.run(sql, params, function (err) {
+            if (err) return reject(err);
+            resolve({ changes: this.changes, lastID: this.lastID });
+        });
+    });
+}
 
 // 🤖 機器人指令設定 (載入資料庫，若無資料則自動提供 9 大核心指令預設值)
 router.get('/system/bot-settings', ensureAuth, checkPerm('sys_settings'), (req, res) => {
@@ -26,16 +71,56 @@ router.get('/system/bot-settings', ensureAuth, checkPerm('sys_settings'), (req, 
             ];
 
             // 優先使用 DB 資料，若 DB 查無內容或為空陣列則使用 defaultCommands
-            const commands = (dbCommands && dbCommands.length > 0) ? dbCommands : defaultCommands;
+            const savedCommands = new Map((dbCommands || []).map(command => [
+                String(command.command_key || '').replace(/^\/+/, ''),
+                command
+            ]));
+            const liveCommands = client.commands ? Array.from(client.commands.values()) : [];
+            const commands = liveCommands.map(command => {
+                const definition = command.data.toJSON();
+                const commandKey = definition.name;
+                const saved = savedCommands.get(commandKey) || {};
+                const localizedName = definition.name_localizations && definition.name_localizations['zh-TW'];
+                const registration = client.commandRegistration;
+                const targetGuildKeys = getCommandGuildKeys(commandKey);
+                const failedGuildKeys = targetGuildKeys.filter(guildKey => registration?.guildResults?.[guildKey]?.status === 'failed');
+                const fullyRegistered = targetGuildKeys.every(guildKey => registration?.guildResults?.[guildKey]?.status === 'registered');
+                const statusLabel = fullyRegistered
+                    ? '啟用中'
+                    : (failedGuildKeys.length > 0
+                        ? `同步失敗：${failedGuildKeys.map(guildKey => GUILD_LABELS[guildKey]).join('、')}`
+                        : '程式已載入（尚未同步）');
+
+                return {
+                    name: saved.name || localizedName || commandKey,
+                    command: `/${commandKey}${localizedName ? ` (${localizedName})` : ''}`,
+                    command_key: commandKey,
+                    min_role: getMinimumExecutionRole(commandKey),
+                    guilds: getCommandGuildLabels(commandKey),
+                    description: definition.description || saved.description || '此指令目前沒有說明',
+                    status: fullyRegistered ? 'enabled' : 'failed',
+                    statusLabel
+                };
+            });
 
             res.render('system_bot_settings', { 
                 user: currentUser || req.user, 
                 commands: commands, 
                 activePage: 'bot-settings',
-                success: req.query.saved === '1' 
+                syncResult: req.query.sync || null,
+                registration: client.commandRegistration || null,
+                guildLabels: GUILD_LABELS
             });
         });
     });
+});
+
+router.post('/system/bot-settings/sync', ensureAuth, checkPerm('sys_settings'), async (req, res) => {
+    const synced = await registerSlashCommands();
+    const syncResult = client.commandRegistration?.status === 'partial'
+        ? 'partial'
+        : (synced ? 'success' : 'failed');
+    res.redirect(`/system/bot-settings?sync=${syncResult}`);
 });
 
 // VIP 設定
@@ -74,26 +159,114 @@ router.post('/system/vip/add', ensureAuth, checkPerm('sys_vip'), (req, res) => {
         });
 });
 
-// 全域抽佣設定
-router.get('/system/commission', ensureAuth, checkPerm('sys_commission'), (req, res) => {
-    res.render('commission', { user: req.user, activePage: 'commission', commission: getCommissionData(), success: req.query.saved === '1' });
+// 工作室抽佣設定與服務項目成數
+router.get('/system/commission', ensureAuth, requireStudioCommissionAccess, async (req, res) => {
+    try {
+        const studioId = req.commissionStudioId;
+        const [commissionRows, services] = await Promise.all([
+            queryAll('SELECT category, talent_share_rate FROM studio_commissions WHERE studio_id = ?', [studioId]),
+            queryAll('SELECT id, name, category, talent_share_rate, is_active FROM studio_services WHERE studio_id = ? ORDER BY name COLLATE NOCASE', [studioId])
+        ]);
+        const defaults = { '陪玩單': 0.80, '禮物單': 0.85, '有獎單': 0.90, '冠名單': 0.85, '獎金': 1.00 };
+        const commission = { ...defaults };
+        commissionRows.forEach(row => {
+            const canonicalCategory = canonicalCategoryAliases[row.category] || row.category;
+            const hasCanonicalRow = commissionRows.some(candidate => candidate.category === canonicalCategory);
+            if (row.category !== canonicalCategory && hasCanonicalRow) return;
+            commission[canonicalCategory] = Number(row.talent_share_rate);
+        });
+
+        res.render('commission', {
+            user: req.user,
+            activePage: 'commission',
+            commission,
+            services,
+            studio: req.commissionStudio,
+            selectedStudioId: studioId,
+            success: req.query.saved === '1',
+            error: req.query.error || null
+        });
+    } catch (err) {
+        console.error('載入工作室抽佣設定失敗:', err);
+        res.status(500).send('載入抽佣設定失敗');
+    }
 });
 
-router.post('/system/commission/update', ensureAuth, checkPerm('sys_commission'), (req, res) => {
+router.post('/system/commission/update', ensureAuth, requireStudioCommissionAccess, async (req, res) => {
+    const studioId = req.commissionStudioId;
+    let transactionStarted = false;
     try {
-        const { rates } = req.body;
-        const currentData = getCommissionData();
-        if (rates && typeof rates === 'object') {
-            for (const key in rates) {
-                const val = parseFloat(rates[key]);
-                if (!isNaN(val)) currentData[key] = Math.min(1, Math.max(0, val));
-            }
-            saveCommissionData(currentData);
+        const rates = req.body.rates || {};
+        const categoryUpdates = [];
+        for (const category of commissionCategories) {
+            const submittedCategory = Object.prototype.hasOwnProperty.call(rates, category)
+                ? category
+                : legacyCategoryAliases[category];
+            if (!submittedCategory || !Object.prototype.hasOwnProperty.call(rates, submittedCategory)) continue;
+            const rate = normalizeTalentShareRate(rates[submittedCategory]);
+            if (rate === null) throw new Error(`「${category}」分潤比例無效`);
+            categoryUpdates.push([category, rate]);
         }
-        res.redirect('/system/commission?saved=1');
+
+        const serviceUpdates = [];
+        for (const [fieldName, rawRate] of Object.entries(req.body)) {
+            const serviceMatch = /^service_rate_(\d+)$/.exec(fieldName);
+            if (!serviceMatch) continue;
+            const serviceId = Number(serviceMatch[1]);
+            const rate = rawRate === '' ? null : normalizeTalentShareRate(rawRate);
+            if (!Number.isInteger(serviceId) || serviceId < 1 || (rawRate !== '' && rate === null)) {
+                throw new Error('服務項目分潤比例無效');
+            }
+            serviceUpdates.push([serviceId, rate]);
+        }
+
+        await runSql('BEGIN IMMEDIATE');
+        transactionStarted = true;
+        for (const [category, rate] of categoryUpdates) {
+            await runSql(`
+                INSERT INTO studio_commissions (studio_id, category, talent_share_rate)
+                VALUES (?, ?, ?)
+                ON CONFLICT(studio_id, category) DO UPDATE SET
+                    talent_share_rate = excluded.talent_share_rate,
+                    updated_at = CURRENT_TIMESTAMP
+            `, [studioId, category, rate]);
+        }
+        for (const [serviceId, rate] of serviceUpdates) {
+            const result = await runSql(
+                'UPDATE studio_services SET talent_share_rate = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND studio_id = ?',
+                [rate, serviceId, studioId]
+            );
+            if (result.changes !== 1) throw new Error('服務項目不存在或不屬於此工作室');
+        }
+        await runSql('COMMIT');
+        transactionStarted = false;
+
+        res.redirect(`/system/commission?studio_id=${studioId}&saved=1`);
     } catch (err) {
-        res.redirect('/system/commission?error=' + encodeURIComponent('更新失敗'));
+        if (transactionStarted) await runSql('ROLLBACK').catch(() => {});
+        res.redirect(`/system/commission?studio_id=${studioId}&error=${encodeURIComponent(err.message || '更新失敗')}`);
     }
+});
+
+router.post('/system/commission/services', ensureAuth, requireStudioCommissionAccess, async (req, res) => {
+    const studioId = req.commissionStudioId;
+    const name = String(req.body.name || '').trim();
+    const requestedCategory = req.body.category;
+    const category = commissionCategories.includes(requestedCategory)
+        ? requestedCategory
+        : (canonicalCategoryAliases[requestedCategory] || '陪玩單');
+    const rawRate = req.body.talent_share_rate;
+    const rate = rawRate === '' || rawRate === undefined ? null : normalizeTalentShareRate(rawRate);
+
+    if (!name || name.length > 100 || (rawRate !== '' && rawRate !== undefined && rate === null)) {
+        return res.redirect(`/system/commission?studio_id=${studioId}&error=${encodeURIComponent('服務名稱或分潤比例無效')}`);
+    }
+
+    db.run(
+        'INSERT INTO studio_services (studio_id, name, category, talent_share_rate) VALUES (?, ?, ?, ?)',
+        [studioId, name, category, rate],
+        (err) => res.redirect(`/system/commission?studio_id=${studioId}&${err ? 'error=' + encodeURIComponent('服務名稱已存在或新增失敗') : 'saved=1'}`)
+    );
 });
 
 // 身分權限管理

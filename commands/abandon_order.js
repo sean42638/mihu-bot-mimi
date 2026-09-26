@@ -2,9 +2,8 @@ const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const db = require('../database');
 const { syncOrdersJsonFromDb, syncUsersJsonFromDb } = require('../utils/dataSync');
 
-function checkDiscordAdminPermission(member, userId) {
-    if (userId === "604610298581876746") return true;
-    return member && member.permissions && member.permissions.has(PermissionFlagsBits.Administrator);
+function checkDiscordAdminPermission(interaction) {
+    return Boolean(interaction.memberPermissions && interaction.memberPermissions.has(PermissionFlagsBits.Administrator));
 }
 
 module.exports = {
@@ -21,7 +20,7 @@ module.exports = {
             }
         } catch (e) {}
 
-        if (!checkDiscordAdminPermission(interaction.member, interaction.user.id)) {
+        if (!checkDiscordAdminPermission(interaction)) {
             return interaction.editReply({ content: '🚫 只有 Discord 客服與管理者身分能使用棄單指令。' });
         }
 

@@ -3,7 +3,7 @@
  */
 const ROLE_DEFINITIONS = {
     'admin': { key: 'admin', name: '店長', badgeClass: 'bg-danger', textClass: 'text-danger', weight: 100 },
-    'owner': { key: 'owner', name: '負責人', badgeClass: 'bg-danger', textClass: 'text-danger', weight: 100 },
+    'owner': { key: 'owner', name: '負責人', badgeClass: 'bg-danger', textClass: 'text-danger', weight: 95 },
     'cfo': { key: 'cfo', name: '財務長', badgeClass: 'bg-danger', textClass: 'text-danger', weight: 90 },
     'aftersales': { key: 'aftersales', name: '售後管理', badgeClass: 'bg-warning text-dark', textClass: 'text-warning', weight: 80 },
     'after_sales': { key: 'after_sales', name: '售後管理', badgeClass: 'bg-warning text-dark', textClass: 'text-warning', weight: 80 },
@@ -34,6 +34,7 @@ function sortByRoleWeight(userArray) {
         if (weightB !== weightA) {
             return weightB - weightA; // 權重高者排前面
         }
+        // 若身分權重相同，按創建時間倒序 (較新註冊排前面)
         return (b.created_at || '').localeCompare(a.created_at || '');
     });
 }

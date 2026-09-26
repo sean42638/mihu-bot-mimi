@@ -105,11 +105,12 @@
         <table class="custom-bot-table">
             <thead>
                 <tr>
-                    <th style="width: 18%;">指令名稱</th>
-                    <th style="width: 22%;">斜線指令 (/KEY)</th>
+                    <th style="width: 15%;">指令名稱</th>
+                    <th style="width: 18%;">斜線指令 (/KEY)</th>
+                    <th style="width: 15%;">使用伺服器</th>
                     <th style="width: 15%;">最低執行身分</th>
-                    <th style="width: 33%;">指令功能描述</th>
-                    <th style="width: 12%; text-align: center;">狀態</th>
+                    <th style="width: 27%;">指令功能描述</th>
+                    <th style="width: 10%; text-align: center;">狀態</th>
                 </tr>
             </thead>
             <tbody>
@@ -121,23 +122,25 @@
 
                         const minRole = cmd.minRole || cmd.min_role || 'member';
                         const desc = cmd.desc || cmd.description || '尚無指令說明';
+                        const statusLabel = cmd.statusLabel || (cmd.status === 'loaded' ? '程式已載入' : '啟用中');
                     %>
                         <tr>
                             <td class="fw-bold text-white" style="font-size: 0.95rem;"><%= cmdName %></td>
                             <td><span class="cmd-tag"><%= rawKey %></span></td>
+                            <td class="small"><%= Array.isArray(cmd.guilds) ? cmd.guilds.join('、') : '未設定' %></td>
                             <td><span class="role-badge"><%= minRole %></span></td>
                             <td class="cmd-desc-text"><%= desc %></td>
                             <td style="text-align: center;">
                                 <span class="status-pill-enabled">
                                     <i class="fa-solid fa-circle-check" style="color: #34d399; font-size: 0.85rem;"></i>
-                                    啟用中
+                                    <%= statusLabel %>
                                 </span>
                             </td>
                         </tr>
                     <% }); %>
                 <% } else { %>
                     <tr>
-                        <td colspan="5" class="text-center text-secondary py-5">目前尚無註冊的指令資料</td>
+                        <td colspan="6" class="text-center text-secondary py-5">目前尚無載入的指令資料</td>
                     </tr>
                 <% } %>
             </tbody>

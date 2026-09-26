@@ -81,13 +81,13 @@ function saveRolesData(data) {
 function getCommissionData() {
     try {
         if (!fs.existsSync(commissionFilePath)) {
-            const defaultRates = { "陪玩單": 0.7, "禮物單": 0.8, "有獎": 0.85, "冠名": 0.9, "獎金": 1.0 };
+            const defaultRates = { "陪玩單": 0.8, "禮物單": 0.85, "有獎單": 0.9, "冠名單": 0.85, "獎金": 1.0 };
             fs.writeFileSync(commissionFilePath, JSON.stringify(defaultRates, null, 2), 'utf8');
             return defaultRates;
         }
         return JSON.parse(fs.readFileSync(commissionFilePath, 'utf8') || '{}');
     } catch (e) {
-        return { "陪玩單": 0.7, "禮物單": 0.8, "有獎": 0.85, "冠名": 0.9, "獎金": 1.0 };
+        return { "陪玩單": 0.8, "禮物單": 0.85, "有獎單": 0.9, "冠名單": 0.85, "獎金": 1.0 };
     }
 }
 

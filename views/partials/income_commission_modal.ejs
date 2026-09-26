@@ -12,7 +12,14 @@
 
             <div class="modal-body py-3">
                 <% 
-                   const validPersonalRate = (typeof personalRate !== 'undefined' && personalRate !== null && personalRate > 0) ? Number(personalRate) : null;
+                   // 🚀 嚴格驗證：只有當 personalRate 存在、不為 null/undefined 且數字 > 0 時，才認定為個人特例！
+                   let validPersonalRate = null;
+                   if (typeof personalRate !== 'undefined' && personalRate !== null && personalRate !== '' && personalRate !== 'null') {
+                       const pNum = Number(personalRate);
+                       if (!isNaN(pNum) && pNum > 0) {
+                           validPersonalRate = pNum > 1 ? (pNum / 100) : pNum;
+                       }
+                   }
                 %>
 
                 <% if (validPersonalRate !== null) { %>
@@ -39,20 +46,27 @@
                                 const defaultNetShareRates = {
                                     '陪玩單': 0.80,
                                     '禮物單': 0.85,
-                                    '有獎':   0.90,
-                                    '冠名':   0.85,
+                                    '有獎單': 0.90,
+                                    '冠名單': 0.85,
                                     '獎金':   1.00
                                 };
 
-                                const categories = ["陪玩單", "禮物單", "有獎", "冠名", "獎金"];
+                                const categories = ["陪玩單", "禮物單", "有獎單", "冠名單", "獎金"];
                                 categories.forEach(cat => {
                                     let studioNetRate = defaultNetShareRates[cat];
                                     
-                                    if (typeof globalCommissions !== 'undefined' && globalCommissions && globalCommissions[cat] !== undefined) {
-                                        const rawCut = Number(globalCommissions[cat]);
-                                        studioNetRate = rawCut < 1 ? (1 - rawCut) : rawCut;
+                                    // globalCommissions 一律為陪陪實拿比例。
+                                    const legacyCat = cat === '有獎單' ? '有獎' : (cat === '冠名單' ? '冠名' : cat);
+                                    const categoryRate = globalCommissions && (globalCommissions[cat] ?? globalCommissions[legacyCat]);
+                                    if (typeof globalCommissions !== 'undefined' && globalCommissions && categoryRate !== undefined) {
+                                        const rawVal = Number(categoryRate);
+                                        if (!isNaN(rawVal)) {
+                                            const normalizedRate = rawVal > 1 && rawVal <= 100 ? rawVal / 100 : rawVal;
+                                            if (normalizedRate >= 0 && normalizedRate <= 1) studioNetRate = normalizedRate;
+                                        }
                                     }
 
+                                    // 若 validPersonalRate 為 null，實際成數完全跟隨工作室設定
                                     const actualRate = (validPersonalRate !== null) ? validPersonalRate : studioNetRate;
                             %>
                                 <tr>

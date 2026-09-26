@@ -75,7 +75,8 @@ module.exports = {
             bId: bossUser.id,
             tal: talentText,
             rat: rating,
-            anon: isAnonymous
+            anon: isAnonymous,
+            commandInitiatorId: interaction.user.id
         });
 
         // 💬 構建彈窗 Modal 供管理員填寫留言內容

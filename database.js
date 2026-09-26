@@ -5,7 +5,70 @@ const fs = require('fs');
 const dbPath = path.join(__dirname, 'database.sqlite');
 const db = new sqlite3.Database(dbPath);
 
+function ensureColumn(tableName, columnDefinition, callback = () => {}) {
+    const columnName = columnDefinition.trim().split(/\s+/)[0];
+    db.all(`PRAGMA table_info(${tableName})`, (err, columns) => {
+        if (err) return callback(err);
+        if ((columns || []).some(column => column.name === columnName)) return callback(null);
+        db.run(`ALTER TABLE ${tableName} ADD COLUMN ${columnDefinition}`, callback);
+    });
+}
+
+function removeLegacyTalentRateDefault(callback = () => {}) {
+    db.all('PRAGMA table_info(talents)', (infoErr, columns) => {
+        if (infoErr) return callback(infoErr);
+        const rateColumn = (columns || []).find(column => column.name === 'commission_rate');
+        const defaultValue = String(rateColumn && rateColumn.dflt_value || '').replace(/^['"]|['"]$/g, '');
+        if (defaultValue !== '0.7' && defaultValue !== '0.70') return callback(null);
+
+        const run = (sql) => new Promise((resolve, reject) => {
+            db.run(sql, (err) => err ? reject(err) : resolve());
+        });
+
+        (async () => {
+            try {
+                await run('BEGIN IMMEDIATE');
+                await run('DROP TABLE IF EXISTS talents_commission_migration');
+                await run(`
+                    CREATE TABLE talents_commission_migration (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id TEXT UNIQUE NOT NULL,
+                        nickname TEXT,
+                        staff_channel_id TEXT,
+                        commission_rate REAL DEFAULT NULL,
+                        status TEXT DEFAULT 'idle',
+                        skill_permissions TEXT DEFAULT '[]',
+                        FOREIGN KEY (user_id) REFERENCES users (id)
+                    )
+                `);
+                await run(`
+                    INSERT INTO talents_commission_migration (id, user_id, nickname, staff_channel_id, commission_rate, status, skill_permissions)
+                    SELECT id, user_id, nickname, staff_channel_id, commission_rate, status, skill_permissions FROM talents
+                `);
+                await run('DROP TABLE talents');
+                await run('ALTER TABLE talents_commission_migration RENAME TO talents');
+                await run('COMMIT');
+                callback(null);
+            } catch (err) {
+                await run('ROLLBACK').catch(() => {});
+                callback(err);
+            }
+        })();
+    });
+}
+
 db.serialize(() => {
+    db.run(`
+        CREATE TABLE IF NOT EXISTS studios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            owner_user_id TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `, () => {
+        db.run('INSERT OR IGNORE INTO studios (id, name, owner_user_id) VALUES (1, ?, ?)', ['預設工作室', '604610298581876746']);
+    });
+
     // 1. 使用者資料表 (自動與 data/users.json 雙向同步)
     db.run(`
         CREATE TABLE IF NOT EXISTS users (
@@ -29,9 +92,13 @@ db.serialize(() => {
             bank_code TEXT,
             bank_branch TEXT,
             bank_account TEXT,
+            studio_id INTEGER DEFAULT 1,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     `, () => {
+        ensureColumn('users', 'studio_id INTEGER DEFAULT 1', () => {
+            db.run('UPDATE users SET studio_id = 1 WHERE studio_id IS NULL');
+        });
         const usersJsonPath = path.join(__dirname, 'data', 'users.json');
         if (fs.existsSync(usersJsonPath)) {
             try {
@@ -116,12 +183,17 @@ db.serialize(() => {
             user_id TEXT UNIQUE NOT NULL,
             nickname TEXT,
             staff_channel_id TEXT,
-            commission_rate REAL DEFAULT 0.7,
+            commission_rate REAL DEFAULT NULL,
             status TEXT DEFAULT 'idle',
             skill_permissions TEXT DEFAULT '[]',
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     `, () => {
+        removeLegacyTalentRateDefault((migrationErr) => {
+            if (migrationErr) {
+                console.error('❌ 移除 talents 0.7 預設值失敗:', migrationErr.message);
+                return;
+            }
         const talentsJsonPath = path.join(__dirname, 'data', 'talents.json');
         if (fs.existsSync(talentsJsonPath)) {
             try {
@@ -145,7 +217,7 @@ db.serialize(() => {
                             t.user_id,
                             t.nickname || '',
                             t.staff_channel_id || null,
-                            t.commission_rate || 0.7,
+                            t.commission_rate ?? null,
                             t.status || 'idle',
                             typeof t.skill_permissions === 'string' ? t.skill_permissions : JSON.stringify(t.skill_permissions || [])
                         );
@@ -158,7 +230,61 @@ db.serialize(() => {
                 console.error('❌ 同步 talents.json 至資料庫失敗:', e);
             }
         }
+        });
     });
+
+    db.run(`
+        CREATE TABLE IF NOT EXISTS commission_settings (
+            category TEXT PRIMARY KEY,
+            rate REAL NOT NULL,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
+    db.run(`
+        CREATE TABLE IF NOT EXISTS studio_commissions (
+            studio_id INTEGER NOT NULL,
+            category TEXT NOT NULL,
+            talent_share_rate REAL NOT NULL CHECK (talent_share_rate >= 0 AND talent_share_rate <= 1),
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (studio_id, category),
+            FOREIGN KEY (studio_id) REFERENCES studios(id) ON DELETE CASCADE
+        )
+    `, () => {
+        const defaults = { '陪玩單': 0.80, '禮物單': 0.85, '有獎單': 0.90, '冠名單': 0.85, '獎金': 1.00 };
+        const commissionJsonPath = path.join(__dirname, 'data', 'commission.json');
+        try {
+            if (fs.existsSync(commissionJsonPath)) {
+                const savedRates = JSON.parse(fs.readFileSync(commissionJsonPath, 'utf8') || '{}');
+                Object.entries(savedRates).forEach(([category, rate]) => {
+                    const canonicalCategory = category === '有獎' ? '有獎單' : (category === '冠名' ? '冠名單' : category);
+                    defaults[canonicalCategory] = rate;
+                });
+            }
+        } catch (e) {}
+
+        const stmt = db.prepare('INSERT OR IGNORE INTO studio_commissions (studio_id, category, talent_share_rate) VALUES (1, ?, ?)');
+        Object.entries(defaults).forEach(([category, rawRate]) => {
+            const rate = Number(rawRate);
+            if (Number.isFinite(rate) && rate >= 0 && rate <= 1) stmt.run(category, rate);
+        });
+        stmt.finalize();
+    });
+
+    db.run(`
+        CREATE TABLE IF NOT EXISTS studio_services (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            studio_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            category TEXT NOT NULL DEFAULT '陪玩單',
+            talent_share_rate REAL CHECK (talent_share_rate IS NULL OR (talent_share_rate >= 0 AND talent_share_rate <= 1)),
+            is_active INTEGER NOT NULL DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (studio_id, name),
+            FOREIGN KEY (studio_id) REFERENCES studios(id) ON DELETE CASCADE
+        )
+    `);
 
     // 3. 訂單紀錄資料表 (建表宣告 cs_id 與 cs_name)
     db.run(`
@@ -181,22 +307,97 @@ db.serialize(() => {
             note TEXT,
             talent_message TEXT,
             talent_id TEXT,
+            staff_id TEXT,
+            player_id TEXT,
             channel_id TEXT,
             message_id TEXT,
             total_amount REAL NOT NULL,
             status TEXT DEFAULT 'pending',
             start_time DATETIME,
             end_time DATETIME,
+            studio_id INTEGER DEFAULT 1,
+            service_id INTEGER,
+            commission_rate_snapshot REAL,
+            platform_commission REAL,
+            talent_earning REAL,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (talent_id) REFERENCES users (id)
         )
     `, () => {
         db.run("ALTER TABLE orders ADD COLUMN cs_id TEXT", () => {
             db.run("ALTER TABLE orders ADD COLUMN cs_name TEXT", () => {
-                syncOrdersJson();
+                ensureColumn('orders', 'studio_id INTEGER DEFAULT 1', () => {
+                    ensureColumn('orders', 'service_id INTEGER', () => {
+                        ensureColumn('orders', 'staff_id TEXT', () => {
+                            ensureColumn('orders', 'player_id TEXT', () => {
+                                ensureColumn('orders', 'commission_rate_snapshot REAL', () => {
+                                    ensureColumn('orders', 'platform_commission REAL', () => {
+                                        ensureColumn('orders', 'talent_earning REAL', () => {
+                                            db.run('UPDATE orders SET studio_id = 1 WHERE studio_id IS NULL', () => {
+                                                db.run(`
+                                                    INSERT OR IGNORE INTO studio_services (studio_id, name, category)
+                                                    SELECT 1, TRIM(game), COALESCE(NULLIF(category, ''), '陪玩單')
+                                                    FROM orders
+                                                    WHERE game IS NOT NULL AND TRIM(game) <> ''
+                                                `, () => {
+                                                    db.run(`
+                                                        UPDATE orders
+                                                        SET service_id = (
+                                                            SELECT s.id FROM studio_services s
+                                                            WHERE s.studio_id = orders.studio_id AND s.name = TRIM(orders.game)
+                                                            LIMIT 1
+                                                        )
+                                                        WHERE service_id IS NULL
+                                                    `, () => backfillLegacyOrderSnapshots(syncOrdersJson));
+                                                });
+                                            });
+                                        });
+                                    });
+                                });
+                            });
+                        });
+                    });
+                });
             });
         });
     });
+
+    function backfillLegacyOrderSnapshots(callback = () => {}) {
+        const shareRate = `COALESCE(
+            (SELECT s.talent_share_rate FROM studio_services s WHERE s.id = o.service_id AND s.studio_id = o.studio_id AND s.talent_share_rate IS NOT NULL),
+            (SELECT sc.talent_share_rate FROM studio_commissions sc WHERE sc.studio_id = o.studio_id AND sc.category = o.category),
+            (SELECT CASE WHEN cs.rate BETWEEN 0 AND 1 THEN 1 - cs.rate WHEN cs.rate > 1 AND cs.rate <= 100 THEN 1 - cs.rate / 100 END FROM commission_settings cs WHERE cs.category = o.category),
+            CASE o.category
+                WHEN '陪玩單' THEN 0.80
+                WHEN '禮物單' THEN 0.85
+                WHEN '有獎' THEN 0.90
+                WHEN '有獎單' THEN 0.90
+                WHEN '冠名' THEN 0.85
+                WHEN '冠名單' THEN 0.85
+                WHEN '獎金' THEN 1.00
+                WHEN '活動單' THEN 0.90
+                ELSE 0.80
+            END
+        )`;
+        const originalAmount = 'COALESCE(NULLIF(o.unit_price, 0) * COALESCE(o.duration, 1), o.total_amount + COALESCE(o.discount, 0), o.total_amount)';
+
+        db.run(`UPDATE orders AS o SET commission_rate_snapshot = ${shareRate} WHERE o.commission_rate_snapshot IS NULL`, (rateErr) => {
+            if (rateErr) {
+                console.error('❌ 舊訂單比例快照回填失敗:', rateErr.message);
+                return callback(rateErr);
+            }
+            db.run(`UPDATE orders AS o SET talent_earning = ROUND(${originalAmount} * o.commission_rate_snapshot) WHERE o.talent_earning IS NULL AND o.commission_rate_snapshot IS NOT NULL`, (earningErr) => {
+                if (earningErr) {
+                    console.error('❌ 舊訂單收益快照回填失敗:', earningErr.message);
+                    return callback(earningErr);
+                }
+                db.run('UPDATE orders SET platform_commission = MAX(0, total_amount - talent_earning) WHERE platform_commission IS NULL AND talent_earning IS NOT NULL', (platformErr) => {
+                    if (platformErr) console.error('❌ 舊訂單工作室收益快照回填失敗:', platformErr.message);
+                    callback(platformErr);
+                });
+            });
+        });
+    }
 
     function syncOrdersJson() {
         const ordersJsonPath = path.join(__dirname, 'data', 'orders.json');
@@ -248,7 +449,26 @@ db.serialize(() => {
                         );
                     });
                     stmt.finalize(() => {
-                        console.log('✅ 成功從 data/orders.json 同步訂單資料至資料庫！');
+                        db.run(`
+                            INSERT OR IGNORE INTO studio_services (studio_id, name, category)
+                            SELECT 1, TRIM(game), COALESCE(NULLIF(category, ''), '陪玩單')
+                            FROM orders
+                            WHERE game IS NOT NULL AND TRIM(game) <> ''
+                        `, () => {
+                            db.run(`
+                                UPDATE orders
+                                SET service_id = (
+                                    SELECT s.id FROM studio_services s
+                                    WHERE s.studio_id = orders.studio_id AND s.name = TRIM(orders.game)
+                                    LIMIT 1
+                                )
+                                WHERE service_id IS NULL
+                            `, () => {
+                                backfillLegacyOrderSnapshots(() => {
+                                    console.log('✅ 成功從 data/orders.json 同步訂單資料至資料庫！');
+                                });
+                            });
+                        });
                     });
                 }
             } catch (e) {

@@ -24,7 +24,7 @@ module.exports = {
                     { name: '禮物單', value: '禮物單' },
                     { name: '有獎單', value: '有獎單' },
                     { name: '冠名單', value: '冠名單' },
-                    { name: '活動單', value: '活動單' }
+                    { name: '獎金', value: '獎金' }
                 ))
         // 2. 老闆ID (@人)
         .addUserOption(option =>
@@ -72,7 +72,7 @@ module.exports = {
 
     async execute(interaction) {
         // 二重權限檢查 (僅限管理員與指定超級 ID)
-        const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) || interaction.user.id === "604610298581876746";
+        const isAdmin = Boolean(interaction.memberPermissions?.has(PermissionFlagsBits.Administrator));
         if (!isAdmin) {
             return interaction.reply({ content: '🚫 只有 Discord 管理員權限能使用此指令！', flags: 64 });
         }
@@ -96,7 +96,8 @@ module.exports = {
             dur: duration,
             unit: unit,
             pri: price,
-            disc: discount
+            disc: discount,
+            commandInitiatorId: interaction.user.id
         });
 
         // 💬 構建彈窗 Modal (項目必填，內容、附加、備註選填)

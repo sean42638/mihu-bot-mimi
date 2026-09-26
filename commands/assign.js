@@ -98,7 +98,8 @@ module.exports = {
             dur: duration,
             unit: unit,
             pri: price,
-            disc: discount
+            disc: discount,
+            commandInitiatorId: interaction.user.id
         });
 
         // 💬 構建彈窗 Modal 填寫詳細內容

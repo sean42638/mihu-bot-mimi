@@ -4,6 +4,7 @@ const { syncOrdersJsonFromDb } = require('../utils/dataSync');
 const { adjustUserWallet } = require('../utils/walletHelper');
 const { checkChannelPermissions } = require('../utils/permissionHelper');
 const { createMihuEmbed, BRAND_COLORS } = require('../utils/embedBuilder');
+const { calculateCommissionByCategory, getStudioIdForUser, getPersonalTalentShareRate, resolveServiceId } = require('../utils/commissionHelper');
 
 async function handleAssignModal(interaction) {
     if (!interaction.deferred && !interaction.replied) {
@@ -15,6 +16,9 @@ async function handleAssignModal(interaction) {
 
     if (!sessionData) {
         return interaction.editReply({ content: '❌ 指定陪玩 Session 已過期，請重新執行 `/指定陪玩` 指令。' });
+    }
+    if (sessionData.commandInitiatorId && sessionData.commandInitiatorId !== interaction.user.id) {
+        return interaction.editReply({ content: '🚫 此指定單 Modal 不屬於目前的指令發起者。' });
     }
 
     try {
@@ -89,6 +93,17 @@ async function handleAssignModal(interaction) {
         const contentTier = interaction.fields.getTextInputValue('dispatch_content');
         const extra = interaction.fields.getTextInputValue('dispatch_extra') || '無';
         const note = interaction.fields.getTextInputValue('dispatch_note') || '無';
+        const category = sessionData.cat || '陪玩單';
+        const studioId = await getStudioIdForUser(csUser.id);
+        const talentStudioId = await getStudioIdForUser(talentId);
+        if (studioId !== talentStudioId) {
+            return interaction.editReply({ content: '🚫 指定失敗：陪玩師與建立者不屬於同一工作室。' });
+        }
+        const serviceId = await resolveServiceId(studioId, game, category);
+        const personalRate = await getPersonalTalentShareRate(talentId);
+        const { talentShareRate, platformCommission, talentNetEarning } = await calculateCommissionByCategory(
+            category, finalPrice, totalPrice, personalRate, { studioId, serviceId }
+        );
 
         const unit = sessionData.unit || '小時';
         const unitPrice = duration > 0 ? (totalPrice / duration) : totalPrice;
@@ -100,14 +115,15 @@ async function handleAssignModal(interaction) {
         const csUser = interaction.user;
         const csName = interaction.member?.nickname || csUser.globalName || csUser.username;
 
-        // 5. 🚀 修正 SQL：對齊精準 17 個欄位與 17 個 ? 變數值
+        // 5. 儲存工作室、服務與當下佣金快照
         await new Promise((resolve, reject) => {
             const insertSql = `
                 INSERT INTO orders (
                     order_no, boss_id, talent_id, cs_id, cs_name, category, 
                     game, content_tier, duration, unit, unit_price,
-                    total_amount, discount, extra, note, status, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'accepted', DATETIME('now', 'localtime'))
+                    total_amount, discount, extra, note, status, studio_id, service_id,
+                    commission_rate_snapshot, platform_commission, talent_earning, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'accepted', ?, ?, ?, ?, ?, DATETIME('now', 'localtime'))
             `;
             db.run(insertSql, [
                 orderNo,
@@ -115,7 +131,7 @@ async function handleAssignModal(interaction) {
                 talentId,
                 csUser.id,
                 csName,
-                sessionData.cat || '陪玩單',
+                category,
                 game,
                 contentTier,
                 duration,
@@ -124,7 +140,12 @@ async function handleAssignModal(interaction) {
                 finalPrice,
                 sessionData.disc || 0,
                 extra,
-                note
+                note,
+                studioId,
+                serviceId,
+                talentShareRate,
+                platformCommission,
+                talentNetEarning
             ], function(err) {
                 if (err) reject(err);
                 else resolve(this.lastID);

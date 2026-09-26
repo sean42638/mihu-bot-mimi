@@ -24,7 +24,7 @@ module.exports = {
 
         db.get('SELECT * FROM talents WHERE user_id = ?', [uId], (err, talent) => {
             if (!talent) {
-                db.run('INSERT INTO talents (user_id, nickname, staff_channel_id, status) VALUES (?, ?, ?, "idle")',
+                db.run('INSERT INTO talents (user_id, nickname, staff_channel_id, commission_rate, status) VALUES (?, ?, ?, NULL, "idle")',
                     [uId, interaction.user.globalName || interaction.user.username, channelId], (insErr) => {
                         if (insErr) return interaction.editReply({ content: '❌ 綁定頻道失敗。' });
                         syncTalentsJsonFromDb();

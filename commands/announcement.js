@@ -1,9 +1,8 @@
 const { SlashCommandBuilder, MessageFlags, PermissionFlagsBits } = require('discord.js');
 const db = require('../database');
 
-function checkDiscordAdminPermission(member, userId) {
-    if (userId === "604610298581876746") return true;
-    return member && member.permissions && member.permissions.has(PermissionFlagsBits.Administrator);
+function checkDiscordAdminPermission(interaction) {
+    return Boolean(interaction.memberPermissions && interaction.memberPermissions.has(PermissionFlagsBits.Administrator));
 }
 
 module.exports = {
@@ -15,7 +14,7 @@ module.exports = {
         .addStringOption(option => option.setName('content').setNameLocalizations({ 'zh-TW': '內容' }).setDescription('公告詳細內容').setRequired(true)),
     async execute(interaction) {
         try { await interaction.deferReply({ flags: MessageFlags.Ephemeral }); } catch (e) { return; }
-        if (!checkDiscordAdminPermission(interaction.member, interaction.user.id)) {
+        if (!checkDiscordAdminPermission(interaction)) {
             return interaction.editReply({ content: '🚫 您沒有發布後台公告的權限。' });
         }
         const itemTag = interaction.options.getString('item');

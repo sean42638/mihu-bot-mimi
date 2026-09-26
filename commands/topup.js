@@ -40,7 +40,7 @@ module.exports = {
 
         // 🚀 建立 Modal 彈窗 (將 targetUser.id 帶在 customId 中傳遞)
         const modal = new ModalBuilder()
-            .setCustomId(`topup_modal_${targetUser.id}`)
+            .setCustomId(`topup_modal_${interaction.user.id}_${targetUser.id}`)
             .setTitle(`🪙 會員充值 - ${targetUser.username}`);
 
         // 輸入框 1：實充金額

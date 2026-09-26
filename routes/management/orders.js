@@ -5,6 +5,21 @@ const { syncOrdersJsonFromDb, syncUsersJsonFromDb } = require('../../utils/dataS
 const { requireAuth: ensureAuth, requirePerm: checkPerm } = require('../../middleware/auth');
 const { calculateDiscount } = require('../../utils/discountHelper');
 const { dbRun } = require('../../utils/dbHelper');
+const {
+    calculateCommissionByCategory,
+    getStudioIdForUser,
+    getPersonalTalentShareRate,
+    normalizeTalentShareRate,
+    resolveServiceId
+} = require('../../utils/commissionHelper');
+
+function isPlatformAdmin(user) {
+    return user && (user.id === '604610298581876746' || user.role === 'admin');
+}
+
+function canManageOrderStudio(user, studioId) {
+    return isPlatformAdmin(user) || (Number(user && user.studio_id) || 1) === (Number(studioId) || 1);
+}
 
 // =========================================================================
 // 1. 訂單管理主頁面 (對應完整網址 /management/orders)
@@ -32,11 +47,16 @@ router.get('/', ensureAuth, checkPerm('manage_orders'), (req, res) => {
             LEFT JOIN users b ON o.boss_id = b.id
             LEFT JOIN users t ON (o.talent_id = t.id OR o.staff_id = t.id)
             LEFT JOIN users cs ON o.cs_id = cs.id
+            WHERE o.studio_id = ?
             ORDER BY o.created_at DESC
         `;
 
-        db.all(orderSql, (oErr, orders) => {
-            db.all("SELECT id, username, global_name, custom_nickname FROM users WHERE role IN ('staff', 'manager', 'admin', 'cs', 'cfo', 'aftersales', 'talent')", (tErr, talents) => {
+        const allStudios = isPlatformAdmin(req.user);
+        const scopedOrderSql = allStudios ? orderSql.replace('WHERE o.studio_id = ?', '') : orderSql;
+        const staffSql = `SELECT id, username, global_name, custom_nickname FROM users WHERE role IN ('staff', 'manager', 'admin', 'cs', 'cfo', 'aftersales', 'talent') ${allStudios ? '' : 'AND studio_id = ?'}`;
+
+        db.all(scopedOrderSql, allStudios ? [] : [Number(req.user.studio_id) || 1], (oErr, orders) => {
+            db.all(staffSql, allStudios ? [] : [Number(req.user.studio_id) || 1], (tErr, talents) => {
                 res.render('orders', {
                     user: currentUser || req.user,
                     currentUser: currentUser || req.user,
@@ -57,13 +77,17 @@ router.get('/', ensureAuth, checkPerm('manage_orders'), (req, res) => {
 // =========================================================================
 router.post('/update/:id', ensureAuth, checkPerm('manage_orders'), async (req, res) => {
     const orderId = req.params.id;
-    const { category, game, content_tier, duration, unit, original_price, discount, total_amount, talent_id, status, talent_message, note, is_delete } = req.body;
+    const { category, game, content_tier, duration, unit, unit_price, original_price, discount, total_amount, talent_id, status, talent_message, note, is_delete } = req.body;
 
     try {
         if (is_delete === '1') {
             const order = await new Promise((resolve) => {
                 db.get('SELECT * FROM orders WHERE id = ? OR order_no = ?', [orderId, orderId], (err, row) => resolve(row || null));
             });
+
+            if (order && !canManageOrderStudio(req.user, order.studio_id)) {
+                return res.status(403).send('無權修改其他工作室訂單');
+            }
 
             if (order && Number(order.total_amount || 0) > 0 && order.boss_id) {
                 const refundAmount = Number(order.total_amount);
@@ -84,7 +108,16 @@ router.post('/update/:id', ensureAuth, checkPerm('manage_orders'), async (req, r
             return res.redirect('/management/orders?successMsg=' + encodeURIComponent('訂單已退款並成功刪除！'));
         }
 
-        const rawPrice = original_price ? parseFloat(original_price) : (total_amount ? parseFloat(total_amount) : 0);
+        const existingOrder = await new Promise((resolve) => {
+            db.get('SELECT * FROM orders WHERE id = ? OR order_no = ?', [orderId, orderId], (err, row) => resolve(row || null));
+        });
+        if (!existingOrder) return res.redirect('/management/orders?error=' + encodeURIComponent('找不到目標訂單'));
+        const studioId = Number(existingOrder.studio_id) || 1;
+        if (!canManageOrderStudio(req.user, studioId)) return res.status(403).send('無權修改其他工作室訂單');
+
+        const durVal = duration ? parseFloat(duration) : 1;
+        const uPriceVal = unit_price ? parseFloat(unit_price) : 0;
+        const rawPrice = original_price ? parseFloat(original_price) : (uPriceVal > 0 ? durVal * uPriceVal : (total_amount ? parseFloat(total_amount) : 0));
         const rawDiscount = discount ? parseFloat(discount) : 0;
         
         let finalAmount = rawPrice;
@@ -96,19 +129,42 @@ router.post('/update/:id', ensureAuth, checkPerm('manage_orders'), async (req, r
             discountAmount = calcRes.discountAmount;
         }
 
+        // 🚀 計算未打折前的原價金額 (以原價算陪陪分潤)
+        let origPriceForCommission = (uPriceVal > 0) ? (durVal * uPriceVal) : (finalAmount + discountAmount);
+        if (origPriceForCommission <= 0) origPriceForCommission = finalAmount;
+
+        // 🚀 查詢陪陪個人專屬特例抽傭
+        const targetTalentId = talent_id || null;
+        if (targetTalentId && await getStudioIdForUser(targetTalentId) !== studioId) {
+            throw new Error('陪玩師不屬於此訂單的工作室');
+        }
+        const serviceId = await resolveServiceId(studioId, game, category || '陪玩單');
+        const personalRate = targetTalentId ? await getPersonalTalentShareRate(targetTalentId) : null;
+
+        // 🚀 呼叫獨立抽傭核心 Helper (以原價算陪陪實得)
+        const { talentShareRate, platformCommission, talentNetEarning } = await calculateCommissionByCategory(
+            category || '陪玩單',
+            finalAmount,
+            origPriceForCommission,
+            personalRate,
+            { studioId, serviceId }
+        );
+
         const updateSql = `
             UPDATE orders SET 
                 category = ?, game = ?, content_tier = ?, duration = ?, 
-                unit = ?, discount = ?, total_amount = ?, talent_id = ?, staff_id = ?, status = ?, 
-                talent_message = ?, note = ?
+                unit = ?, unit_price = ?, discount = ?, total_amount = ?, talent_id = ?, staff_id = ?,
+                studio_id = ?, service_id = ?, status = ?, commission_rate_snapshot = ?,
+                platform_commission = ?, talent_earning = ?, talent_message = ?, note = ?
             WHERE id = ? OR order_no = ?
         `;
 
         await dbRun(updateSql, [
-            category, game, content_tier || '', duration ? parseFloat(duration) : 1,
-            unit || '小時', discountAmount, finalAmount,
-            talent_id || null, talent_id || null, status || 'pending',
-            talent_message || '', note || '',
+            category, game, content_tier || '', durVal,
+            unit || '小時', uPriceVal, discountAmount, finalAmount,
+            targetTalentId, targetTalentId, studioId, serviceId, status || 'pending',
+            talentShareRate,
+            platformCommission, talentNetEarning, talent_message || '', note || '',
             orderId, orderId
         ]);
 
@@ -174,6 +230,7 @@ router.post('/cancel/:id', ensureAuth, checkPerm('manage_orders'), (req, res) =>
         if (err || !order) {
             return res.redirect('/management/orders?error=' + encodeURIComponent('找不到目標訂單'));
         }
+        if (!canManageOrderStudio(req.user, order.studio_id)) return res.status(403).send('無權取消其他工作室訂單');
 
         const refundAmount = Number(order.total_amount || 0);
         const bossId = order.boss_id;
@@ -224,17 +281,68 @@ router.post('/cancel/:id', ensureAuth, checkPerm('manage_orders'), (req, res) =>
 // =========================================================================
 // 5. 標記完成 API (對應 /management/orders/complete/:id)
 // =========================================================================
-router.post('/complete/:id', ensureAuth, checkPerm('manage_orders'), (req, res) => {
+router.post('/complete/:id', ensureAuth, checkPerm('manage_orders'), async (req, res) => {
     const orderId = req.params.id;
 
-    db.run("UPDATE orders SET status = 'completed' WHERE id = ? OR order_no = ?", [orderId, orderId], function (err) {
-        if (err) {
-            return res.redirect('/management/orders?error=' + encodeURIComponent('標記完成失敗'));
+    db.get('SELECT * FROM orders WHERE id = ? OR order_no = ?', [orderId, orderId], async (err, order) => {
+        if (err || !order) {
+            return res.redirect('/management/orders?error=' + encodeURIComponent('找不到目標訂單'));
         }
-        try {
-            syncOrdersJsonFromDb();
-        } catch (e) {}
-        res.redirect('/management/orders?successMsg=' + encodeURIComponent('訂單已成功標記為完成！'));
+            if (!canManageOrderStudio(req.user, order.studio_id)) return res.status(403).send('無權結算其他工作室訂單');
+
+        const dur = Number(order.duration || 1);
+        const uPrice = Number(order.unit_price || 0);
+        const finalAmt = Number(order.total_amount || 0);
+        const disc = Number(order.discount || 0);
+        const studioId = Number(order.studio_id) || 1;
+
+        let origPriceForCommission = (uPrice > 0) ? (dur * uPrice) : (finalAmt + disc);
+        if (origPriceForCommission <= 0) origPriceForCommission = finalAmt;
+
+        const targetTalentId = order.talent_id || order.staff_id;
+        let snapshotRate = normalizeTalentShareRate(order.commission_rate_snapshot);
+        let platformCommission = Number(order.platform_commission);
+        let talentNetEarning = Number(order.talent_earning);
+
+        if (snapshotRate === null) {
+            const serviceId = order.service_id || await resolveServiceId(studioId, order.game, order.category || '陪玩單');
+            const personalRate = targetTalentId ? await getPersonalTalentShareRate(targetTalentId) : null;
+            const commission = await calculateCommissionByCategory(
+                order.category || '陪玩單', finalAmt, origPriceForCommission, personalRate, { studioId, serviceId }
+            );
+            snapshotRate = commission.talentShareRate;
+            platformCommission = commission.platformCommission;
+            talentNetEarning = commission.talentNetEarning;
+        } else {
+            talentNetEarning = Number.isFinite(talentNetEarning)
+                ? talentNetEarning
+                : Math.round(origPriceForCommission * snapshotRate);
+            platformCommission = Number.isFinite(platformCommission)
+                ? platformCommission
+                : Math.max(0, finalAmt - talentNetEarning);
+        }
+
+        const completeSql = `
+            UPDATE orders SET
+                status = 'completed',
+                commission_rate_snapshot = ?,
+                platform_commission = ?,
+                talent_earning = ?,
+                end_time = DATETIME('now', 'localtime')
+            WHERE id = ? OR order_no = ?
+        `;
+
+        db.run(completeSql, [snapshotRate, platformCommission, talentNetEarning, orderId, orderId], function (uErr) {
+            if (uErr) {
+                console.error('❌ 標記完成失敗:', uErr);
+                return res.redirect('/management/orders?error=' + encodeURIComponent('標記完成失敗'));
+            }
+            try {
+                syncOrdersJsonFromDb();
+                if (typeof syncUsersJsonFromDb === 'function') syncUsersJsonFromDb();
+            } catch (e) {}
+            res.redirect('/management/orders?successMsg=' + encodeURIComponent('訂單已成功標記為完成並完成原價分潤計算！'));
+        });
     });
 });
 

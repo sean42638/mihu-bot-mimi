@@ -3,9 +3,8 @@ const db = require('../database');
 const fs = require('fs');
 const path = require('path');
 
-function checkDiscordAdminPermission(member, userId) {
-    if (userId === "604610298581876746") return true;
-    return member && member.permissions && member.permissions.has(PermissionFlagsBits.Administrator);
+function checkDiscordAdminPermission(interaction) {
+    return Boolean(interaction.memberPermissions && interaction.memberPermissions.has(PermissionFlagsBits.Administrator));
 }
 
 function syncTalentsJsonFromDb() {
@@ -25,7 +24,7 @@ module.exports = {
         .addUserOption(option => option.setName('target').setNameLocalizations({ 'zh-TW': '目標用戶' }).setDescription('要綁定專屬頻道的陪玩師成員').setRequired(true)),
     async execute(interaction) {
         try { await interaction.deferReply({ flags: MessageFlags.Ephemeral }); } catch (e) { return; }
-        if (!checkDiscordAdminPermission(interaction.member, interaction.user.id)) {
+        if (!checkDiscordAdminPermission(interaction)) {
             return interaction.editReply({ content: '🚫 您沒有執行代為綁定指令的權限。' });
         }
         const targetUser = interaction.options.getUser('target');
@@ -33,7 +32,7 @@ module.exports = {
 
         db.get('SELECT * FROM talents WHERE user_id = ?', [targetUser.id], (err, talent) => {
             if (!talent) {
-                db.run('INSERT INTO talents (user_id, nickname, staff_channel_id, status) VALUES (?, ?, ?, "idle")',
+                db.run('INSERT INTO talents (user_id, nickname, staff_channel_id, commission_rate, status) VALUES (?, ?, ?, NULL, "idle")',
                     [targetUser.id, targetUser.globalName || targetUser.username, channelId], (insErr) => {
                         if (insErr) return interaction.editReply({ content: '❌ 代為綁定失敗。' });
                         syncTalentsJsonFromDb();

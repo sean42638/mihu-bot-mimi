@@ -56,17 +56,14 @@
                         <i class="fa-solid fa-robot text-info"></i>
                         <span>Discord 機器人設定</span>
                     </div>
-                    <p class="text-secondary small mb-0">管理 Discord 斜線指令權限門檻、開關狀態與核心播報參數</p>
+                    <p class="text-secondary small mb-0">顯示機器人目前載入的 Discord 指令；同步會重新註冊現有指令</p>
                 </div>
 
-                <div class="d-flex align-items-center gap-2">
-                    <button class="btn btn-outline-info rounded-pill px-3 py-2 small fw-semibold" onclick="location.reload()">
-                        <i class="fa-solid fa-rotate me-1"></i>即時同步斜線指令
+                <form action="/system/bot-settings/sync" method="POST">
+                    <button type="submit" class="btn btn-outline-info rounded-pill px-3 py-2 small fw-semibold">
+                        <i class="fa-solid fa-rotate me-1"></i>同步至 Discord
                     </button>
-                    <button class="btn btn-primary rounded-pill px-3 py-2 small fw-semibold" style="background: linear-gradient(135deg, #a855f7, #ec4899); border: none;">
-                        <i class="fa-solid fa-plus me-1"></i>新增指令
-                    </button>
-                </div>
+                </form>
             </div>
 
             <%
@@ -83,8 +80,28 @@
                     { name: '熱重載指令模組', command: '/reload', minRole: 'manager', desc: '即時重新載入機器人斜線指令與內部參數設定，無需重啟伺服器' }
                 ];
 
-                const commandList = (typeof commands !== 'undefined' && commands && commands.length > 0) ? commands : defaultCommands;
+                const commandList = Array.isArray(commands) ? commands : [];
             %>
+
+            <% if (syncResult === 'success') { %>
+                <div class="alert alert-success py-2 px-3 small mb-3">Discord 斜線指令已同步。</div>
+            <% } else if (syncResult === 'partial') { %>
+                <div class="alert alert-warning py-2 px-3 small mb-3">
+                    <div class="fw-bold">部分 Discord 伺服器同步失敗。</div>
+                    <% if (registration && registration.failedGuilds && registration.failedGuilds.length > 0) { %>
+                        <ul class="mb-0 mt-2">
+                            <% registration.failedGuilds.forEach(failure => { %>
+                                <li><%= guildLabels[failure.guildKey] || failure.guildKey %>：<%= failure.errorMessage %> <%= failure.errorCode ? `(Discord ${failure.errorCode})` : '' %></li>
+                            <% }) %>
+                        </ul>
+                    <% } %>
+                    <% if (registration && !registration.globalCommandsCleared && registration.globalError) { %>
+                        <div class="mt-2">Global 指令清除也失敗：<%= registration.globalError.message %> <%= registration.globalError.code ? `(Discord ${registration.globalError.code})` : '' %></div>
+                    <% } %>
+                </div>
+            <% } else if (syncResult === 'failed') { %>
+                <div class="alert alert-warning py-2 px-3 small mb-3">同步失敗：<%= registration && registration.error ? registration.error : '請確認 Bot Token、Application ID 與 Guild 設定。' %></div>
+            <% } %>
 
             <!-- 🚀 模組化：引進 10 則動態滾動表格組件 -->
             <%- include('partials/bot_commands_table', { commands: commandList }) %>

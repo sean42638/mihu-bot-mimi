@@ -3,10 +3,10 @@ const db = require('../database');
 const { createMihuEmbed, BRAND_COLORS } = require('../utils/embedBuilder');
 const { calculateDiscount } = require('../utils/discountHelper');
 const { syncOrdersJsonFromDb } = require('../utils/dataSync');
+const { calculateCommissionByCategory, getStudioIdForUser, getPersonalTalentShareRate, resolveServiceId } = require('../utils/commissionHelper');
 
-function checkDiscordAdminPermission(member, userId) {
-    if (userId === "604610298581876746") return true;
-    return member && member.permissions && member.permissions.has(PermissionFlagsBits.Administrator);
+function checkDiscordAdminPermission(interaction) {
+    return Boolean(interaction.memberPermissions && interaction.memberPermissions.has(PermissionFlagsBits.Administrator));
 }
 
 module.exports = {
@@ -16,7 +16,7 @@ module.exports = {
         .setDescription('直接修改現有訂單之各項資訊與金額')
         .addStringOption(o => o.setName('order_no').setNameLocalizations({ 'zh-TW': '訂單編號' }).setDescription('欲修改的訂單編號').setRequired(true))
         .addStringOption(o => o.setName('category').setNameLocalizations({ 'zh-TW': '類別' }).setDescription('訂單類別 (選填)').setRequired(false).addChoices(
-            { name: '陪玩單', value: '陪玩單' }, { name: '禮物單', value: '禮物單' }, { name: '有獎', value: '有獎' }, { name: '冠名', value: '冠名' }, { name: '獎金', value: '獎金' }
+            { name: '陪玩單', value: '陪玩單' }, { name: '禮物單', value: '禮物單' }, { name: '有獎單', value: '有獎單' }, { name: '冠名單', value: '冠名單' }, { name: '獎金', value: '獎金' }
         ))
         .addStringOption(o => o.setName('game').setNameLocalizations({ 'zh-TW': '項目' }).setDescription('遊戲或服務項目 (選填)').setRequired(false))
         .addStringOption(o => o.setName('content').setNameLocalizations({ 'zh-TW': '內容' }).setDescription('內容或規格 (選填)').setRequired(false))
@@ -38,7 +38,7 @@ module.exports = {
             }
         } catch (e) {}
 
-        if (!checkDiscordAdminPermission(interaction.member, interaction.user.id)) {
+        if (!checkDiscordAdminPermission(interaction)) {
             return interaction.editReply({ content: '🚫 只有 Discord 客服與管理者身分能使用修改訂單指令。' });
         }
 
@@ -71,13 +71,24 @@ module.exports = {
             // 2. 計算原價與折扣（若有輸入則覆蓋，無輸入繼承舊值）
             const effectiveRawPrice = (inputPrice !== null && inputPrice !== undefined)
                 ? inputPrice
-                : Number(order.unit_price || order.total_amount || 0);
+                : (Number(order.unit_price || 0) > 0
+                    ? Number(order.unit_price) * Number(order.duration || 1)
+                    : Number(order.total_amount || 0) + Number(order.discount || 0));
 
             const effectiveRawDiscount = (inputDiscount !== null && inputDiscount !== undefined)
                 ? inputDiscount
                 : Number(order.discount || 0);
 
             const { finalAmount, discountAmount, discountText } = calculateDiscount(effectiveRawPrice, effectiveRawDiscount);
+            const studioId = Number(order.studio_id) || await getStudioIdForUser(interaction.user.id);
+            if (newTalentId && await getStudioIdForUser(newTalentId) !== studioId) {
+                return interaction.editReply({ content: '🚫 修改失敗：陪玩師不屬於此訂單的工作室。' });
+            }
+            const serviceId = await resolveServiceId(studioId, newGame, newCategory || '陪玩單');
+            const personalRate = newTalentId ? await getPersonalTalentShareRate(newTalentId) : null;
+            const commission = await calculateCommissionByCategory(
+                newCategory || '陪玩單', finalAmount, effectiveRawPrice, personalRate, { studioId, serviceId }
+            );
 
             // 若有更換老闆，自動於 users 資料表中確保存在
             if (bossUser) {
@@ -105,6 +116,11 @@ module.exports = {
                     unit_price = ?, 
                     discount = ?, 
                     total_amount = ?, 
+                    studio_id = ?,
+                    service_id = ?,
+                    commission_rate_snapshot = ?,
+                    platform_commission = ?,
+                    talent_earning = ?,
                     extra = ?, 
                     note = ?, 
                     status = ? 
@@ -114,7 +130,9 @@ module.exports = {
             db.run(updateSql, [
                 newCategory, newGame, newContentTier, newDuration, newUnit, 
                 newTag, newBossId, newTalentId, effectiveRawPrice, discountAmount, 
-                finalAmount, newExtra, newNote, newStatus, orderNo
+                finalAmount, studioId, serviceId, commission.talentShareRate,
+                commission.platformCommission, commission.talentNetEarning,
+                newExtra, newNote, newStatus, orderNo
             ], async (upErr) => {
                 if (upErr) return interaction.editReply({ content: '❌ 修改訂單資料失敗。' });
 

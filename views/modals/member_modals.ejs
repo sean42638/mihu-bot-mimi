@@ -281,22 +281,28 @@
 window.openCommissionRatesModal = function(talentData, studioRates) {
     // 預設工作室 5 大類別成數 (若後端沒傳則以此為備用預設)
     const defaultStudioRates = {
-        '陪玩單': '80%',
-        '禮物單': '85%',
-        '有獎':   '90%',
-        '冠名':   '85%',
-        '獎金':   '100%'
+        '陪玩單': 0.80,
+        '禮物單': 0.85,
+        '有獎單': 0.90,
+        '冠名單': 0.85,
+        '獎金':   1.00
     };
 
     const rates = studioRates || defaultStudioRates;
+    const formatShareRate = (value, fallback) => {
+        if (value === null || value === undefined || value === '') value = fallback;
+        const isPercent = typeof value === 'string' && value.trim().endsWith('%');
+        let rate = isPercent ? Number(value.trim().slice(0, -1)) / 100 : Number(value);
+        if (!isPercent && rate > 1 && rate <= 100) rate /= 100;
+        return Number.isFinite(rate) && rate >= 0 && rate <= 1 ? `${Math.round(rate * 100)}%` : `${Math.round(fallback * 100)}%`;
+    };
     
     // 💡 關鍵修正：必須嚴格檢查 commission_rate 是否有填寫，若為 null / undefined / 空白 / 0 則視為沒有特例！
     let personalRate = null;
-    if (talentData && talentData.commission_rate !== null && talentData.commission_rate !== undefined && talentData.commission_rate !== '') {
-        const parsed = Number(talentData.commission_rate);
-        if (!isNaN(parsed) && parsed > 0) {
-            personalRate = parsed;
-        }
+    if (talentData && talentData.commission_rate !== null && talentData.commission_rate !== undefined && talentData.commission_rate !== '' && String(talentData.commission_rate).trim().toLowerCase() !== 'null') {
+        let parsed = Number(talentData.commission_rate);
+        if (Number.isFinite(parsed) && parsed > 1 && parsed <= 100) parsed /= 100;
+        if (Number.isFinite(parsed) && parsed > 0 && parsed <= 1) personalRate = parsed;
     }
 
     const noticeBox = document.getElementById('commissionNoticeBox');
@@ -314,11 +320,11 @@ window.openCommissionRatesModal = function(talentData, studioRates) {
     }
 
     const categories = [
-        { name: '陪玩單', studio: rates['陪玩單'] || '80%' },
-        { name: '禮物單', studio: rates['禮物單'] || '85%' },
-        { name: '有獎',   studio: rates['有獎']   || '90%' },
-        { name: '冠名',   studio: rates['冠名']   || '85%' },
-        { name: '獎金',   studio: rates['獎金']   || '100%' }
+        { name: '陪玩單', studio: formatShareRate(rates['陪玩單'], defaultStudioRates['陪玩單']) },
+        { name: '禮物單', studio: formatShareRate(rates['禮物單'], defaultStudioRates['禮物單']) },
+        { name: '有獎單', studio: formatShareRate(rates['有獎單'] ?? rates['有獎'], defaultStudioRates['有獎單']) },
+        { name: '冠名單', studio: formatShareRate(rates['冠名單'] ?? rates['冠名'], defaultStudioRates['冠名單']) },
+        { name: '獎金',   studio: formatShareRate(rates['獎金'], defaultStudioRates['獎金']) }
     ];
 
     const tbody = document.getElementById('commissionTableBody');

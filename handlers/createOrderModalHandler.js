@@ -2,7 +2,7 @@ const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const db = require('../database');
 const { syncOrdersJsonFromDb } = require('../utils/dataSync');
 const { adjustUserWallet } = require('../utils/walletHelper');
-const { calculateCommissionByCategory } = require('../utils/commissionHelper'); // 👈 引用連動 Helper
+const { calculateCommissionByCategory, getStudioIdForUser, getPersonalTalentShareRate, resolveServiceId } = require('../utils/commissionHelper');
 const { createMihuEmbed, BRAND_COLORS } = require('../utils/embedBuilder');
 
 async function handleCreateOrderModal(interaction) {
@@ -16,6 +16,9 @@ async function handleCreateOrderModal(interaction) {
     if (!sessionData) {
         return interaction.editReply({ content: '❌ 建立訂單 Session 已過期，請重新執行 `/建立訂單` 指令。' });
     }
+    if (sessionData.commandInitiatorId && sessionData.commandInitiatorId !== interaction.user.id) {
+        return interaction.editReply({ content: '🚫 此建立訂單 Modal 不屬於目前的指令發起者。' });
+    }
 
     try {
         const bossId = sessionData.bId;
@@ -23,6 +26,7 @@ async function handleCreateOrderModal(interaction) {
         const category = sessionData.cat; // 5 大類別選項之一
         const duration = sessionData.dur || 1;
         const totalPrice = sessionData.pri || 0;
+        const game = interaction.fields.getTextInputValue('order_game').trim();
 
         // 1. 計算折後總價
         let finalPrice = totalPrice;
@@ -37,8 +41,17 @@ async function handleCreateOrderModal(interaction) {
             }
         }
 
-        // 🚀 2. 自動根據類別 (category) 連動計算抽傭 % 數與實得金額
-        const { commissionRatePercent, platformCommission, talentNetEarning } = await calculateCommissionByCategory(category, finalPrice);
+        // 2. 使用陪玩所屬工作室與該服務項目計算當下成數
+        const studioId = await getStudioIdForUser(interaction.user.id);
+        const talentStudioId = await getStudioIdForUser(talentId);
+        if (studioId !== talentStudioId) {
+            return interaction.editReply({ content: '🚫 建立失敗：陪玩師與建立者不屬於同一工作室。' });
+        }
+        const serviceId = await resolveServiceId(studioId, game, category);
+        const personalRate = await getPersonalTalentShareRate(talentId);
+        const { commissionRatePercent, talentShareRate, platformCommission, talentNetEarning } = await calculateCommissionByCategory(
+            category, finalPrice, totalPrice, personalRate, { studioId, serviceId }
+        );
 
         // 3. 檢核老闆會員與錢包餘額
         const walletRow = await new Promise((resolve) => {
@@ -85,7 +98,6 @@ async function handleCreateOrderModal(interaction) {
             operatorId: interaction.user.id
         });
 
-        const game = interaction.fields.getTextInputValue('order_game');
         const contentTier = interaction.fields.getTextInputValue('order_content') || '標準規格';
         const extra = interaction.fields.getTextInputValue('order_extra') || '無';
         const note = interaction.fields.getTextInputValue('order_note') || '無';
@@ -100,19 +112,21 @@ async function handleCreateOrderModal(interaction) {
         const csUser = interaction.user;
         const csName = interaction.member?.nickname || csUser.globalName || csUser.username;
 
-        // 6. 寫入 orders 資料庫 (含平台傭金與陪陪實得)
+        // 6. 寫入訂單與建立當下的佣金快照
         await new Promise((resolve, reject) => {
             const insertSql = `
                 INSERT INTO orders (
                     order_no, boss_id, talent_id, cs_id, cs_name, category, 
                     game, content_tier, duration, unit, unit_price,
-                    total_amount, discount, extra, note, status, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'accepted', DATETIME('now', 'localtime'))
+                    total_amount, discount, extra, note, status, studio_id, service_id,
+                    commission_rate_snapshot, platform_commission, talent_earning, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'accepted', ?, ?, ?, ?, ?, DATETIME('now', 'localtime'))
             `;
             db.run(insertSql, [
                 orderNo, bossId, talentId, csUser.id, csName, category,
                 game, contentTier, duration, unit, unitPrice,
-                finalPrice, discountAmount, extra, note
+                finalPrice, discountAmount, extra, note,
+                studioId, serviceId, talentShareRate, platformCommission, talentNetEarning
             ], function(err) {
                 if (err) reject(err);
                 else resolve(this.lastID);

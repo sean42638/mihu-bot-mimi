@@ -70,8 +70,8 @@
         }
         .badge-陪玩單 { background: rgba(168, 85, 247, 0.18); border: 1px solid rgba(168, 85, 247, 0.4); color: #d8b4fe; }
         .badge-禮物單 { background: rgba(236, 72, 153, 0.18); border: 1px solid rgba(236, 72, 153, 0.4); color: #f472b6; }
-        .badge-有獎   { background: rgba(56, 189, 248, 0.18); border: 1px solid rgba(56, 189, 248, 0.4); color: #7dd3fc; }
-        .badge-冠名   { background: rgba(245, 158, 11, 0.18); border: 1px solid rgba(245, 158, 11, 0.4); color: #fde047; }
+        .badge-有獎單 { background: rgba(56, 189, 248, 0.18); border: 1px solid rgba(56, 189, 248, 0.4); color: #7dd3fc; }
+        .badge-冠名單 { background: rgba(245, 158, 11, 0.18); border: 1px solid rgba(245, 158, 11, 0.4); color: #fde047; }
         .badge-獎金   { background: rgba(16, 185, 129, 0.18); border: 1px solid rgba(16, 185, 129, 0.4); color: #6ee7b7; }
 
         .form-control-glass {
@@ -106,34 +106,39 @@
             <div>
                 <div class="page-title-text" style="font-size: 1.5rem; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
                     <i class="fa-solid fa-percent text-warning"></i>
-                    <span>全域抽佣與分潤設定</span>
+                    <span>米胡電競分潤設定</span>
                 </div>
-                <p class="text-secondary small mb-0">設定全站各訂單類別之員工預設分潤成數（員工個人若有特例設定將優先套用）</p>
+                <p class="text-secondary small mb-0">設定米胡電競各訂單類別與服務項目的陪玩實得成數</p>
             </div>
         </div>
 
         <% if (typeof success !== 'undefined' && success) { %>
             <div class="alert alert-success py-2 px-3 small mb-4 border-0 bg-success bg-opacity-25 text-success">
-                ✅ 全域抽佣比率已成功更新！
+                ✅ 工作室分潤設定已更新！
             </div>
         <% } %>
+        <% if (typeof error !== 'undefined' && error) { %>
+            <div class="alert alert-danger py-2 px-3 small mb-4 border-0 bg-danger bg-opacity-25 text-danger"><%= error %></div>
+        <% } %>
 
-        <div class="glass-card" style="max-width: 800px;">
+        <div class="glass-card mb-4" style="max-width: 900px;">
             <form action="/system/commission/update" method="POST">
+                <input type="hidden" name="studio_id" value="<%= selectedStudioId %>">
                 <div class="alert alert-info py-2 px-3 small mb-4 bg-info bg-opacity-10 border-info border-opacity-25 text-info d-flex align-items-center gap-2">
                     <i class="fa-solid fa-circle-info fs-6"></i>
-                    <span><strong>計算規則：</strong> 填寫小數點，例如 <code>0.7</code> 代表員工抽成 70%（工作室留存 30%）。若員工在「員工管理」有設定專屬抽佣，將優先採計個人比率。</span>
+                    <span><strong>比例單位：</strong> 填寫 0 到 1 的陪玩實拿比例，例如 <code>0.7</code> 為 70%；個別服務設定優先於陪玩個人特例，再回退至此類別預設。</span>
                 </div>
 
+                <h6 class="text-white fw-bold mb-3">工作室類別預設</h6>
                 <div class="d-flex flex-column gap-3 mb-4">
-                    <% const categories = ["陪玩單", "禮物單", "有獎", "冠名", "獎金"]; %>
+                    <% const categories = ["陪玩單", "禮物單", "有獎單", "冠名單", "獎金"]; %>
                     <% categories.forEach(cat => { 
-                        const currentRate = commission[cat] !== undefined ? commission[cat] : 0.7;
+                        const currentRate = commission[cat] !== undefined ? Number(commission[cat]) : 0.8;
                     %>
                         <div class="category-item-box">
                             <div class="d-flex align-items-center gap-3">
                                 <span class="category-badge badge-<%= cat %>"><%= cat %></span>
-                                <span class="small text-secondary">全域預設分潤</span>
+                                <span class="small text-secondary">類別 fallback</span>
                             </div>
                             <div class="d-flex align-items-center gap-2">
                                 <input type="number" step="0.01" min="0" max="1" name="rates[<%= cat %>]" value="<%= currentRate %>" class="form-control form-control-glass" required>
@@ -143,13 +148,62 @@
                     <% }) %>
                 </div>
 
+                <h6 class="text-white fw-bold mb-3">服務項目成數</h6>
+                <% if (!services || services.length === 0) { %>
+                    <p class="small text-secondary">尚無服務項目；新增服務後即可設定個別成數。</p>
+                <% } else { %>
+                    <div class="table-responsive mb-4">
+                        <table class="table table-dark table-sm align-middle mb-0">
+                            <thead><tr><th>服務項目</th><th>類別</th><th class="text-end">陪玩實拿比例</th></tr></thead>
+                            <tbody>
+                                <% services.forEach(service => { %>
+                                    <tr>
+                                        <td><%= service.name %></td>
+                                        <td><%= service.category %></td>
+                                        <td class="text-end">
+                                            <input type="number" step="0.01" min="0" max="1" name="service_rate_<%= service.id %>" value="<%= service.talent_share_rate === null ? '' : service.talent_share_rate %>" placeholder="沿用類別" class="form-control form-control-glass ms-auto">
+                                        </td>
+                                    </tr>
+                                <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } %>
+
                 <div class="d-flex justify-content-end">
                     <button type="submit" class="btn btn-warning rounded-pill px-4 fw-bold text-dark" style="background: linear-gradient(135deg, #fde047, #eab308); border: none;">
-                        <i class="fa-solid fa-floppy-disk me-1.5"></i>儲存全域抽佣設定
+                        <i class="fa-solid fa-floppy-disk me-1.5"></i>儲存分潤設定
                     </button>
                 </div>
             </form>
         </div>
+
+        <div class="glass-card mb-4" style="max-width: 900px;">
+            <h6 class="text-white fw-bold mb-3">新增服務項目</h6>
+            <form action="/system/commission/services" method="POST" class="row g-3 align-items-end">
+                <input type="hidden" name="studio_id" value="<%= selectedStudioId %>">
+                <div class="col-md-5">
+                    <label class="form-label small text-secondary">服務名稱</label>
+                    <input type="text" name="name" maxlength="100" class="form-control form-control-glass w-100 text-start" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small text-secondary">類別</label>
+                    <select name="category" class="form-select">
+                        <% ["陪玩單", "禮物單", "有獎單", "冠名單", "獎金"].forEach(cat => { %>
+                            <option value="<%= cat %>"><%= cat %></option>
+                        <% }) %>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small text-secondary">實拿比例</label>
+                    <input type="number" name="talent_share_rate" min="0" max="1" step="0.01" placeholder="類別預設" class="form-control form-control-glass w-100">
+                </div>
+                <div class="col-md-2 d-grid">
+                    <button type="submit" class="btn btn-outline-info"><i class="fa-solid fa-plus me-1"></i>新增</button>
+                </div>
+            </form>
+        </div>
+
     </div>
 </div>
 

@@ -3,6 +3,7 @@ const db = require('../database');
 const { createMihuEmbed, BRAND_COLORS } = require('../utils/embedBuilder');
 const { syncOrdersJsonFromDb, syncUsersJsonFromDb } = require('../utils/dataSync');
 const { getUserWallet, adjustUserWallet } = require('../utils/walletHelper');
+const { calculateCommissionByCategory, getStudioIdForUser, getPersonalTalentShareRate, resolveServiceId } = require('../utils/commissionHelper');
 
 // 🚀 本地安全折扣計算工具 (防範外部 Helper 匯出格式不符問題)
 function calculateDiscount(rawPrice, inputDiscount) {
@@ -34,9 +35,8 @@ function calculateDiscount(rawPrice, inputDiscount) {
     };
 }
 
-function checkDiscordAdminPermission(member, userId) {
-    if (userId === "604610298581876746") return true;
-    return member && member.permissions && member.permissions.has(PermissionFlagsBits.Administrator);
+function checkDiscordAdminPermission(interaction) {
+    return Boolean(interaction.memberPermissions && interaction.memberPermissions.has(PermissionFlagsBits.Administrator));
 }
 
 module.exports = {
@@ -55,7 +55,7 @@ module.exports = {
             }
         } catch (e) {}
 
-        if (!checkDiscordAdminPermission(interaction.member, interaction.user.id)) {
+        if (!checkDiscordAdminPermission(interaction)) {
             return interaction.editReply({ content: '🚫 只有 Discord 客服與管理者身分能使用此指令。' });
         }
 
@@ -73,12 +73,21 @@ module.exports = {
                     return interaction.editReply({ content: `⚠️ **指派失敗！** 陪陪 <@${talentUser.id}> 尚未綁定專屬頻道。` });
                 }
 
+                const studioId = Number(order.studio_id) || await getStudioIdForUser(interaction.user.id);
+                const talentStudioId = await getStudioIdForUser(talentUser.id);
+                if (studioId !== talentStudioId) {
+                    return interaction.editReply({ content: '🚫 指派失敗：陪玩師不屬於此訂單的工作室。' });
+                }
+
                 const targetStaffChannelId = talentRow.staff_channel_id;
 
                 // 🚀 核心連動邏輯：有輸入則覆蓋，沒輸入則繼承 /dispatch 時設定的值
+                const inheritedRawPrice = Number(order.unit_price || 0) > 0
+                    ? Number(order.unit_price) * Number(order.duration || 1)
+                    : Number(order.total_amount || 0) + Number(order.discount || 0);
                 const effectiveRawPrice = (inputPrice !== null && inputPrice !== undefined)
                     ? inputPrice
-                    : Number(order.unit_price || order.total_amount || 0);
+                    : inheritedRawPrice;
 
                 const effectiveRawDiscount = (inputDiscount !== null && inputDiscount !== undefined)
                     ? inputDiscount
@@ -86,6 +95,11 @@ module.exports = {
 
                 // 使用防錯計算函式計算新金額
                 const { finalAmount, discountAmount, discountText } = calculateDiscount(effectiveRawPrice, effectiveRawDiscount);
+                const serviceId = await resolveServiceId(studioId, order.game, order.category || '陪玩單');
+                const personalRate = await getPersonalTalentShareRate(talentUser.id);
+                const commission = await calculateCommissionByCategory(
+                    order.category || '陪玩單', finalAmount, effectiveRawPrice, personalRate, { studioId, serviceId }
+                );
 
                 const oldFinalAmount = Number(order.total_amount || 0);
                 const priceDiff = finalAmount - oldFinalAmount; // >0 代表變貴補扣； <0 代表變便宜退款
@@ -148,6 +162,11 @@ module.exports = {
                     UPDATE orders SET 
                         talent_id = ?, 
                         staff_id = ?, 
+                        studio_id = ?,
+                        service_id = ?,
+                        commission_rate_snapshot = ?,
+                        platform_commission = ?,
+                        talent_earning = ?,
                         unit_price = ?, 
                         discount = ?, 
                         total_amount = ?, 
@@ -155,7 +174,11 @@ module.exports = {
                     WHERE order_no = ?
                 `;
 
-                db.run(updateSql, [talentUser.id, talentUser.id, effectiveRawPrice, discountAmount, finalAmount, orderNo], async (upErr) => {
+                db.run(updateSql, [
+                    talentUser.id, talentUser.id, studioId, serviceId, commission.talentShareRate,
+                    commission.platformCommission, commission.talentNetEarning,
+                    effectiveRawPrice, discountAmount, finalAmount, orderNo
+                ], async (upErr) => {
                     if (upErr) return interaction.editReply({ content: '❌ 更新訂單指派資料失敗。' });
                     
                     // 同步 JSON 備份

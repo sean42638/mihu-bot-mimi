@@ -6,7 +6,13 @@ async function handleTopupModal(interaction) {
         await interaction.deferReply({ flags: 64 });
     }
 
-    const targetUserId = interaction.customId.replace('topup_modal_', '');
+    const modalPayload = interaction.customId.replace('topup_modal_', '');
+    const modalIds = modalPayload.split('_');
+    const commandInitiatorId = modalIds.length > 1 ? modalIds[0] : interaction.user.id;
+    const targetUserId = modalIds.length > 1 ? modalIds[1] : modalIds[0];
+    if (commandInitiatorId !== interaction.user.id) {
+        return interaction.editReply({ content: '🚫 此充值 Modal 不屬於目前的指令發起者。' }).catch(() => {});
+    }
     const realAmountRaw = interaction.fields.getTextInputValue('real_amount').trim();
     const bonusAmountRaw = interaction.fields.getTextInputValue('bonus_amount').trim();
     const note = interaction.fields.getTextInputValue('note').trim();
