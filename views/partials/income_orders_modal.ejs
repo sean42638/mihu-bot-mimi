@@ -1,0 +1,208 @@
+<!-- 🚀 獨立【我的接單】彈窗模組 -->
+<div class="modal fade" id="ordersHistoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl" style="max-width: 1060px;">
+        <div class="modal-content modal-content-glass p-2">
+            <div class="modal-header border-0 pb-1">
+                <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-list-check text-warning"></i>
+                    <span>我的接單紀錄</span>
+                    <span class="badge bg-secondary bg-opacity-50 small ms-1" style="font-size: 0.74rem;">共 <%= orders ? orders.length : 0 %> 筆</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body py-2">
+                <div class="p-3 rounded-3 mb-3 d-flex align-items-center flex-wrap gap-2" style="background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.08);">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small text-secondary fw-semibold text-nowrap"><i class="fa-regular fa-calendar me-1"></i>日期區間：</span>
+                        <input type="date" id="filterStartDate" class="filter-input-glass">
+                        <span class="text-secondary small">～</span>
+                        <input type="date" id="filterEndDate" class="filter-input-glass">
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small text-secondary fw-semibold text-nowrap"><i class="fa-solid fa-sliders me-1"></i>狀態：</span>
+                        <select id="filterStatusSelect" class="filter-input-glass" style="background-color: #171326; color: #fff;">
+                            <option value="all">全部狀態</option>
+                            <option value="completed">已結算 (Completed)</option>
+                            <option value="active">進行中 (Active)</option>
+                            <option value="pending">派單中 (Pending)</option>
+                            <option value="cancelled">售後中 (Cancelled)</option>
+                            <option value="rejected">已駁回 (Rejected)</option>
+                        </select>
+                    </div>
+
+                    <div class="search-box-wrap" style="min-width: 180px;">
+                        <i class="fa-solid fa-magnifying-glass search-icon-left"></i>
+                        <input type="text" id="orderSearchInput" class="filter-input-glass w-100" style="padding-left: 36px;" placeholder="搜尋單號 / 闆闆 / 遊戲...">
+                        <button type="button" id="clearSearchBtn" class="search-clear-btn" title="清除搜尋">
+                            <i class="fa-solid fa-circle-xmark"></i>
+                        </button>
+                    </div>
+
+                    <button type="button" id="resetFiltersBtn" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 text-nowrap">
+                        <i class="fa-solid fa-rotate-left me-1"></i>重設
+                    </button>
+                </div>
+
+                <div class="scrollable-modal-table-wrap">
+                    <table class="mihu-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 18%;">訂單編號</th>
+                                <th style="width: 15%;">客戶闆闆</th>
+                                <th style="width: 13%;">遊戲項目</th>
+                                <th style="width: 11%;">服務時長</th>
+                                <th style="width: 12%;">實收金額</th>
+                                <th style="width: 14%;">實得個人收入</th>
+                                <th style="width: 10%; text-align: center;">狀態</th>
+                                <th style="width: 7%; text-align: right;">詳情</th>
+                            </tr>
+                        </thead>
+                        <tbody id="incomeOrdersBody">
+                            <% if (!orders || orders.length === 0) { %>
+                                <tr>
+                                    <td colspan="8" class="text-center py-5 text-secondary">目前尚無被指派的工單紀錄</td>
+                                </tr>
+                            <% } else { %>
+                                <% orders.forEach(o => { 
+                                    const finalAmt = Number(o.total_amount || 0);
+                                    const unitPrice = Number(o.unit_price || 0);
+                                    const duration = Number(o.duration || 1);
+                                    const discount = Number(o.discount || 0);
+                                    
+                                    // 🚀 原價金額 (未折扣前價格)
+                                    let originalPrice = (unitPrice > 0) ? (unitPrice * duration) : (finalAmt + discount);
+                                    if (originalPrice <= 0) originalPrice = finalAmt;
+
+                                    const cat = o.category || '陪玩單';
+                                    const isCompleted = (o.status === 'completed');
+
+                                    // 🚀 工作室全域分潤成數 (1 - 工作室抽成%)
+                                    const defaultNetRates = { '陪玩單': 0.80, '禮物單': 0.85, '有獎': 0.90, '冠名': 0.85, '獎金': 1.00 };
+                                    let catNetRate = defaultNetRates[cat] || 0.80;
+
+                                    if (typeof globalCommissions !== 'undefined' && globalCommissions && globalCommissions[cat] !== undefined) {
+                                        const rawCut = Number(globalCommissions[cat]);
+                                        catNetRate = rawCut < 1 ? (1 - rawCut) : rawCut;
+                                    }
+
+                                    const validPersonal = (typeof personalRate !== 'undefined' && personalRate !== null && personalRate > 0) ? Number(personalRate) : null;
+                                    const thisOrderRate = (validPersonal !== null) ? validPersonal : catNetRate;
+
+                                    // 🚀 個人實得收入依「原價 (originalPrice)」計算，不承擔折扣！
+                                    const myIncome = isCompleted ? Math.round(originalPrice * thisOrderRate) : 0;
+
+                                    const bossAvatar = o.boss_avatar 
+                                        ? `https://cdn.discordapp.com/avatars/${o.boss_id}/${o.boss_avatar}.png` 
+                                        : `https://cdn.discordapp.com/embed/avatars/0.png`;
+                                    const bossName = o.boss_nickname || o.boss_global_name || o.boss_username || '匿名闆闆';
+                                    
+                                    const gameName = (o.game && o.game !== '1') ? o.game : (o.item_name || '一般服務');
+
+                                    const formatDate = (isoStr) => {
+                                        if (!isoStr || isoStr === '尚未開始' || isoStr === '尚未結束') return isoStr || '尚未設定';
+                                        try {
+                                            const d = new Date(isoStr);
+                                            if (isNaN(d.getTime())) return isoStr;
+                                            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+                                        } catch (e) { return isoStr; }
+                                    };
+
+                                    const statusMap = {
+                                        'pending':     { name: '派單中', class: 'status-badge-pending', filterGroup: 'pending' },
+                                        'accepted':    { name: '進行中', class: 'status-badge-active', filterGroup: 'active' },
+                                        'in_progress': { name: '進行中', class: 'status-badge-active', filterGroup: 'active' },
+                                        'active':      { name: '進行中', class: 'status-badge-active', filterGroup: 'active' },
+                                        'completed':   { name: '已結算', class: 'status-badge-completed', filterGroup: 'completed' },
+                                        'cancelled':   { name: '售後中', class: 'status-badge-cancelled', filterGroup: 'cancelled' },
+                                        'rejected':    { name: '已駁回', class: 'status-badge-rejected', filterGroup: 'rejected' }
+                                    };
+                                    const st = statusMap[o.status] || { name: '進行中', class: 'status-badge-active', filterGroup: 'active' };
+
+                                    const orderDate = (o.end_time || o.created_at || '').slice(0, 10);
+
+                                    const orderJsonObj = {
+                                        orderNo: o.order_no,
+                                        bossName: bossName,
+                                        game: gameName,
+                                        duration: o.duration || 1,
+                                        unit: o.unit || '小時',
+                                        headcount: o.headcount || 1,
+                                        totalAmount: finalAmt,
+                                        originalAmount: originalPrice,
+                                        myIncome: myIncome,
+                                        statusName: st.name,
+                                        note: o.note || '無特別備註',
+                                        startTime: formatDate(o.start_time),
+                                        endTime: formatDate(o.end_time),
+                                        createdAt: formatDate(o.created_at)
+                                    };
+                                    const safeOrderJson = JSON.stringify(orderJsonObj).replace(/'/g, "&apos;");
+                                %>
+                                    <tr class="order-income-row" 
+                                        data-order='<%- safeOrderJson %>' 
+                                        data-date="<%= orderDate %>"
+                                        data-status="<%= st.filterGroup %>"
+                                        data-search="<%= `${o.order_no} ${bossName} ${gameName} ${o.note || ''}`.toLowerCase() %>">
+                                        <td>
+                                            <div class="fw-bold font-monospace text-light"><%= o.order_no %></div>
+                                            <div class="text-secondary font-monospace" style="font-size: 0.72rem;"><%= (o.created_at || '').slice(0, 16) %></div>
+                                        </td>
+                                        <td>
+                                            <div class="user-mini-col">
+                                                <img src="<%= bossAvatar %>" alt="頭像" class="user-mini-avatar">
+                                                <div>
+                                                    <div class="fw-bold text-white small"><%= bossName %></div>
+                                                    <div class="text-secondary font-monospace" style="font-size: 0.68rem;">•••• <%= o.boss_id ? o.boss_id.slice(-4) : '0000' %></div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-purple bg-opacity-25 text-purple-light border border-purple border-opacity-25 px-2 py-1" style="color: #c084fc; border-color: rgba(192, 132, 252, 0.4);">
+                                                <%= gameName %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="font-monospace text-light"><%= o.duration %><%= o.unit || 'h' %></span>
+                                            <span class="text-secondary small">(<%= o.headcount || 1 %>人)</span>
+                                        </td>
+                                        <td>
+                                            <span class="font-monospace text-secondary">$<%= finalAmt.toLocaleString() %></span>
+                                        </td>
+                                        <td>
+                                            <% if (isCompleted) { %>
+                                                <span class="font-monospace text-warning fw-bold fs-6">+$<%= myIncome.toLocaleString() %></span>
+                                                <span class="small text-secondary">NTD</span>
+                                            <% } else { %>
+                                                <span class="font-monospace text-secondary">$0</span>
+                                                <span class="small text-secondary" style="font-size: 0.72rem;">(未入帳)</span>
+                                            <% } %>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge <%= st.class %> px-2 py-1" style="font-size: 0.75rem;"><%= st.name %></span>
+                                        </td>
+                                        <td class="text-end">
+                                            <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-2 py-1 btn-detail-trigger" style="font-size: 0.78rem;">
+                                                <i class="fa-solid fa-receipt me-1"></i>明細
+                                            </button>
+                                        </td>
+                                    </tr>
+                                <% }) %>
+                            <% } %>
+                        </tbody>
+                    </table>
+
+                    <div id="noMatchRow" class="text-center py-5 text-secondary" style="display: none;">
+                        <i class="fa-solid fa-receipt fs-3 mb-2 opacity-50"></i>
+                        <p class="small mb-0">找不到符合篩選條件的接單記錄</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer border-0 pt-2">
+                <button type="button" class="btn btn-sm btn-secondary rounded-pill px-4" data-bs-dismiss="modal">關閉視窗</button>
+            </div>
+        </div>
+    </div>
+</div>

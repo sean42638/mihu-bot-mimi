@@ -52,10 +52,13 @@ router.post('/update/:id', ensureAuth, (req, res) => {
     const targetStaffId = req.params.id;
     const { role, status, commission_rate, staff_channel_id } = req.body;
 
+    // 🚀 解析抽傭成數：若留空、空白字串或無效數字，強制設為 null (以自動採用工作室全域類別預設)
     let parsedRate = null;
     if (commission_rate !== undefined && commission_rate !== null && String(commission_rate).trim() !== '') {
-        parsedRate = parseFloat(commission_rate);
-        if (isNaN(parsedRate)) parsedRate = null;
+        const numRate = parseFloat(commission_rate);
+        if (!isNaN(numRate) && numRate > 0) {
+            parsedRate = numRate;
+        }
     }
 
     const newRole = role || 'staff';
@@ -74,6 +77,13 @@ router.post('/update/:id', ensureAuth, (req, res) => {
             });
             return;
         }
+
+        // 💡 同步更新 talents 資料表 (若該員工已登記在 talents 表中，確保 commission_rate 同步轉為 NULL)
+        db.run(
+            `UPDATE talents SET role = ?, status = ?, commission_rate = ?, staff_channel_id = ? WHERE user_id = ? OR id = ?`,
+            [newRole, status || 'idle', parsedRate, staff_channel_id || null, targetStaffId, targetStaffId],
+            () => {}
+        );
 
         if (req.user && req.user.id === targetStaffId) {
             req.user.role = newRole;

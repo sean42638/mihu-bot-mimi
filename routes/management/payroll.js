@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../../database');
 const { ensureAuth } = require('../../middleware/auth');
 const { sortByRoleWeight } = require('../../utils/roleHelper');
+const { calculateCommissionByCategory } = require('../../utils/commissionHelper');
 
 // 渲染「薪轉管理」獨立主頁面 (對應 /management/payroll)
 router.get('/', ensureAuth, (req, res) => {
@@ -14,19 +15,21 @@ router.get('/', ensureAuth, (req, res) => {
         return res.redirect('/dashboard?error=' + encodeURIComponent('🚫 您的身分無權存取薪轉管理頁面。'));
     }
 
+    // 🚀 動態連動 commission_settings 資料表，以工作室類別抽傭優先計算陪陪實得
     const payrollSql = `
         SELECT u.*,
             COALESCE((
                 SELECT SUM(
                     ROUND(
                         o.total_amount * COALESCE(
-                            u.commission_rate,
+                            (SELECT (1.0 - cs.rate) FROM commission_settings cs WHERE cs.category = o.category),
                             CASE o.category 
-                                WHEN '陪玩單' THEN 0.8
-                                WHEN '禮物單' THEN 0.85
-                                WHEN '有獎' THEN 0.9
-                                WHEN '冠名' THEN 0.85
-                                ELSE 0.8
+                                WHEN '陪玩單' THEN 0.80
+                                WHEN '禮物單' THEN 0.90
+                                WHEN '有獎'   THEN 0.95
+                                WHEN '冠名'   THEN 0.85
+                                WHEN '獎金'   THEN 0.90
+                                ELSE 0.80
                             END
                         )
                     )
@@ -70,19 +73,21 @@ router.get('/export', ensureAuth, (req, res) => {
         return res.status(403).send('🚫 無權匯出薪轉資料');
     }
 
+    // 🚀 匯出端同步套用動態類別抽傭連動
     const payrollSql = `
         SELECT u.username, u.custom_nickname, u.global_name, u.real_name, u.bank_name, u.bank_code, u.bank_branch, u.bank_account,
             COALESCE((
                 SELECT SUM(
                     ROUND(
                         o.total_amount * COALESCE(
-                            u.commission_rate,
+                            (SELECT (1.0 - cs.rate) FROM commission_settings cs WHERE cs.category = o.category),
                             CASE o.category 
-                                WHEN '陪玩單' THEN 0.8
-                                WHEN '禮物單' THEN 0.85
-                                WHEN '有獎' THEN 0.9
-                                WHEN '冠名' THEN 0.85
-                                ELSE 0.8
+                                WHEN '陪玩單' THEN 0.80
+                                WHEN '禮物單' THEN 0.90
+                                WHEN '有獎'   THEN 0.95
+                                WHEN '冠名'   THEN 0.85
+                                WHEN '獎金'   THEN 0.90
+                                ELSE 0.80
                             END
                         )
                     )

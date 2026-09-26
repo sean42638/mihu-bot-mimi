@@ -1,0 +1,74 @@
+<!-- 🚀 分潤成數彈窗模組 (ID: commissionRatesModal) -->
+<div class="modal fade" id="commissionRatesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 520px;">
+        <div class="modal-content modal-content-glass p-2">
+            <div class="modal-header border-0 pb-1">
+                <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-percent text-info"></i>
+                    <span>個人與各類別分潤成數表</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body py-3">
+                <% 
+                   const validPersonalRate = (typeof personalRate !== 'undefined' && personalRate !== null && personalRate > 0) ? Number(personalRate) : null;
+                %>
+
+                <% if (validPersonalRate !== null) { %>
+                    <div class="p-3 mb-3 rounded-3 small" style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: #7dd3fc;">
+                        ☀️ <strong style="color: #38bdf8;">特例提示</strong>：您擁有個人專屬特例抽佣成數 <strong class="text-warning font-monospace fs-6 px-1"><%= Math.round(validPersonalRate * 100) %>%</strong>，優先適用於所有類別訂單！
+                    </div>
+                <% } else { %>
+                    <div class="p-3 mb-3 rounded-3 small" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399;">
+                        ✨ <strong>工作室連動預設</strong>：您目前採用工作室全域類別分潤設定！(分潤依原價金額計算，不承擔折扣)
+                    </div>
+                <% } %>
+
+                <div class="glass-table-card border-0">
+                    <table class="mihu-table">
+                        <thead>
+                            <tr>
+                                <th>訂單類別</th>
+                                <th class="text-end">工作室設定分潤</th>
+                                <th class="text-end">您的實際適用成數</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% 
+                                const defaultNetShareRates = {
+                                    '陪玩單': 0.80,
+                                    '禮物單': 0.85,
+                                    '有獎':   0.90,
+                                    '冠名':   0.85,
+                                    '獎金':   1.00
+                                };
+
+                                const categories = ["陪玩單", "禮物單", "有獎", "冠名", "獎金"];
+                                categories.forEach(cat => {
+                                    let studioNetRate = defaultNetShareRates[cat];
+                                    
+                                    if (typeof globalCommissions !== 'undefined' && globalCommissions && globalCommissions[cat] !== undefined) {
+                                        const rawCut = Number(globalCommissions[cat]);
+                                        studioNetRate = rawCut < 1 ? (1 - rawCut) : rawCut;
+                                    }
+
+                                    const actualRate = (validPersonalRate !== null) ? validPersonalRate : studioNetRate;
+                            %>
+                                <tr>
+                                    <td class="fw-bold text-white"><%= cat %></td>
+                                    <td class="text-end font-monospace text-secondary"><%= Math.round(studioNetRate * 100) %>%</td>
+                                    <td class="text-end font-monospace fw-bold text-warning"><%= Math.round(actualRate * 100) %>%</td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="modal-footer border-0 pt-1">
+                <button type="button" class="btn btn-sm btn-secondary rounded-pill px-4" data-bs-dismiss="modal">關閉</button>
+            </div>
+        </div>
+    </div>
+</div>

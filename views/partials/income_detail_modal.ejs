@@ -1,0 +1,77 @@
+<!-- 🚀 4. 單筆工單詳情彈窗模組 (ID: incomeDetailModal) -->
+<div class="modal fade" id="incomeDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 500px;">
+        <div class="modal-content modal-content-glass">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-file-invoice-dollar text-warning"></i>
+                    <span>接單收益明細</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-3">
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <div class="info-detail-box">
+                            <span class="info-detail-label">工單編號</span>
+                            <span class="info-detail-val text-warning font-monospace" id="detailOrderNo">--</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="info-detail-box">
+                            <span class="info-detail-label">訂單狀態</span>
+                            <span class="info-detail-val text-info" id="detailStatus">--</span>
+                        </div>
+                    </div>
+
+                    <div class="col-6">
+                        <div class="info-detail-box">
+                            <span class="info-detail-label">客戶闆闆</span>
+                            <span class="info-detail-val text-white" id="detailBoss">--</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="info-detail-box">
+                            <span class="info-detail-label">遊戲與時長</span>
+                            <span class="info-detail-val text-white" id="detailGameAndDuration">--</span>
+                        </div>
+                    </div>
+
+                    <div class="col-6">
+                        <div class="info-detail-box">
+                            <span class="info-detail-label">訂單實收金額</span>
+                            <span class="info-detail-val text-secondary" id="detailTotalAmount">--</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="info-detail-box">
+                            <span class="info-detail-label">個人分潤實得 (原價算)</span>
+                            <span class="info-detail-val text-success fs-6" id="detailMyIncome">--</span>
+                        </div>
+                    </div>
+
+                    <div class="col-6">
+                        <div class="info-detail-box">
+                            <span class="info-detail-label">開始時間</span>
+                            <span class="info-detail-val text-white-50 font-monospace small" id="detailStartTime">尚未開始</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="info-detail-box">
+                            <span class="info-detail-label">結束時間</span>
+                            <span class="info-detail-val text-white-50 font-monospace small" id="detailEndTime">尚未結束</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-3 rounded-3" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06);">
+                    <span class="text-secondary small">工單內容與備註說明：</span>
+                    <div class="text-white small fw-medium mt-1" id="detailNote">無特別備註</div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-sm btn-secondary rounded-pill px-4" data-bs-dismiss="modal">關閉</button>
+            </div>
+        </div>
+    </div>
+</div>

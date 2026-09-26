@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../database');
 const { syncUsersJsonFromDb, syncTalentsJsonFromDb, getCommissionData } = require('../utils/dataSync');
 const { requireAuth: ensureAuth, requirePerm: checkPerm } = require('../middleware/auth');
+const { calculateCommissionByCategory } = require('../utils/commissionHelper'); // 🚀 引入連動 Helper
 
 // =========================================================================
 // 1. 首頁 (Dashboard)
@@ -170,16 +171,17 @@ router.get('/wallet', ensureAuth, checkPerm('my_wallet'), (req, res) => {
 });
 
 // =========================================================================
-// 4. 我的收入 (Income) - 保持不變
+// 4. 我的收入 (Income) 🚀 模組化 + 以原價金額計算陪陪分潤 (不承擔折扣)
 // =========================================================================
-router.get('/income', ensureAuth, checkPerm('my_income'), (req, res) => {
+router.get('/income', ensureAuth, checkPerm('my_income'), async (req, res) => {
     const userId = req.user.id;
 
-    db.get('SELECT * FROM users WHERE id = ?', [userId], (err, currentUser) => {
-        db.get('SELECT commission_rate FROM talents WHERE user_id = ?', [userId], (tErr, talentRow) => {
-            const globalCommissions = getCommissionData();
+    db.get('SELECT * FROM users WHERE id = ?', [userId], async (err, currentUser) => {
+        db.get('SELECT commission_rate FROM talents WHERE user_id = ?', [userId], async (tErr, talentRow) => {
+            const globalCommissions = getCommissionData() || {};
             
-            const personalRate = (talentRow && talentRow.commission_rate !== null && talentRow.commission_rate !== undefined && talentRow.commission_rate > 0) 
+            // 💡 判斷是否有個人獨立特例 (若為 NULL 或 0 代表跟隨工作室全域類別)
+            const personalRate = (talentRow && talentRow.commission_rate !== null && talentRow.commission_rate !== undefined && Number(talentRow.commission_rate) > 0) 
                 ? Number(talentRow.commission_rate) 
                 : null;
 
@@ -203,33 +205,43 @@ router.get('/income', ensureAuth, checkPerm('my_income'), (req, res) => {
                 ORDER BY o.created_at DESC
             `;
 
-            db.all(orderSql, [userId, userId], (oErr, orders) => {
+            db.all(orderSql, [userId, userId], async (oErr, orders) => {
                 const orderList = orders || [];
                 const completedOrders = orderList.filter(o => o.status === 'completed');
 
-                // 算總收入
-                const totalIncome = completedOrders.reduce((sum, o) => {
-                    const cat = o.category || '陪玩單';
-                    const rate = (personalRate !== null && personalRate > 0) 
-                        ? personalRate 
-                        : (globalCommissions[cat] !== undefined ? globalCommissions[cat] : 0.7);
-                    return sum + Math.round(Number(o.total_amount || 0) * rate);
-                }, 0);
+                // 🚀 模組化計算 single order 收益 (以原價算陪陪收益)
+                async function computeOrderTalentEarning(o) {
+                    const finalPrice = Number(o.total_amount || 0);
+                    // 計算原價 (unit_price * duration)，若欄位缺失則回退以 finalPrice + discount 或 finalPrice 算
+                    const unitPrice = Number(o.unit_price || 0);
+                    const duration = Number(o.duration || 1);
+                    const discount = Number(o.discount || 0);
+                    
+                    let originalPrice = (unitPrice > 0) ? (unitPrice * duration) : (finalPrice + discount);
+                    if (originalPrice <= 0) originalPrice = finalPrice;
 
-                // 算當月收入
+                    const cat = o.category || '陪玩單';
+                    const { talentNetEarning } = await calculateCommissionByCategory(cat, finalPrice, originalPrice, personalRate);
+                    return talentNetEarning;
+                }
+
+                // 1. 歷史累積總收入 (原價分潤)
+                let totalIncome = 0;
+                for (let o of completedOrders) {
+                    totalIncome += await computeOrderTalentEarning(o);
+                }
+
+                // 2. 當月累積收入 (原價分潤)
                 const currentMonthPrefix = new Date().toISOString().slice(0, 7);
                 const monthlyOrders = completedOrders.filter(o => {
                     const dateStr = o.end_time || o.created_at || '';
                     return dateStr.startsWith(currentMonthPrefix);
                 });
                 
-                const monthlyIncome = monthlyOrders.reduce((sum, o) => {
-                    const cat = o.category || '陪玩單';
-                    const rate = (personalRate !== null && personalRate > 0) 
-                        ? personalRate 
-                        : (globalCommissions[cat] !== undefined ? globalCommissions[cat] : 0.7);
-                    return sum + Math.round(Number(o.total_amount || 0) * rate);
-                }, 0);
+                let monthlyIncome = 0;
+                for (let o of monthlyOrders) {
+                    monthlyIncome += await computeOrderTalentEarning(o);
+                }
 
                 db.get('SELECT COALESCE(SUM(amount), 0) as total_withdrawn FROM payouts WHERE user_id = ? AND status = "completed"', [userId], (pErr, payoutStats) => {
                     const totalWithdrawn = payoutStats ? Number(payoutStats.total_withdrawn) : 0;
@@ -239,7 +251,6 @@ router.get('/income', ensureAuth, checkPerm('my_income'), (req, res) => {
                         user: currentUser || req.user,
                         personalRate: personalRate,
                         globalCommissions: globalCommissions,
-                        commissionRate: personalRate || globalCommissions['陪玩單'] || 0.7,
                         stats: {
                             totalIncome: totalIncome,
                             monthlyIncome: monthlyIncome,
@@ -253,9 +264,8 @@ router.get('/income', ensureAuth, checkPerm('my_income'), (req, res) => {
         });
     });
 });
-
 // =========================================================================
-// 5. 我的訂單 (My Orders) - 保持不變
+// 5. 我的訂單 (My Orders)
 // =========================================================================
 router.get('/my-orders', ensureAuth, (req, res) => {
     const currentUserId = req.user.id;

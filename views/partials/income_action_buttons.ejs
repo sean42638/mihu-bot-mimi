@@ -1,0 +1,90 @@
+<!-- 🚀 獨立按鈕模組：接單管理中心按鈕群與操作控制區 -->
+<style>
+    .income-action-btn-group {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    /* ℹ️ 當前分潤成數表按鈕 (青藍光質感) */
+    .btn-income-info {
+        background: rgba(56, 189, 248, 0.08);
+        border: 1px solid rgba(56, 189, 248, 0.35);
+        color: #38bdf8 !important;
+        font-weight: 600;
+        border-radius: 50rem;
+        padding: 8px 18px;
+        font-size: 0.85rem;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        backdrop-filter: blur(10px);
+    }
+    .btn-income-info:hover {
+        background: rgba(56, 189, 248, 0.2);
+        border-color: #38bdf8;
+        color: #ffffff !important;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(56, 189, 248, 0.35);
+    }
+
+    /* 💜 開啟我的接單清單按鈕 (米胡漸層紫光) */
+    .btn-income-orders {
+        background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%);
+        border: 1px solid rgba(192, 132, 252, 0.4);
+        color: #ffffff !important;
+        font-weight: 700;
+        border-radius: 50rem;
+        padding: 8px 22px;
+        font-size: 0.88rem;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        box-shadow: 0 4px 15px rgba(147, 51, 234, 0.4);
+    }
+    .btn-income-orders:hover {
+        background: linear-gradient(135deg, #c084fc 0%, #9333ea 100%);
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: 0 8px 25px rgba(168, 85, 247, 0.6);
+        color: #ffffff !important;
+    }
+
+    /* 動態筆數 Badge */
+    .orders-count-badge {
+        background: rgba(0, 0, 0, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #fde047;
+        font-family: monospace;
+        font-weight: 800;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.78rem;
+        margin-left: 2px;
+    }
+</style>
+
+<div class="income-action-btn-group">
+    <!-- 按鈕 1：當前分潤成數表 -->
+    <button type="button" 
+            class="btn btn-income-info" 
+            data-bs-toggle="modal" 
+            data-bs-target="#commissionRatesModal"
+            title="檢視個人專屬與工作室全域分潤成數設定">
+        <i class="fa-solid fa-circle-info text-info"></i>
+        <span>當前分潤成數表</span>
+    </button>
+
+    <!-- 按鈕 2：開啟我的接單清單 (動態數量提示) -->
+    <button type="button" 
+            class="btn btn-income-orders" 
+            data-bs-toggle="modal" 
+            data-bs-target="#ordersHistoryModal"
+            title="開啟過濾與檢視歷史工單紀錄">
+        <i class="fa-solid fa-layer-group"></i>
+        <span>開啟我的接單清單</span>
+        <span class="orders-count-badge" id="btnOrdersCountDisplay"><%= orders ? orders.length : 0 %></span>
+    </button>
+</div>

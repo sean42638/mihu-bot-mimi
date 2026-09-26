@@ -1,69 +1,67 @@
 const db = require('../database');
 
 /**
- * 💡 預設 5 大類別抽傭比例 (若資料庫尚無設定時的防呆備用值)
+ * 💡 預設 5 大類別抽傭比例 (工作室留存/抽成比率)
+ * 例如 0.20 代表工作室抽 20% (陪陪實得 80%)
  */
 const DEFAULT_COMMISSION_RATES = {
-    '陪玩單': 0.20, // 20%
-    '禮物單': 0.10, // 10%
-    '有獎單': 0.05, // 5%
-    '冠名單': 0.15, // 15%
-    '活動單': 0.10  // 10%
+    '陪玩單': 0.20, // 工作室抽 20% -> 陪陪得 80%
+    '禮物單': 0.15, // 工作室抽 15% -> 陪陪得 85%
+    '有獎':   0.10, // 工作室抽 10% -> 陪陪得 90%
+    '冠名':   0.15, // 工作室抽 15% -> 陪陪得 85%
+    '獎金':   0.00  // 工作室抽 0%  -> 陪陪得 100%
 };
 
 /**
- * 🚀 1. 根據訂單類別 (category) 自動獲取傭金%數與計算金額
- * @param {string} category - 訂單類別 ('陪玩單' | '禮物單' | '有獎單' | '冠名單' | '活動單')
- * @param {number} totalAmount - 訂單實收總價
- * @returns {Promise<{ commissionRate: number, commissionRatePercent: string, platformCommission: number, talentNetEarning: number }>}
+ * 🚀 核心模組化連動函式 (支援「以原價計算陪陪分潤，不承擔折扣」)
+ * @param {string} category 訂單類別 (例: '陪玩單', '禮物單', '有獎', '冠名', '獎金')
+ * @param {number} finalPrice 訂單折後實收總價
+ * @param {number} originalPrice 訂單原總價 (未折前原價，若無傳入則預設等於 finalPrice)
+ * @param {number|null} personalOverrideRate 個人專屬特例分潤率 (例如 0.8 代表陪陪拿 80%)
  */
-async function calculateCommissionByCategory(category, totalAmount) {
+async function calculateCommissionByCategory(category, finalPrice, originalPrice = null, personalOverrideRate = null) {
     return new Promise((resolve) => {
-        const amount = Math.max(0, Number(totalAmount || 0));
+        const actualFinalPrice = Math.max(0, Number(finalPrice || 0));
+        // 若未傳入原價，則預設以折後實收價格為原價
+        const baseOriginalPrice = (originalPrice !== null && originalPrice !== undefined && Number(originalPrice) > 0) 
+            ? Number(originalPrice) 
+            : actualFinalPrice;
 
-        // 讀取 SQLite 資料庫中的抽傭設定 (如果表不存在或沒設定則用預設值)
         db.get('SELECT rate FROM commission_settings WHERE category = ?', [category], (err, row) => {
-            let rate = DEFAULT_COMMISSION_RATES[category] !== undefined ? DEFAULT_COMMISSION_RATES[category] : 0.20;
+            // 工作室抽成比率 (Studio Cut)
+            let studioCutRate = DEFAULT_COMMISSION_RATES[category] !== undefined ? DEFAULT_COMMISSION_RATES[category] : 0.20;
 
             if (!err && row && row.rate !== undefined && row.rate !== null) {
-                rate = Number(row.rate);
+                studioCutRate = Number(row.rate);
             }
 
-            // 計算平台傭金與陪陪淨收入
-            const platformCommission = Math.round(amount * rate);
-            const talentNetEarning = Math.max(0, amount - platformCommission);
-            const commissionRatePercent = `${(rate * 100).toFixed(0)}%`;
+            // 陪陪分潤成數 (Talent Share Rate)
+            let talentShareRate = (1 - studioCutRate);
+
+            // 若該陪陪有個人專屬特例抽傭 (例如 0.85)，優先採用個人特例
+            if (personalOverrideRate !== null && personalOverrideRate !== undefined && Number(personalOverrideRate) > 0) {
+                talentShareRate = Number(personalOverrideRate);
+                studioCutRate = 1 - talentShareRate;
+            }
+
+            // 🚀 關鍵核心算式：陪陪分潤以「原價 (baseOriginalPrice)」計算，完全不吃折扣損耗！
+            const talentNetEarning = Math.round(baseOriginalPrice * talentShareRate);
+            
+            // 平台實際留存金額 = 折後實收金額 - 陪陪實得 (所有折扣由工作室折抵)
+            const platformCommission = Math.max(0, actualFinalPrice - talentNetEarning);
+            
+            const commissionRatePercent = `${(talentShareRate * 100).toFixed(0)}%`;
 
             resolve({
-                commissionRate: rate,                // 抽傭比例 (例如 0.20)
-                commissionRatePercent,               // 顯示文字 (例如 '20%')
-                platformCommission,                   // 平台抽成金額 (例如 $200)
-                talentNetEarning                      // 陪陪實得金額 (例如 $800)
+                studioCutRate,                                   // 工作室抽成率 (例如 0.20)
+                talentShareRate,                                 // 陪陪分潤率 (例如 0.80)
+                commissionRatePercent,                           // 陪陪分潤%顯示 (例如 '80%')
+                platformCommission,                               // 平台最終淨抽成
+                talentNetEarning                                  // 陪陪原價實得分潤
             });
         });
     });
 }
-
-/**
- * 💡 2. 初始化 SQLite 抽傭設定資料表 (確保 5 大類別存在)
- */
-function initCommissionTable() {
-    db.run(`
-        CREATE TABLE IF NOT EXISTS commission_settings (
-            category TEXT PRIMARY KEY,
-            rate REAL NOT NULL,
-            updated_at DATETIME DEFAULT (DATETIME('now', 'localtime'))
-        )
-    `, () => {
-        // 預設寫入 5 個選項
-        for (const [cat, rate] of Object.entries(DEFAULT_COMMISSION_RATES)) {
-            db.run(`INSERT OR IGNORE INTO commission_settings (category, rate) VALUES (?, ?)`, [cat, rate]);
-        }
-    });
-}
-
-// 自動執行資料表初始化
-initCommissionTable();
 
 module.exports = {
     calculateCommissionByCategory,

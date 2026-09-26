@@ -1,0 +1,46 @@
+<!-- 🚀 1. 四大金流卡片元件 -->
+<div class="row g-4 mb-4">
+    <div class="col-xl-3 col-md-6 col-12">
+        <div class="income-stat-card border-warning border-opacity-25">
+            <i class="fa-solid fa-sack-dollar stat-card-glow text-warning"></i>
+            <div>
+                <div class="stat-label-text text-warning"><i class="fa-solid fa-coins"></i>總收入 (歷史分潤)</div>
+                <div class="stat-val-huge text-warning">$<%= Number(stats.totalIncome).toLocaleString() %></div>
+            </div>
+            <div class="stat-sub-note">歷史已完成所有訂單分潤總計</div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 col-12">
+        <div class="income-stat-card border-info border-opacity-25">
+            <i class="fa-solid fa-calendar-check stat-card-glow text-info"></i>
+            <div>
+                <div class="stat-label-text text-info"><i class="fa-solid fa-calendar-day"></i>本月收入</div>
+                <div class="stat-val-huge text-info">$<%= Number(stats.monthlyIncome).toLocaleString() %></div>
+            </div>
+            <div class="stat-sub-note">當月份已完成訂單分潤結算</div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 col-12">
+        <div class="income-stat-card border-secondary border-opacity-25">
+            <i class="fa-solid fa-money-bill-transfer stat-card-glow text-secondary"></i>
+            <div>
+                <div class="stat-label-text text-light"><i class="fa-solid fa-hand-holding-dollar"></i>累積提領薪資</div>
+                <div class="stat-val-huge text-light">$<%= Number(stats.totalWithdrawn).toLocaleString() %></div>
+            </div>
+            <div class="stat-sub-note">歷史已核銷匯款提領總額</div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 col-12">
+        <div class="income-stat-card border-success border-opacity-50" style="background: linear-gradient(135deg, rgba(23, 19, 38, 0.9), rgba(16, 185, 129, 0.08));">
+            <i class="fa-solid fa-vault stat-card-glow text-success"></i>
+            <div>
+                <div class="stat-label-text text-success"><i class="fa-solid fa-wallet"></i>本月可提領薪資</div>
+                <div class="stat-val-huge text-success">$<%= Number(stats.availableToWithdraw).toLocaleString() %></div>
+            </div>
+            <div class="stat-sub-note">目前尚未提領之可用薪資餘額</div>
+        </div>
+    </div>
+</div>

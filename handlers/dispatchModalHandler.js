@@ -102,22 +102,41 @@ async function handleDispatchModal(interaction) {
         const csUser = interaction.user;
         const csName = sessionData.csName || interaction.member?.nickname || csUser.globalName || csUser.username;
 
-        // 5. 寫入 orders 資料庫
+        // 5. 寫入 orders 資料庫 (同時寫入 platform_commission 與 talent_earning)
         await new Promise((resolve, reject) => {
             const insertSql = `
                 INSERT INTO orders (
                     order_no, boss_id, cs_id, cs_name, category, 
                     game, content_tier, duration, unit, unit_price,
-                    total_amount, discount, extra, note, status, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', DATETIME('now', 'localtime'))
+                    total_amount, discount, extra, note, status, 
+                    platform_commission, talent_earning, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, DATETIME('now', 'localtime'))
             `;
             db.run(insertSql, [
                 orderNo, bossId, csUserId, csName, category,
                 game, contentTier, duration, unit, unitPrice,
-                finalPrice, discountAmount, extra, note
+                finalPrice, discountAmount, extra, note,
+                platformCommission, talentNetEarning
             ], function(err) {
-                if (err) reject(err);
-                else resolve(this.lastID);
+                if (err) {
+                    const fallbackSql = `
+                        INSERT INTO orders (
+                            order_no, boss_id, cs_id, cs_name, category, 
+                            game, content_tier, duration, unit, unit_price,
+                            total_amount, discount, extra, note, status, created_at
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', DATETIME('now', 'localtime'))
+                    `;
+                    db.run(fallbackSql, [
+                        orderNo, bossId, csUserId, csName, category,
+                        game, contentTier, duration, unit, unitPrice,
+                        finalPrice, discountAmount, extra, note
+                    ], function(fbErr) {
+                        if (fbErr) reject(fbErr);
+                        else resolve(this.lastID);
+                    });
+                } else {
+                    resolve(this.lastID);
+                }
             });
         });
 
@@ -136,35 +155,29 @@ async function handleDispatchModal(interaction) {
             color: BRAND_COLORS.PURPLE || 0x8b5cf6,
             footerText: '米胡電競 MiHu Gaming · 派單服務系統'
         })
-        // 第一排：訂單編號、負責客服 (無 Emoji)
         .addFields(
             { name: '📌 訂單編號', value: `\`${orderNo}\``, inline: true },
             { name: '負責客服', value: `<@${csUserId}>`, inline: true },
             { name: '\u200b', value: '\u200b', inline: true }
         )
-        // 第二排：服務項目、內容規格 (無 Emoji)、服務時長 (無 Emoji)
         .addFields(
             { name: '🎮 服務項目', value: `**${game}**`, inline: true },
             { name: '內容規格', value: `\`${contentTier}\``, inline: true },
             { name: '服務時長', value: `**${duration}${unit}**`, inline: true }
         );
 
-        // 第三排：附加條件 (單獨佔滿整行)
         if (extra && extra !== '無') {
             dispatchEmbed.addFields({ name: '✨ 附加條件', value: extra, inline: false });
         }
 
-        // 第四排：備註說明 (單獨佔滿整行)
         if (note && note !== '無') {
             dispatchEmbed.addFields({ name: '💬 備註說明', value: note, inline: false });
         }
 
-        // 🎯 構建頁面文字 (顏文字與 Tag 完美融入)
         const outerText = `/)/)\n` +
                           `( . .) ｡ o O (   +:｡.｡ ✦新 單 快 報✦ ｡.｡:+\n` +
                           `( づ♡. ${tagInput}`;
 
-        // 🚀 發送至目標頻道：純文字 + 美化小卡
         await targetChannel.send({
             content: outerText,
             embeds: [dispatchEmbed]
@@ -182,6 +195,6 @@ async function handleDispatchModal(interaction) {
     }
 }
 
-module.exports = {
-    handleDispatchModal
-};
+// 🛡️ 雙重導出：同時支援預設匯出 (require) 與 解構匯出 (require.handleDispatchModal)
+module.exports = handleDispatchModal;
+module.exports.handleDispatchModal = handleDispatchModal;

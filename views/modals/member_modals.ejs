@@ -187,6 +187,45 @@
     </div>
 </div>
 
+<!-- 🚀 彈窗 4：個人與各類別分潤成數表 Modal (連動工作室全域預設) -->
+<div class="modal fade" id="commissionRatesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 520px;">
+        <div class="modal-content modal-content-glass">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-percent text-info"></i>
+                    <span>個人與各類別分潤成數表</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-3">
+                <!-- 💡 提示區塊：依據是否有特例成數動態切換 -->
+                <div id="commissionNoticeBox" class="alert border-0 py-2 px-3 mb-3 small" style="font-size: 0.83rem;">
+                    <span id="commissionNoticeText"></span>
+                </div>
+
+                <div class="table-responsive rounded-3" style="border: 1px solid rgba(255, 255, 255, 0.08); background: rgba(0, 0, 0, 0.2);">
+                    <table class="table table-dark table-hover align-middle mb-0 text-center small">
+                        <thead>
+                            <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+                                <th class="py-2 text-white-50">訂單類別</th>
+                                <th class="py-2 text-white-50">工作室設定分潤</th>
+                                <th class="py-2 text-white-50">您的實際適用成數</th>
+                            </tr>
+                        </thead>
+                        <tbody id="commissionTableBody">
+                            <!-- 由 JavaScript 動態繪製列表 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-sm btn-secondary rounded-pill px-4" data-bs-dismiss="modal">關閉</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- 🚨 獨立防呆彈窗：數目不得為負數 Modal -->
 <div class="modal fade" id="negativeErrorModal" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
     <div class="modal-dialog modal-dialog-centered modal-sm">
@@ -223,7 +262,7 @@
         document.getElementById('hiddenCurrentBalance').value = window.currentMemberBalance;
         document.getElementById('hiddenCurrentBonus').value = window.currentMemberBonus;
 
-        // 🚀 強制清空所有輸入框，不讓舊數字幹擾本次充值
+        // 🚀 強制清空所有輸入框，不讓舊數字干擾本次充值
         document.getElementById('modalAddAmount').value = '';
         document.getElementById('modalBonusBalance').value = '';
         document.getElementById('modalBalance').value = ''; 
@@ -237,6 +276,72 @@
         }
     };
 
+    // 🚀 開啟「個人與各類別分潤成數表」彈窗 (完美支援工作室預設與個人特例)
+    // 🚀 修正：個人與各類別分潤成數表開啟邏輯
+window.openCommissionRatesModal = function(talentData, studioRates) {
+    // 預設工作室 5 大類別成數 (若後端沒傳則以此為備用預設)
+    const defaultStudioRates = {
+        '陪玩單': '80%',
+        '禮物單': '85%',
+        '有獎':   '90%',
+        '冠名':   '85%',
+        '獎金':   '100%'
+    };
+
+    const rates = studioRates || defaultStudioRates;
+    
+    // 💡 關鍵修正：必須嚴格檢查 commission_rate 是否有填寫，若為 null / undefined / 空白 / 0 則視為沒有特例！
+    let personalRate = null;
+    if (talentData && talentData.commission_rate !== null && talentData.commission_rate !== undefined && talentData.commission_rate !== '') {
+        const parsed = Number(talentData.commission_rate);
+        if (!isNaN(parsed) && parsed > 0) {
+            personalRate = parsed;
+        }
+    }
+
+    const noticeBox = document.getElementById('commissionNoticeBox');
+    const noticeText = document.getElementById('commissionNoticeText');
+
+    if (personalRate !== null) {
+        // 1. 只有真的有填寫特例數字時，才顯示特例提示
+        const percentStr = Math.round(personalRate * 100) + '%';
+        if (noticeBox) noticeBox.className = 'alert border-0 py-2 px-3 mb-3 small bg-primary bg-opacity-10 border-primary border-opacity-25 text-primary';
+        if (noticeText) noticeText.innerHTML = `☀️ <strong>特例提示</strong>：您擁有個人專屬特例抽傭成數 <strong>${percentStr}</strong>，優先適用於所有類別訂單！`;
+    } else {
+        // 2. 沒填寫特例（工作室預設）時，顯示連動成功提示
+        if (noticeBox) noticeBox.className = 'alert border-0 py-2 px-3 mb-3 small bg-success bg-opacity-10 border-success border-opacity-25 text-success';
+        if (noticeText) noticeText.innerHTML = `✨ <strong>工作室連動預設</strong>：您目前採用工作室全域類別分潤設定！`;
+    }
+
+    const categories = [
+        { name: '陪玩單', studio: rates['陪玩單'] || '80%' },
+        { name: '禮物單', studio: rates['禮物單'] || '85%' },
+        { name: '有獎',   studio: rates['有獎']   || '90%' },
+        { name: '冠名',   studio: rates['冠名']   || '85%' },
+        { name: '獎金',   studio: rates['獎金']   || '100%' }
+    ];
+
+    const tbody = document.getElementById('commissionTableBody');
+    if (tbody) {
+        tbody.innerHTML = categories.map(cat => {
+            // 💡 若無個人特例，實際適用成數就完全等於工作室設定！
+            const applied = (personalRate !== null) ? Math.round(personalRate * 100) + '%' : cat.studio;
+            return `
+                <tr>
+                    <td class="fw-bold text-white">${cat.name}</td>
+                    <td class="text-secondary">${cat.studio}</td>
+                    <td class="fw-bold text-warning">${applied}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    const modalEl = document.getElementById('commissionRatesModal');
+    if (modalEl) {
+        const instance = bootstrap.Modal.getOrCreateInstance(modalEl);
+        instance.show();
+    }
+};
     // 🚀 前端提交攔截與負數獨立彈窗顯示
     document.addEventListener('DOMContentLoaded', () => {
         const adjustForm = document.getElementById('adjustBalanceForm');
